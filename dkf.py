@@ -89,7 +89,8 @@ def train(sess,config):
 	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit)
 	# cost
 	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,alpha_holder)
-	diff=tf.reduce_mean((outputs["obs_params"][0]-outputs["pred_params"][0])**2)
+	#diff=tf.reduce_mean((outputs["obs_params"][0]-outputs["pred_params"][0])**2)
+	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
 	train_step = tf.train.AdamOptimizer(1e-3).minimize(total_cost)
 	init = tf.global_variables_initializer()
@@ -106,11 +107,11 @@ def train(sess,config):
 		if alpha_mode:
 			begin_tau=config["epoch"]*0.1
 			end_tau=config["epoch"]*0.9
-			tau=1
+			tau=100.0
 			if i < begin_tau:
 				alpha=0.0
 			elif i<end_tau:
-				alpha=np.exp(-(i-begin_tau)/tau)
+				alpha=1.0-np.exp(-(i-begin_tau)/tau)
 			else:
 				alpha=1.0	
 		if i%10 == 0:
@@ -135,12 +136,12 @@ def train(sess,config):
 			if prev_validation_cost<validation_cost:
 				validation_count+=1
 				if config["patience"] >0 and validation_count>=config["patience"]:
-					print("step %d, training cost %g, validation cost %g (%s)"%(i, cost, validation_cost,save_path))
+					print("step %d, training cost %g, validation cost %g (%s)[alpha=%g]"%(i, cost, validation_cost,save_path,alpha))
 					print("[stop] by validation")
 					break;
 			else:
 				validation_count=0
-			print("step %d, training cost %g, validation cost %g (%s) %g"%(i, cost, validation_cost,save_path,error))
+			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
 			prev_validation_cost=validation_cost
 		eps=np.random.standard_normal((batch_size*n_steps,dim))
 		for j in range(n_batch):
@@ -257,7 +258,7 @@ def filtering(sess,config):
 	print(result["sampled_pred_params"][0].shape)
 	z=np.reshape(result["sampled_z"],[-1,dim])
 	zs=np.zeros((sample_size,x.shape[0],n_steps,dim),dtype=np.float32)
-	mus=np.zeros((sample_size*sample_size,x.shape[0],n_steps,dim),dtype=np.float32)
+	mus=np.zeros((sample_size*sample_size,x.shape[0],n_steps,dim_emit),dtype=np.float32)
 	for j in range(n_batch):
 		idx=j*batch_size
 		print(j,"/",n_batch)

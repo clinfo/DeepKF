@@ -21,14 +21,21 @@ if len(sys.argv)>1:
 	filename_mask=config["mask_test_npy"]
 	filename_filter=config["save_result_filter"]
 	filename_steps=config["steps_test_npy"]
+	out_dir=config["plot_path"]
 
+print("[LOAD] ",filename_filter)
 p_filter_result=joblib.load(filename_filter)
+print("[LOAD] ",filename_result)
 obj=joblib.load(filename_result)
+print("[LOAD] ",filename_obs)
 o=np.load(filename_obs)
 o=o.transpose((0,2,1))
+print("[LOAD] ",filename_steps)
 steps=np.load(filename_steps)
+print("[LOAD] ",filename_mask)
 m=np.load(filename_mask)
 m=m.transpose((0,2,1))
+print("[LOAD] ",filename_info)
 fp = open(filename_info, 'r')
 data_info = json.load(fp)
 d=data_info["attr_emit_list"].index("206010")
@@ -62,22 +69,31 @@ def plot_fig(idx):
 	plt.plot(mu2[idx,:s,d],label="pred_mu",color="r")
 	#plt.legend()
 
+name=data_info[pid_key][idx]
 if len(sys.argv)>2:
 	if sys.argv[2]=="all":
 		for idx in range(l):
 			print(data_info[pid_key][idx])
 			name=data_info[pid_key][idx]
 			plot_fig(idx)
-			plt.savefig(out_dir+"/"+str(idx)+"_"+name+".png")
+			out_filename=out_dir+"/"+str(idx)+"_"+name+"_p.png"
+			print("[SAVE] :",out_filename)
+			plt.savefig(out_filename)
 			plt.clf()
 	else:
 		idx=int(sys.argv[2])
 		print(data_info[pid_key][idx])
 		plot_fig(idx)
+		out_filename=out_dir+"/"+str(idx)+"_"+name+"_p.png"
+		print("[SAVE] :",out_filename)
+		plt.savefig(out_filename)
 		plt.show()
 		plt.clf()
 else:
 	print(data_info[pid_key][idx])
 	plot_fig(idx)
+	out_filename=out_dir+"/"+str(idx)+"_"+name+"_p.png"
+	print("[SAVE] :",out_filename)
+	plt.savefig(out_filename)
 	plt.show()
 	plt.clf()

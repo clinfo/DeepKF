@@ -25,6 +25,52 @@ FLAGS = tf.app.flags.FLAGS
 # Basic model parameters.
 tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
+def make_griddata(dim,nx,rx=1):
+	arr=[]
+	for d in range(dim):
+		x = np.linspace(-rx, rx, nx)
+		arr.append(x)
+	grid = np.array(np.meshgrid(*arr)).reshape(dim,-1)
+	grid=np.transpose(grid)
+	return grid
+
+def field(sess,config):
+	batch_size=config["batch_size"]
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	dim_emit=66
+	n_steps=1
+	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	z0=make_griddata(dim,nx=30,rx=20)
+	batch_size=z0.shape[0]
+	# inference
+	z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	z_m =tf.reshape(z_m,[-1,dim])
+	
+	# grad
+	g_z = tf.gradients(z_m, [z_holder])
+	# load
+	saver = tf.train.Saver()# これ以前の変数のみ保存される
+	saver.restore(sess,config["load_model"])
+	#
+	feed_dict={z_holder:z0}
+	g=sess.run(g_z,feed_dict=feed_dict)
+	#
+	## save results
+	print(z0.shape)
+	print(g[0].shape)
+	if config["simulation_path"]!="":
+		sim_filename=config["simulation_path"]+"/field.jbl"
+		results={}
+		results["z"]=z0
+		results["gz"]=g
+		print("[SAVE] result : ",sim_filename)
+		joblib.dump(results,sim_filename)
+
+
 
 def infer(sess,config):
 	batch_size=config["batch_size"]
@@ -39,7 +85,7 @@ def infer(sess,config):
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	
 	# inference
-	z_m,z_cov,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None)
+	z_m,z_cov,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
 	z_m =tf.reshape(z_m,[-1,dim])
 	obs_params,params_e=computeEmission(z_holder,n_steps,dim,dim_emit,params=None)
 	obs_params2,params_e=computeEmission(z_m,n_steps,dim,dim_emit,params=params_e)
@@ -52,13 +98,13 @@ def infer(sess,config):
 	
 	sim_nsteps=100
 	data=np.zeros((batch_size*n_steps,sim_nsteps,dim),dtype=np.float32)
-	obs_data=np.zeros((batch_size*n_steps,sim_nsteps,dim),dtype=np.float32)
+	obs_data=np.zeros((batch_size*n_steps,sim_nsteps,dim_emit),dtype=np.float32)
 	z0=(np.random.random((batch_size*n_steps,dim))-0.5)*2
 	#
 	data[:,0,:]=z0[:,:]
 	feed_dict={z_holder:z0}
 	obs=sess.run(obs_params,feed_dict=feed_dict)
-	o=obs[0].reshape((-1,dim))
+	o=obs[0].reshape((-1,dim_emit))
 	obs_data[:,0,:]=o[:,:]
 	#
 	for i in range(sim_nsteps-1):
@@ -68,7 +114,7 @@ def infer(sess,config):
 
 		m=m.reshape((-1,dim))
 		data[:,i+1,:]=m[:,:]
-		o=obs[0].reshape((-1,dim))
+		o=obs[0].reshape((-1,dim_emit))
 		obs_data[:,i+1,:]=o[:,:]
 		d=z0-m
 		e=np.sum(d**2,axis=1)
@@ -80,13 +126,13 @@ def infer(sess,config):
 			if d>1.0e-10:
 				print(i,j,d)
 	## save results
-	config["save_simulation"]="sim.jbl"
-	if config["save_simulation"]!="":
+	if config["simulation_path"]!="":
+		sim_filename=config["simulation_path"]+"/infer.jbl"
 		results={}
 		results["z"]=data
 		results["x"]=obs_data
-		print("[SAVE] result : ",config["save_simulation"])
-		joblib.dump(results,config["save_simulation"])
+		print("[SAVE] result : ",sim_filename)
+		joblib.dump(results,sim_filename)
 
 
 
@@ -136,6 +182,8 @@ if __name__ == '__main__':
 				config["load_model"]=args.model
 			if args.mode=="infer":
 				infer(sess,config)
+			elif args.mode=="field":
+				field(sess,config)
 			else:
 				infer(sess,config)
 

@@ -19,8 +19,10 @@ if len(sys.argv)>1:
 	config=json.load(fp)
 	if "plot_path" in config:
 		out_dir=config["plot_path"]
+		filename_result=config["simulation_path"]+"/infer.jbl"
 
 
+print("[LOAD] ",filename_result)
 obj=joblib.load(filename_result)
 data_x=obj["x"]
 data_z=obj["z"]
@@ -32,7 +34,6 @@ data_info = json.load(fp)
 d=data_info["attr_emit_list"].index("206010")
 idx=3
 s=data_x.shape[1]
-out_path="plot_movie/"
 l=len(data_info[pid_key])
 num=100
 def plot_mv(idx):
@@ -82,8 +83,9 @@ def plot_mv(idx):
 
 name="sim"
 anim=plot_mv(idx)
-print(out_path+"/"+str(idx)+"_"+name+'.mp4')
-anim.save('test.mp4', fps=10, extra_args=['-vcodec', 'libx264'])
-#anim.save(out_path+"/"+str(idx)+"_"+name+'.mp4', fps=10, extra_args=['-vcodec', 'libx264'])
-#plt.show()
+out_filename=out_dir+"/"+str(idx)+"_"+name+".mp4"
+print("[SAVE] :",out_filename)
+#anim.save('test.mp4', fps=10, extra_args=['-vcodec', 'libx264'])
+anim.save(out_filename, fps=10, extra_args=['-vcodec', 'libx264'])
+plt.show()
 plt.clf()

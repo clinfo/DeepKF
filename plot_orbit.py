@@ -36,7 +36,6 @@ fp = open(filename_info, 'r')
 data_info = json.load(fp)
 d=data_info["attr_emit_list"].index("206010")
 idx=3
-out_path="plot_movie/"
 l=len(data_info[pid_key])
 def plot_mv(idx):
 	s=int(steps[idx])
@@ -77,6 +76,6 @@ def plot_mv(idx):
 print(data_info[pid_key][idx])
 name=data_info[pid_key][idx]
 anim=plot_mv(idx)
-anim.save(out_path+"/"+str(idx)+"_"+name+'.mp4', fps=10, extra_args=['-vcodec', 'libx264'])
+anim.save(out_dir+"/"+str(idx)+"_"+name+'_orbit.mp4', fps=10, extra_args=['-vcodec', 'libx264'])
 #plt.show()
 plt.clf()

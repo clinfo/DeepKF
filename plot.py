@@ -3,6 +3,7 @@ from matplotlib import pylab as plt
 import joblib
 import json
 import sys
+import os
 
 filename_result="result/test.jbl"
 filename_obs="pack_data_emit_test.npy"
@@ -26,15 +27,24 @@ if len(sys.argv)>1:
 	filename_obs=config["data_test_npy"]
 	filename_mask=config["mask_test_npy"]
 	filename_steps=config["steps_test_npy"]
+	filename_info=config["data_info_json"]
 	if "plot_path" in config:
 		out_dir=config["plot_path"]
+		try:
+			os.makedirs(out_dir)
+		except:
+			pass
 
+print("[LOAD]:",filename_result)
 obj=joblib.load(filename_result)
 o=np.load(filename_obs)
+print("[LOAD]:",filename_steps)
 steps=np.load(filename_steps)
 o=o.transpose((0,2,1))
+print("[LOAD]:",filename_mask)
 m=np.load(filename_mask)
 m=m.transpose((0,2,1))
+print("[LOAD]:",filename_info)
 fp = open(filename_info, 'r')
 data_info = json.load(fp)
 d=data_info["attr_emit_list"].index("206010")
@@ -55,9 +65,9 @@ idx=702
 l=len(data_info[pid_key])
 
 def plot_fig(idx):
-	print(data_info[pid_key][idx])
-	name=data_info[pid_key][idx]
-	print(np.nanmean((obs_mu[:,:-1,:]-o[:,1:,:])**2))
+	print("id   =",idx)
+	print("data =",data_info[pid_key][idx])
+	print("error=",np.nanmean((obs_mu[:,:-1,:]-o[:,1:,:])**2))
 	s=steps[idx]
 	plt.subplot(2,1,2)
 	plt.plot(o[idx,:s,d],label="x")
@@ -69,18 +79,27 @@ def plot_fig(idx):
 	plt.plot(mu_q[idx,:s,1],label="dim1")
 	plt.legend()
 
+name=data_info[pid_key][idx]
 if len(sys.argv)>2:
 	if sys.argv[2]=="all":
 		for idx in range(l):
 			plot_fig(idx)
-			plt.savefig(out_dir+"/"+name+".png")
+			out_filename=out_dir+"/"+str(idx)+"_"+name+"_plot.png"
+			print("[SAVE] :",out_filename)
+			plt.savefig(out_filename)
 			plt.clf()
 	else:
 		idx=int(sys.argv[2])
 		plot_fig(idx)
+		out_filename=out_dir+"/"+str(idx)+"_"+name+"_plot.png"
+		print("[SAVE] :",out_filename)
+		plt.savefig(out_filename)
 		plt.show()
 		plt.clf()
 else:
 	plot_fig(idx)
+	out_filename=out_dir+"/"+str(idx)+"_"+name+"_plot.png"
+	print("[SAVE] :",out_filename)
+	plt.savefig(out_filename)
 	plt.show()
 	plt.clf()
