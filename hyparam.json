@@ -1,0 +1,35 @@
+{
+    "evaluation_output": "hyparam.json",
+    "hyperparameter_input": "",
+	"save_model_path": "./model/",
+	"load_model": "./model/model.last.ckpt",
+	"save_result_train": "./result/train.jbl",
+	"save_result_test":"./result/test.jbl",
+	"save_result_filter":"./result/filter.jbl",
+    "evaluation": {
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_cost": 0.0
+    },
+    "emssion_internal_layers": [
+        {
+            "name": "fc"
+        }
+    ],
+    "transition_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "lstm"
+        }
+    ]
+}
