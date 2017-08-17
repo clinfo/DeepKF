@@ -59,6 +59,7 @@ def _variable_on_cpu(name, shape, initializer):
 	"""
 	with tf.device('/cpu:0'):
 		dtype = tf.half if FLAGS.use_fp16 else tf.float32
+		print(shape)
 		var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
 	return var
 
@@ -98,6 +99,9 @@ def _normalization(data,name):
 	beta=0.75
 	output = tf.nn.lrn(data, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name=name)
 	return output
+
+def dropout(data,drop_out_rate):
+	return tf.nn.dropout(data,1.0-drop_out_rate)
 
 def batch_normalization(name,dim, data,init_params_flag,params):
 	if init_params_flag:
@@ -163,43 +167,56 @@ def fc_layer(name,input_layer,dim_in, dim_out,init_params_flag,params,wd_w,wd_b,
 
 def build_nn(x,dim_input,dim_output,n_steps,hyparam_name,name,
 	init_params_flag,
-	params
+	params,
+	control_params
 		):
 	wd_bias=None
 	wd_w=0.1
 	layer=x
+	layer_dim=dim_input
 	res_layer=None
 	hy_param=hy.get_hyperparameter()
 	for i,hy_layer in enumerate(hy_param[hyparam_name]):
+		layer_dim_out=layer_dim
+		print(">>>",layer_dim)
+		if "dim_output" in hy_layer:
+			layer_dim_out=hy_layer["dim_output"]
+			print(">>>",layer_dim,"=>",layer_dim_out)
+			
 		if hy_layer["name"]=="fc":
 			with tf.variable_scope(name+'_fc'+str(i)) as scope:
 				layer=fc_layer("vd_fc"+str(i),layer,
-					dim_input, dim_input,
+					layer_dim, layer_dim_out,
 					init_params_flag,params,wd_w,wd_bias,activate=tf.sigmoid)
+				layer_dim=layer_dim_out
 		elif hy_layer["name"]=="fc_res_start":
 			res_layer=layer
+		elif hy_layer["name"]=="do":
+			layer=dropout(layer,control_params["dropout_rate"])
 		elif hy_layer["name"]=="fc_res":
 			with tf.variable_scope(name+'_fc_res'+str(i)) as scope:
 				layer=fc_layer(name+"_fc_res"+str(i),layer,
-					dim_input, dim_input,
+					layer_dim, layer_dim_out,
 					init_params_flag,params,wd_w,wd_bias,activate=None)
 				layer=res_layer+layer
 				layer=tf.sigmoid(layer)
+				layer_dim=layer_dim_out
 		elif hy_layer["name"]=="fc_bn":
 			with tf.variable_scope(name+'_fc_bn'+str(i)) as scope:
 				layer=fc_layer(name+"_fcbn"+str(i),layer,
-					dim_input, dim_input,
+					layer_dim, layer_dim_out,
 					init_params_flag,params,wd_w,wd_bias,activate=tf.sigmoid,with_bn=True)
+				layer_dim=layer_dim_out
 		elif hy_layer["name"]=="lstm":
 			with tf.variable_scope(name+'_lstm'+str(i)) as scope:
-				layer=tf.reshape(layer,[-1,n_steps,dim_input])
-				layer=RNN_layer(layer,n_steps,dim_input)
-				layer=tf.reshape(layer,[-1,dim_input])
+				layer=tf.reshape(layer,[-1,n_steps,layer_dim])
+				layer=RNN_layer(layer,n_steps,layer_dim_out)
+				layer=tf.reshape(layer,[-1,layer_dim_out])
 		else:
 			assert("unknown layer:"+hy_layer["name"])
 	return layer
 			
-def computeVariationalDist(x,epsilon,n_steps,dim_emit,dim):
+def computeVariationalDist(x,epsilon,n_steps,dim_emit,dim,control_params):
 	"""
 	x: bs x T x dim_emit
 	return:
@@ -218,7 +235,8 @@ def computeVariationalDist(x,epsilon,n_steps,dim_emit,dim):
 		layer=build_nn(x,dim_input=dim_emit,dim_output=dim,n_steps=n_steps,
 				hyparam_name="variational_internal_layers",name="vd",
 				init_params_flag=init_params_flag,
-				params=params
+				params=params,
+				control_params=control_params
 				)
 		
 		with tf.variable_scope('vd_fc_mu') as scope:
@@ -241,7 +259,7 @@ def computeVariationalDist(x,epsilon,n_steps,dim_emit,dim):
 		layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 	return layer_z,layer_mu,layer_cov
 
-def computeEmission(z,n_steps,dim,dim_emit,params=None):
+def computeEmission(z,n_steps,dim,dim_emit,params=None,control_params=None):
 	"""
 	z: (bs x T) x dim
 	"""
@@ -259,7 +277,8 @@ def computeEmission(z,n_steps,dim,dim_emit,params=None):
 		layer=build_nn(z,dim_input=dim,dim_output=dim,n_steps=n_steps,
 				hyparam_name="emission_internal_layers",name="em",
 				init_params_flag=init_params_flag,
-				params=params
+				params=params,
+				control_params=control_params
 				)
 		# layer -> layer_mean
 		with tf.variable_scope('em_fc_mean') as scope:
@@ -276,7 +295,7 @@ def computeEmission(z,n_steps,dim,dim_emit,params=None):
 	layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim_emit])
 	return [layer_mu,layer_cov],params
 
-def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None):
+def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,control_params=None):
 	"""
 	mu: bs x T x dim
 	cov: bs x T x dim
@@ -310,7 +329,8 @@ def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,par
 			layer=build_nn(z,dim_input=dim,dim_output=dim,n_steps=n_steps,
 				hyparam_name="transition_internal_layers",name="tr",
 				init_params_flag=init_params_flag,
-				params=params
+				params=params,
+				control_params=control_params
 				)
 			# layer -> layer_mean
 			with tf.variable_scope('tr_fc_mean') as scope:
@@ -336,7 +356,7 @@ def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,par
 		return layer_mean[0,:,:,:],layer_cov,params
 		
 
-def computePotential(z,n_steps,dim,params=None):
+def computePotential(z,n_steps,dim,params=None,control_params=None):
 	"""
 	z: bs x T x dim
 	pot: bs x T
@@ -349,13 +369,28 @@ def computePotential(z,n_steps,dim,params=None):
 	wd_bias=None
 	wd_w=0.1
 	hy_param=hy.get_hyperparameter()
-
-	z1=z+tf.constant([-1,0],dtype=np.float32)
-	z2=z+tf.constant([ 1,0],dtype=np.float32)
-	pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
+	pot_pole=[]
+	for d in range(dim):
+		z1=np.zeros((dim,),dtype=np.float32)
+		z2=np.zeros((dim,),dtype=np.float32)
+		z1[d]=1.0
+		z2[d]=-1.0
+		
+		z1=z-tf.constant(z1,dtype=np.float32)
+		z2=z-tf.constant(z2,dtype=np.float32)
+		p1=tf.reduce_sum(z1*z1,axis=2)
+		p2=tf.reduce_sum(z2*z2,axis=2)
+		pot_pole.append(p1)
+		pot_pole.append(p2)
+		
+	#pot_pole: (2xdim) x bs x T
+	pot=tf.reduce_min(pot_pole,axis=0)
+	#z1=z+tf.constant([-1,0],dtype=np.float32)
+	#z2=z+tf.constant([ 1,0],dtype=np.float32)
+	#pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
 	return pot
 	
-def computeTransition(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=False):
+def computeTransition(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=False,control_params=None):
 	"""
 	z: (bs x T)x dim
 	prior0: bs x 1 x dim
@@ -376,7 +411,8 @@ def computeTransition(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None
 			layer=build_nn(z,dim_input=dim,dim_output=dim,n_steps=n_steps,
 				hyparam_name="transition_internal_layers",name="tr",
 				init_params_flag=init_params_flag,
-				params=params
+				params=params,
+				control_params=control_params
 				)
 			# layer -> layer_mean
 			with tf.variable_scope('tr_fc_mean') as scope:
@@ -414,13 +450,13 @@ def computeTransition(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None
 		
 
 
-def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
+def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size,control_params):
 	params_tr=None
 	params_e=None
 	sample_size=10
 	resample_size=10
 	#  z0: (in_sample x b) x dim
-	mu_trans,cov_trans,params_tr=computeTransition(z,1,dim,None,None,params_tr,without_cov=True)
+	mu_trans,cov_trans,params_tr=computeTransition(z,1,dim,None,None,params_tr,without_cov=True,control_params=control_params)
 	#
 	m=tf.reshape(mu_trans,[sample_size,-1,1,dim])
 	d=m - tf.reduce_mean(m,axis=0)
@@ -434,7 +470,7 @@ def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
 	particles_d=particles-mu_trans[:,0,:]
 	particles_w=particles_d**2/cov_trans[:,0,:]
 	particles =tf.reshape(particles,[-1,dim])
-	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e)
+	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e,control_params=control_params)
 	mu=obs_params[0]
 	cov=obs_params[1]
 	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
@@ -463,13 +499,13 @@ def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
 	return outputs
 
 
-def p_filter2(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
+def p_filter2(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size,control_params):
 	params_tr=None
 	params_e=None
 	sample_size=10
 	resample_size=10
 	#  z0: (in_sample x b) x dim
-	mu_trans,cov_trans,params_tr=computeTransition(z,1,dim,None,None,params_tr,without_cov=True)
+	mu_trans,cov_trans,params_tr=computeTransition(z,1,dim,None,None,params_tr,without_cov=True,control_params=control_params)
 	#
 	#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
 	#
@@ -479,7 +515,7 @@ def p_filter2(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
 	particles_d=particles-mu_trans[:,0,:]
 	particles_w=particles_d**2/cov_trans[:,0,:]
 	particles =tf.reshape(particles,[-1,dim])
-	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e)
+	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e,control_params=control_params)
 	mu=obs_params[0]
 	cov=obs_params[1]
 	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
@@ -507,7 +543,7 @@ def p_filter2(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size):
 			"sampled_z":out}
 	return outputs
 
-def inference(x,epsilon,n_steps,dim,dim_emit):
+def inference(x,epsilon,n_steps,dim,dim_emit,control_params):
 	"""
 	Returns:
 		Logits.
@@ -518,29 +554,29 @@ def inference(x,epsilon,n_steps,dim,dim_emit):
 	# by replacing all instances of tf.get_variable() with tf.Variable().
 	#
 	with tf.name_scope('inference') as scope_parent:
-		z_q,mu_q,cov_q=computeVariationalDist(x,epsilon,n_steps,dim_emit,dim)
+		z_q,mu_q,cov_q=computeVariationalDist(x,epsilon,n_steps,dim_emit,dim,control_params=control_params)
 		m0=tf.constant(np.zeros((1,1,dim),dtype=np.float32))
 		c0=tf.constant(np.ones((1,1,dim),dtype=np.float32))
 		bs=tf.shape(mu_q)[0]
 		mean_prior0=tf.tile(m0,(bs,1,1))
 		cov_prior0 =tf.tile(c0,(bs,1,1))
 		#mu_trans,cov_trans,params_tr=computeTransition(z_q,n_steps,dim,mean_prior0,cov_prior0)
-		mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,dim,mean_prior0,cov_prior0)
+		mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,dim,mean_prior0,cov_prior0,control_params=control_params)
 		## compute V(x(t+1))-V(x(t)) < 0 for stability
-		mu_trans_1,cov_trans_1,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,dim,None,None,params_tr)
+		mu_trans_1,cov_trans_1,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,dim,None,None,params_tr,control_params=control_params)
 		print(mu_trans_1.shape)
 		print(mu_q.shape)
-		pot0=computePotential(mu_q,n_steps,dim,params=None)
-		pot1=computePotential(mu_trans_1,n_steps,dim,params=None)
+		pot0=computePotential(mu_q,n_steps,dim,params=None,control_params=control_params)
+		pot1=computePotential(mu_trans_1,n_steps,dim,params=None,control_params=control_params)
 		print(pot0.shape)
 		print(pot1.shape)
 		c=0.1
 		pot=tf.nn.relu(pot1-pot0+c)
 		pot=tf.reshape(pot,[-1,n_steps])
 		# compute emission
-		obs_params,params=computeEmission(z_q,n_steps,dim,dim_emit)
+		obs_params,params=computeEmission(z_q,n_steps,dim,dim_emit,control_params=control_params)
 		mu_trans_input=tf.reshape(mu_trans,[-1,dim])
-		pred_params,_=computeEmission(mu_trans_input,n_steps,dim,dim_emit,params)
+		pred_params,_=computeEmission(mu_trans_input,n_steps,dim,dim_emit,params,control_params=control_params)
 		#_activation_summary(softmax_linear)
 
 	outputs={"mu_q":mu_q,"cov_q":cov_q,
@@ -577,7 +613,7 @@ def computeTemporalKL(x,outputs,mask):
 	masked_kl=tf.reduce_sum(kl_t,axis=2)*mask
 	return tf.reduce_sum(masked_kl,axis=1)
 
-def loss(x,outputs,mask,alpha=1):
+def loss(x,outputs,mask,alpha=1,control_params=None):
 	"""Add 
 	Returns:
 		Loss tensor of type float.
@@ -589,7 +625,8 @@ def loss(x,outputs,mask,alpha=1):
 		pot=outputs["pot"]
 		sum_pot=tf.reduce_sum(pot*mask,axis=1)
 		cost_pot=tf.reduce_mean(pot)
-	cost_mean = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
+	#cost_mean = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
+	cost_mean = tf.reduce_mean((1-alpha)*negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
 	tf.add_to_collection('losses', cost_mean)
 
 	# The total loss is defined as the cross entropy loss plus all of the weight

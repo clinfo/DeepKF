@@ -84,11 +84,12 @@ def train(sess,config):
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
 	eps_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	alpha_holder=tf.placeholder(tf.float32)
+	control_params={"dropout_rate":0.5}
 	
 	# inference
-	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit)
+	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
-	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,alpha_holder)
+	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
 	#diff=tf.reduce_mean((outputs["obs_params"][0]-outputs["pred_params"][0])**2)
 	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
@@ -101,7 +102,8 @@ def train(sess,config):
 	validation_count=0
 	prev_validation_cost=0
 	alpha=config["alpha"]
-	alpha_mode=True
+	alpha_mode=False
+	alpha=0.0
 	for i in range(config["epoch"]):
 		np.random.shuffle(data_idx)
 		if alpha_mode:
@@ -189,11 +191,12 @@ def infer(sess,config):
 	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
+	control_params={"dropout_rate":0.0}
 	
 	# inference
-	outputs=inference(x_holder,None,n_steps,dim,dim_emit)
+	outputs=inference(x_holder,None,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
-	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder)
+	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,control_params=control_params)
 	# train_step
 	#init = tf.global_variables_initializer()
 	#sess.run(init)
@@ -245,8 +248,9 @@ def filtering(sess,config):
 	step_holder=tf.placeholder(tf.int32)
 	sample_size=10
 	z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+	control_params={"dropout_rate":0.0}
 	# inference
-	outputs=p_filter(x_holder,z_holder,step_holder,None,n_steps,dim,dim_emit,batch_size)
+	outputs=p_filter(x_holder,z_holder,step_holder,None,n_steps,dim,dim_emit,batch_size,control_params=control_params)
 	# loding model
 	saver = tf.train.Saver()# これ以前の変数のみ保存される
 	print("[LOAD]",config["load_model"])
