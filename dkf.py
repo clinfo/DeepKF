@@ -89,7 +89,7 @@ def train(sess,config):
 	# inference
 	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
-	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
+	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
 	#diff=tf.reduce_mean((outputs["obs_params"][0]-outputs["pred_params"][0])**2)
 	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
@@ -102,7 +102,7 @@ def train(sess,config):
 	validation_count=0
 	prev_validation_cost=0
 	alpha=config["alpha"]
-	alpha_mode=False
+	alpha_mode=True
 	alpha=0.0
 	for i in range(config["epoch"]):
 		np.random.shuffle(data_idx)
@@ -121,17 +121,22 @@ def train(sess,config):
 			cost=0.0
 			validation_cost=0.0
 			error=0.0
+			all_costs=np.zeros((3,),np.float32)
+			validation_all_costs=np.zeros((3,),np.float32)
 			# compute cost in training data
 			for j in range(n_batch):
 				idx=data_idx[j*batch_size:(j+1)*batch_size]
 				eps=np.zeros((batch_size*n_steps,dim))
 				feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
 				cost+=total_cost.eval(feed_dict=feed_dict)
+				#all_costs+=np.array(costs.eval(feed_dict=feed_dict))
+				all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 				error+=diff.eval(feed_dict=feed_dict)/n_batch
 			# compute cost in validation data
 			eps=np.zeros((x_val.shape[0]*x_val.shape[1],dim))
 			feed_dict={x_holder:x_val,m_holder:m_val,eps_holder:eps,alpha_holder:alpha}
 			validation_cost+=total_cost.eval(feed_dict=feed_dict)
+			validation_all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 			# save
 			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
 			# early stopping
@@ -144,6 +149,7 @@ def train(sess,config):
 			else:
 				validation_count=0
 			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
+			print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
 			prev_validation_cost=validation_cost
 		eps=np.random.standard_normal((batch_size*n_steps,dim))
 		for j in range(n_batch):
@@ -152,7 +158,8 @@ def train(sess,config):
 			train_step.run(feed_dict=feed_dict)
 
 	print("[RESULT] training cost %g, validation cost %g, error %g"%(cost, validation_cost,error))
-	output={"cost":cost,"validation_cost": validation_cost, "error":error}
+	print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+	output={"cost":cost,"validation_cost": validation_cost, "error":error,"all_costs":all_costs,"validation_all_costs":validation_all_costs}
 	hy_param["evaluation"]=output
 	# save hyperparameter
 	hy_param["load_model"]=config["save_model_path"]+"/model.last.ckpt"
@@ -196,7 +203,7 @@ def infer(sess,config):
 	# inference
 	outputs=inference(x_holder,None,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
-	total_cost,cost_mean,negCLL,temporalKL=loss(x_holder,outputs,m_holder,control_params=control_params)
+	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,control_params=control_params)
 	# train_step
 	#init = tf.global_variables_initializer()
 	#sess.run(init)

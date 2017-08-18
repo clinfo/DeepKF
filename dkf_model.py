@@ -632,8 +632,9 @@ def loss(x,outputs,mask,alpha=1,control_params=None):
 	# The total loss is defined as the cross entropy loss plus all of the weight
 	# decay terms (L2 loss).
 	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
-
-	return total_cost,cost_mean,negCLL,temporalKL
+	#costs={"negCLL":negCLL,"temporalKL":temporalKL,"potentialCost":cost_pot}
+	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL),cost_pot]
+	return total_cost,cost_mean,costs
 
 
 def _add_loss_summaries(total_loss):

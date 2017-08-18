@@ -6,7 +6,7 @@
     "mask_train_npy": "data/pack_mask_emit.npy",
 	"steps_npy": "data/pack_steps.npy",
     "dim": 0,
-    "epoch": 1000,
+    "epoch": 3000,
     "load_model": "",
 	"save_model_path":"dummy",
 	"patience": 0,

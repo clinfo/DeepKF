@@ -24,53 +24,69 @@ if len(sys.argv)>1 and sys.argv[1]=="rm":
 
 ###
 param_set={}
-param_set["dim"]=[16,32,64,128]
+param_set["dim"]=[16,32,64]
 param_set["emission_internal_layers"]=[
 		[
-		{"name":"fc"},
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 		[
-		{"name":"fc"},
-		{"name":"fc"},
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 		[
-		{"name":"fc"},
-		{"name":"fc"},
-		{"name":"fc"},
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_res_start"},
+		{"name":"fc_bn"},
+		{"name":"fc_res"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 	]
 param_set["transition_internal_layers"]=[
 		[
-		{"name":"fc"}
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 		[
-		{"name":"fc"},
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 		[
-		{"name":"fc"},
-		{"name":"fc"},
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_res_start"},
+		{"name":"fc_bn"},
+		{"name":"fc_res"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 	]
 param_set["variational_internal_layers"]=[
 		[
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
+		{"name":"fc_bn"},
 		],
 		[
-		{"name":"fc"},
-		{"name":"fc"},
-		],
-		[
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
 		{"name":"lstm"}
 		],
 		[
-		{"name":"fc"},
+		{"name":"fc_bn"},
+		{"name":"do"},
 		{"name":"lstm"},
+		{"name":"do"},
 		{"name":"lstm"},
 		],
 	]
