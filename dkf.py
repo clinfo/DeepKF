@@ -84,13 +84,12 @@ def train(sess,config):
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
 	eps_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	alpha_holder=tf.placeholder(tf.float32)
-	control_params={"dropout_rate":0.5}
+	control_params={"dropout_rate":0.5,"potential_enabled":True}
 	
 	# inference
 	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
 	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
-	#diff=tf.reduce_mean((outputs["obs_params"][0]-outputs["pred_params"][0])**2)
 	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
 	train_step = tf.train.AdamOptimizer(1e-3).minimize(total_cost)
@@ -129,7 +128,6 @@ def train(sess,config):
 				eps=np.zeros((batch_size*n_steps,dim))
 				feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
 				cost+=total_cost.eval(feed_dict=feed_dict)
-				#all_costs+=np.array(costs.eval(feed_dict=feed_dict))
 				all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 				error+=diff.eval(feed_dict=feed_dict)/n_batch
 			# compute cost in validation data
@@ -151,8 +149,9 @@ def train(sess,config):
 			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
 			print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
 			prev_validation_cost=validation_cost
-		eps=np.random.standard_normal((batch_size*n_steps,dim))
+		# update
 		for j in range(n_batch):
+			eps=np.random.standard_normal((batch_size*n_steps,dim))
 			idx=data_idx[j*batch_size:(j+1)*batch_size]
 			feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
 			train_step.run(feed_dict=feed_dict)
@@ -162,11 +161,13 @@ def train(sess,config):
 	output={"cost":cost,"validation_cost": validation_cost, "error":error,"all_costs":all_costs,"validation_all_costs":validation_all_costs}
 	hy_param["evaluation"]=output
 	# save hyperparameter
-	hy_param["load_model"]=config["save_model_path"]+"/model.last.ckpt"
+	save_model_path=config["save_model_path"]+"/model.last.ckpt"
+	hy_param["load_model"]=save_model_path
 	hy_param["save_model"]=""
 	hy.save_hyperparameter()
 	## save results
-	save_path = saver.save(sess, config["save_model_path"]+"/model.last.ckpt")
+	save_path = saver.save(sess, save_model_path)
+	print("[SAVE] %s"%(save_path))
 	if config["save_result_train"]!="":
 		results={}
 		eps=np.zeros((x.shape[0]*x.shape[1],dim))
@@ -198,7 +199,7 @@ def infer(sess,config):
 	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
-	control_params={"dropout_rate":0.0}
+	control_params={"dropout_rate":0.0,"potential_enabled":True}
 	
 	# inference
 	outputs=inference(x_holder,None,n_steps,dim,dim_emit,control_params=control_params)
@@ -255,7 +256,7 @@ def filtering(sess,config):
 	step_holder=tf.placeholder(tf.int32)
 	sample_size=10
 	z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
-	control_params={"dropout_rate":0.0}
+	control_params={"dropout_rate":0.0,"potential_enabled":True}
 	# inference
 	outputs=p_filter(x_holder,z_holder,step_holder,None,n_steps,dim,dim_emit,batch_size,control_params=control_params)
 	# loding model
