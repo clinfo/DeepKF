@@ -29,6 +29,17 @@ def initialize_hyperparameter(load_filename):
 			{"name":"fc"},
 			{"name":"lstm"}
 			]
+	hyperparameter["potential_internal_layers"]=[
+			{"name":"fc"},
+			{"name":"do"},
+			{"name":"fc"},
+			{"name":"do"},
+			{"name":"fc"}
+			]
+
+	hyperparameter["potential_enabled"]=True
+	hyperparameter["potential_grad_transition_enabled"]=True
+	hyperparameter["potential_nn_enabled"]=True
 	if load_filename is not None:
 		fp = open(load_filename, 'r')
 		hyperparameter.update(json.load(fp))

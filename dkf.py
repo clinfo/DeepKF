@@ -28,6 +28,7 @@ tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
 class NumPyArangeEncoder(json.JSONEncoder):
 	def default(self, obj):
+		print("aaa")
 		if isinstance(obj, np.int64):
 			return int(obj)
 		if isinstance(obj, np.int32):
@@ -89,19 +90,40 @@ def train(sess,config):
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
 	eps_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	potential_points_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	num_potential_points=100
 	alpha_holder=tf.placeholder(tf.float32)
-	control_params={"dropout_rate":0.5,"potential_enabled":True}
+	control_params={"dropout_rate":0.5}
 	
 	# inference
-	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,control_params=control_params)
+	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,pot_points=potential_points_holder,control_params=control_params)
 	# cost
 	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
 	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
 	train_step = tf.train.AdamOptimizer(1e-3).minimize(total_cost)
+	# print variables
+	print('## emission variables')
+	vars_em = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="emission_var")
+	for v in vars_em:
+		print(v.name)
+	print('## variational dist. variables')
+	vars_vd = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="variational_dist_var")
+	for v in vars_vd:
+		print(v.name)
+	print('## transition variables')
+	vars_tr = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="transition_var")
+	for v in vars_tr:
+		print(v.name)
+	print('## potential variables')
+	vars_pot = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="potential_var")
+	for v in vars_pot:
+		print(v.name)
+	# initialize
 	init = tf.global_variables_initializer()
 	saver = tf.train.Saver()
 	sess.run(init)
+
 	data_idx=list(range(x.shape[0]))
 	## training
 	validation_count=0
@@ -133,12 +155,18 @@ def train(sess,config):
 				idx=data_idx[j*batch_size:(j+1)*batch_size]
 				eps=np.zeros((batch_size*n_steps,dim))
 				feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
+				if potential_points_holder is not None:
+					pts=np.random.standard_normal((num_potential_points,dim))
+					feed_dict[potential_points_holder]=pts
 				cost+=total_cost.eval(feed_dict=feed_dict)
 				all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 				error+=diff.eval(feed_dict=feed_dict)/n_batch
 			# compute cost in validation data
 			eps=np.zeros((x_val.shape[0]*x_val.shape[1],dim))
 			feed_dict={x_holder:x_val,m_holder:m_val,eps_holder:eps,alpha_holder:alpha}
+			if potential_points_holder is not None:
+				pts=np.random.standard_normal((num_potential_points,dim))
+				feed_dict[potential_points_holder]=pts
 			validation_cost+=total_cost.eval(feed_dict=feed_dict)
 			validation_all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 			# save
@@ -154,12 +182,16 @@ def train(sess,config):
 				validation_count=0
 			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
 			print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+			print("[LOG] %d,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g"%(i, cost, validation_cost,save_path,error,alpha,all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
 			prev_validation_cost=validation_cost
 		# update
 		for j in range(n_batch):
 			eps=np.random.standard_normal((batch_size*n_steps,dim))
 			idx=data_idx[j*batch_size:(j+1)*batch_size]
 			feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
+			if potential_points_holder is not None:
+				pts=np.random.standard_normal((num_potential_points,dim))
+				feed_dict[potential_points_holder]=pts
 			train_step.run(feed_dict=feed_dict)
 
 	print("[RESULT] training cost %g, validation cost %g, error %g"%(cost, validation_cost,error))
@@ -205,7 +237,7 @@ def infer(sess,config):
 	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
-	control_params={"dropout_rate":0.0,"potential_enabled":True}
+	control_params={"dropout_rate":0.0}
 	
 	# inference
 	outputs=inference(x_holder,None,n_steps,dim,dim_emit,control_params=control_params)
@@ -262,7 +294,7 @@ def filtering(sess,config):
 	step_holder=tf.placeholder(tf.int32)
 	sample_size=10
 	z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
-	control_params={"dropout_rate":0.0,"potential_enabled":True}
+	control_params={"dropout_rate":0.0}
 	# inference
 	outputs=p_filter(x_holder,z_holder,step_holder,None,n_steps,dim,dim_emit,batch_size,control_params=control_params)
 	# loding model
@@ -358,6 +390,6 @@ if __name__ == '__main__':
 	if args.save_config is not None:
 		print("[SAVE] config: ",args.save_config)
 		fp = open(args.save_config, "w")
-		json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+		json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '),cls=NumPyArangeEncoder)
 
 
