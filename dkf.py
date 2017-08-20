@@ -182,7 +182,7 @@ def train(sess,config):
 				validation_count=0
 			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
 			print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
-			print("[LOG] %d,%g,%g,%g,%g,%g,%g,%g,%g,%g,%g"%(i, cost, validation_cost,save_path,error,alpha,all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+			print("[LOG] %d, %g,%g,%g,%g, %g,%g,%g, %g,%g,%g"%(i, cost,validation_cost,error,alpha, all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
 			prev_validation_cost=validation_cost
 		# update
 		for j in range(n_batch):
