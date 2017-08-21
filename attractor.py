@@ -17,7 +17,7 @@ import json
 import argparse
 
 import dkf_input
-from dkf_model import computeTransition
+from dkf_model import computeTransitionFunc
 from dkf_model import computeEmission
 import hyopt as hy
 FLAGS = tf.app.flags.FLAGS
@@ -36,18 +36,20 @@ def make_griddata(dim,nx,rx=1):
 
 def field(sess,config):
 	batch_size=config["batch_size"]
+	dim_emit=66
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	dim_emit=66
 	n_steps=1
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	z0=make_griddata(dim,nx=30,rx=20)
 	batch_size=z0.shape[0]
+	control_params={"dropout_rate":0.0}
 	# inference
-	z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	z_m,_=computeTransitionFunc(z_holder,n_steps,dim,params=None,control_params=control_params)
 	z_m =tf.reshape(z_m,[-1,dim])
 	
 	# grad

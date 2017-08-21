@@ -262,9 +262,10 @@ def infer(sess,config):
 	if config["save_result_test"]!="":
 		results={}
 		for k,v in outputs.items():
-			feed_dict={x_holder:x,m_holder:m}
-			res=sess.run(v,feed_dict=feed_dict)
-			results[k]=res
+			if v is not None:
+				feed_dict={x_holder:x,m_holder:m}
+				res=sess.run(v,feed_dict=feed_dict)
+				results[k]=res
 		results["x"]=x
 		print("[SAVE] result : ",config["save_result_test"])
 		joblib.dump(results,config["save_result_test"])
