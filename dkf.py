@@ -28,7 +28,6 @@ tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
 class NumPyArangeEncoder(json.JSONEncoder):
 	def default(self, obj):
-		print("aaa")
 		if isinstance(obj, np.int64):
 			return int(obj)
 		if isinstance(obj, np.int32):
@@ -210,9 +209,10 @@ def train(sess,config):
 		results={}
 		eps=np.zeros((x.shape[0]*x.shape[1],dim))
 		for k,v in outputs.items():
-			feed_dict={x_holder:x,m_holder:m,eps_holder:eps,alpha_holder:alpha}
-			res=sess.run(v,feed_dict=feed_dict)
-			results[k]=res
+			if v is not None:
+				feed_dict={x_holder:x,m_holder:m,eps_holder:eps,alpha_holder:alpha}
+				res=sess.run(v,feed_dict=feed_dict)
+				results[k]=res
 		results["x"]=x
 		results["config"]=config
 		joblib.dump(results,config["save_result_train"])
