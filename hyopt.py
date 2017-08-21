@@ -10,6 +10,23 @@ import json
 import tensorflow as tf
 import numpy as np
 
+class NumPyArangeEncoder(json.JSONEncoder):
+	def default(self, obj):
+		print("aaa")
+		if isinstance(obj, np.int64):
+			return int(obj)
+		if isinstance(obj, np.int32):
+			return int(obj)
+		if isinstance(obj, np.float32):
+			return float(obj)
+		if isinstance(obj, np.float64):
+			return float(obj)
+		if isinstance(obj, np.ndarray):
+			return obj.tolist() # or map(int, obj)
+		return json.JSONEncoder.default(self, obj)
+
+
+
 hyperparameter=None
 
 def initialize_hyperparameter(load_filename):
@@ -61,7 +78,7 @@ def save_hyperparameter(save_filename=None):
 		if save_filename is not None:
 			print("[SAVE] hyperparameter: ",save_filename)
 			fp = open(save_filename, "w")
-			json.dump(hyperparameter, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+			json.dump(hyperparameter, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '),cls=NumPyArangeEncoder)
 
 
 
