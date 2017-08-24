@@ -127,9 +127,11 @@ def train(sess,config):
 	## training
 	validation_count=0
 	prev_validation_cost=0
-	alpha=config["alpha"]
+	#alpha=config["alpha"]
 	alpha_mode=True
 	alpha=0.0
+	alpha_max=config["alpha"]
+	print("[LOG] epoch, cost,cost(validation),error,alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
 	for i in range(config["epoch"]):
 		np.random.shuffle(data_idx)
 		if alpha_mode:
@@ -139,9 +141,9 @@ def train(sess,config):
 			if i < begin_tau:
 				alpha=0.0
 			elif i<end_tau:
-				alpha=1.0-np.exp(-(i-begin_tau)/tau)
+				alpha=alpha_max*(1.0-np.exp(-(i-begin_tau)/tau))
 			else:
-				alpha=1.0	
+				alpha=alpha_max
 		if i%10 == 0:
 			# check point
 			cost=0.0
@@ -211,6 +213,9 @@ def train(sess,config):
 		for k,v in outputs.items():
 			if v is not None:
 				feed_dict={x_holder:x,m_holder:m,eps_holder:eps,alpha_holder:alpha}
+				if potential_points_holder is not None:
+					pts=np.random.standard_normal((num_potential_points,dim))
+					feed_dict[potential_points_holder]=pts
 				res=sess.run(v,feed_dict=feed_dict)
 				results[k]=res
 		results["x"]=x

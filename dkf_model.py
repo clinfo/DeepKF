@@ -244,7 +244,8 @@ def computeVariationalDist(x,epsilon,n_steps,dim_emit,dim,control_params):
 			with tf.variable_scope('vd_fc_mu') as scope:
 				layer_mu=fc_layer("vd_fc_mu",layer,
 						dim_out, dim,
-						init_params_flag,params,wd_w,wd_bias,activate=None)
+						init_params_flag,params,wd_w,wd_bias,
+						activate=tf.tanh)
 			with tf.variable_scope('vd_fc_cov') as scope:
 				pre_activate=fc_layer("vd_fc_cov",layer,
 						dim_out, dim,
@@ -299,7 +300,7 @@ def computeEmission(z,n_steps,dim,dim_emit,params=None,control_params=None):
 	layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim_emit])
 	return [layer_mu,layer_cov],params
 	
-def computeTransition(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=False,control_params=None):
+def computeTransitionOld(z,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=False,control_params=None):
 	"""
 	z: (bs x T)x dim
 	prior0: bs x 1 x dim
@@ -393,8 +394,10 @@ def computeTransitionFuncFromNN(in_points,n_steps,dim,params=None,control_params
 				with tf.variable_scope('tr_fc_mean') as scope:
 					layer_mean=fc_layer("tr_fc_mean",layer,
 							dim_out, dim,
-							init_params_flag,params,wd_w,wd_bias,activate=None)
+							init_params_flag,params,wd_w,wd_bias,
+							activate=tf.tanh)
 			else:
+				print("[INFO] default transition")
 				layer=z
 				layer_mean=fc_layer("tr_fc_mean",layer,
 					dim, dim,
@@ -448,19 +451,20 @@ def computePotentialWithBinaryPot(z_input,n_steps,dim,params=None,control_params
 	pot_pole=[]
 
 	z=tf.reshape(z_input,[-1,dim])
+	#z=tf.reshape(z_input,[900,dim])
 	for d in range(dim):
 		z1=np.zeros((dim,),dtype=np.float32)
 		z2=np.zeros((dim,),dtype=np.float32)
-		z1[d]=1.0
-		z2[d]=-1.0
+		z1[d]=0.5
+		z2[d]=-0.5
 		
 		z1=z-tf.constant(z1,dtype=np.float32)
 		z2=z-tf.constant(z2,dtype=np.float32)
-		p1=tf.reduce_sum(z1*z1,axis=1)
-		p2=tf.reduce_sum(z2*z2,axis=1)
+		p1=tf.reduce_sum(z1**2,axis=1)
+		p2=tf.reduce_sum(z2**2,axis=1)
 		pot_pole.append(p1)
 		pot_pole.append(p2)
-		
+	pot_pole=tf.stack(pot_pole)
 	#pot_pole: (2xdim) x (bs x T)
 	pot=tf.reduce_min(pot_pole,axis=0)
 	#z1=z+tf.constant([-1,0],dtype=np.float32)
@@ -565,16 +569,18 @@ def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size,control_params):
 	#  z0: (in_sample x b) x dim
 	#mu_trans,cov_trans,params_tr=computeTransition(z,1,dim,None,None,params_tr,without_cov=True,control_params=control_params)
 	mu_trans,params_tr=computeTransitionFunc(z,1,dim,params=params_tr,control_params=control_params)
+	#  m: Sample x (in_sample x b) x 1 x dim
 	m=tf.reshape(mu_trans,[sample_size,-1,1,dim])
 	d=m - tf.reduce_mean(m,axis=0)
 	cov=tf.reduce_mean(d**2,axis=0)
 	cov_trans=tf.tile(cov,[sample_size,1,1])
+	m=tf.reshape(mu_trans,[-1,1,dim])
 	#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
 	#
-	dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
+	dist=tf.contrib.distributions.Normal(m[:,0,:],cov_trans[:,0,:])
 	particles=dist.sample(sample_size)
 	#  particles: Sample x (in_sample x b) x dim
-	particles_d=particles-mu_trans[:,0,:]
+	particles_d=particles-m[:,0,:]
 	particles_w=particles_d**2/cov_trans[:,0,:]
 	particles =tf.reshape(particles,[-1,dim])
 	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e,control_params=control_params)

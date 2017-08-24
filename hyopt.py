@@ -12,7 +12,6 @@ import numpy as np
 
 class NumPyArangeEncoder(json.JSONEncoder):
 	def default(self, obj):
-		print("aaa")
 		if isinstance(obj, np.int64):
 			return int(obj)
 		if isinstance(obj, np.int32):

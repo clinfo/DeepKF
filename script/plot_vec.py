@@ -41,7 +41,7 @@ R=np.sqrt(U**2+V**2)
 plt.axes([0.025, 0.025, 0.95, 0.95])
 plt.quiver(X, Y, U, V, R, alpha=.5)
 plt.quiver(X, Y, U, V, edgecolor='k', facecolor='None', linewidth=.5)
-r=20
+r=3.0#20
 plt.xlim(-r, r)
 #plt.xticks(())
 plt.ylim(-r,r)

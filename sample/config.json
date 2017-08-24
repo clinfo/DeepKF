@@ -1,0 +1,20 @@
+{
+    "batch_size": 100,
+    "data_test_npy": "data/sample_data.npy",
+    "mask_test_npy": "data/sample_mask.npy",
+    "data_train_npy": "data/sample_data.npy",
+    "mask_train_npy": "data/sample_mask.npy",
+	"steps_npy": "data/sample_steps.npy",
+    "steps_test_npy": "data/sample_steps.npy",
+    "dim": 0,
+    "epoch": 100,
+    "load_model": "",
+	"save_model_path":"dummy",
+	"patience": 0,
+    "save_result_test": "dummy",
+    "save_result_train": "dummy",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}

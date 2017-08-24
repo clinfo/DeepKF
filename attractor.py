@@ -18,25 +18,34 @@ import argparse
 
 import dkf_input
 from dkf_model import computeTransitionFunc
-from dkf_model import computeEmission
+from dkf_model import computeEmission, computePotential
 import hyopt as hy
 FLAGS = tf.app.flags.FLAGS
 
 # Basic model parameters.
 tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
-def make_griddata(dim,nx,rx=1):
+def make_griddata(dim,nx,rx=1,max_dim=-1):
 	arr=[]
 	for d in range(dim):
 		x = np.linspace(-rx, rx, nx)
 		arr.append(x)
 	grid = np.array(np.meshgrid(*arr)).reshape(dim,-1)
 	grid=np.transpose(grid)
+	if max_dim>0:
+		new_grid=np.zeros((grid.shape[0],max_dim),np.float32)
+		new_grid[:,:dim]=grid
+		return new_grid
 	return grid
+
+def get_dim_emit(config):
+	filename=config["data_train_npy"]
+	x=np.load(filename)
+	return x.shape[1]
 
 def field(sess,config):
 	batch_size=config["batch_size"]
-	dim_emit=66
+	dim_emit=get_dim_emit(config)
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
@@ -44,7 +53,7 @@ def field(sess,config):
 		dim=config["dim"]
 	n_steps=1
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
-	z0=make_griddata(dim,nx=30,rx=20)
+	z0=make_griddata(2,max_dim=dim,nx=30,rx=2.0)
 	batch_size=z0.shape[0]
 	control_params={"dropout_rate":0.0}
 	# inference
@@ -72,27 +81,63 @@ def field(sess,config):
 		print("[SAVE] result : ",sim_filename)
 		joblib.dump(results,sim_filename)
 
-
-
-def infer(sess,config):
+def potential(sess,config):
 	batch_size=config["batch_size"]
+	dim_emit=get_dim_emit(config)
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	batch_size=1000
-	dim_emit=66
 	n_steps=1
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
-	
+	z0=make_griddata(2,max_dim=dim,nx=30,rx=2.0)
+	batch_size=z0.shape[0]
+	control_params={"dropout_rate":0.0}
 	# inference
-	z_m,z_cov,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	z_m,_=computePotential(z_holder,n_steps,dim,params=None,control_params=control_params)
+	
+	# load
+	#saver = tf.train.Saver()# これ以前の変数のみ保存される
+	#saver.restore(sess,config["load_model"])
+	#
+	feed_dict={z_holder:z0}
+	g=sess.run(z_m,feed_dict=feed_dict)
+	print(g)
+	#
+	## save results
+	print(z0.shape)
+	print(g.shape)
+	if config["simulation_path"]!="":
+		sim_filename=config["simulation_path"]+"/potential.jbl"
+		results={}
+		results["z"]=z0
+		results["pot"]=g
+		print("[SAVE] result : ",sim_filename)
+		joblib.dump(results,sim_filename)
+
+
+
+def infer(sess,config):
+	batch_size=config["batch_size"]
+	dim_emit=get_dim_emit(config)
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	n_steps=1
+	control_params={"dropout_rate":0.0}
+	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	# inference
+	z_m,_=computeTransitionFunc(z_holder,n_steps,dim,params=None,control_params=control_params)
 	z_m =tf.reshape(z_m,[-1,dim])
-	obs_params,params_e=computeEmission(z_holder,n_steps,dim,dim_emit,params=None)
-	obs_params2,params_e=computeEmission(z_m,n_steps,dim,dim_emit,params=params_e)
+	obs_params,params_e=computeEmission(z_holder,n_steps,dim,dim_emit,params=None,control_params=control_params)
+	obs_params2,params_e=computeEmission(z_m,n_steps,dim,dim_emit,params=params_e,control_params=control_params)
 	#init = tf.global_variables_initializer()
 	#sess.run(init)
+	print("[LOAD] ",config["load_model"])
 	saver = tf.train.Saver()# これ以前の変数のみ保存される
 	saver.restore(sess,config["load_model"])
 	z0=np.zeros((batch_size*n_steps,dim),dtype=np.float32)
@@ -127,6 +172,7 @@ def infer(sess,config):
 			d=np.sum((m[i,:]-m[j,:])**2)
 			if d>1.0e-10:
 				print(i,j,d)
+				pass
 	## save results
 	if config["simulation_path"]!="":
 		sim_filename=config["simulation_path"]+"/infer.jbl"
@@ -186,6 +232,8 @@ if __name__ == '__main__':
 				infer(sess,config)
 			elif args.mode=="field":
 				field(sess,config)
+			elif args.mode=="potential":
+				potential(sess,config)
 			else:
 				infer(sess,config)
 
