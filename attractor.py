@@ -65,6 +65,7 @@ def field(sess,config):
 	g_z = tf.gradients(z_m, [z_holder])
 	# load
 	saver = tf.train.Saver()# これ以前の変数のみ保存される
+	print("[LOAD] ",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	#
 	feed_dict={z_holder:z0}
@@ -99,8 +100,9 @@ def potential(sess,config):
 	z_m,_=computePotential(z_holder,n_steps,dim,params=None,control_params=control_params)
 	
 	# load
-	#saver = tf.train.Saver()# これ以前の変数のみ保存される
-	#saver.restore(sess,config["load_model"])
+	saver = tf.train.Saver()# これ以前の変数のみ保存される
+	print("[LOAD] ",config["load_model"])
+	saver.restore(sess,config["load_model"])
 	#
 	feed_dict={z_holder:z0}
 	g=sess.run(z_m,feed_dict=feed_dict)

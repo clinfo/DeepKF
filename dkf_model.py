@@ -559,9 +559,68 @@ def computeTransitionFuncFromPotential(in_points,n_steps,dim,params=None,control
 	return layer_mean,params
 		
 
+def p_filter(x,z,epsilon,dim,dim_emit,sample_size,batch_size,control_params):
+	params_tr=None
+	params_e=None
+	proposal_sample_size=10
+	resample_size=10
+	#  x: (sample_size x batch_size) x dim_emit
+	#  z: (sample_size x batch_size) x dim
+	mu_trans,params_tr=computeTransitionFunc(z,1,dim,params=params_tr,control_params=control_params)
+	#  m: sample_size x batch_size x dim
+	m=tf.reshape(mu_trans,[sample_size,-1,dim])
+	d=m - tf.reduce_mean(m,axis=0)
+	cov=tf.reduce_mean(d**2,axis=0)
+	cov_trans=tf.tile(cov,[sample_size,1])
+	#  mu_trans : (sample_size x batch_size) x dim
+	#  cov_trans: (sample_size x batch_size) x dim
+	mu_trans=tf.reshape(mu_trans,[-1,dim])
+	cov_trans=tf.reshape(cov_trans,[-1,dim])+0.01
+	#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
+	#
+	proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
+	particles=proposal_dist.sample(proposal_sample_size)
+	#  particles: proposal_sample_size x (sample_size x batch_size) x dim
+	#particles_d=particles-mu_trans[:,:]
+	#particles_w=particles_d**2/cov_trans[:,:]
+	#  particles: (proposal_sample_size x sample_size x batch_size) x dim
+	particles =tf.reshape(particles,[-1,dim])
+	obs_params,params_e=computeEmission(particles,1,dim,dim_emit,params_e,control_params=control_params)
+	#  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
+	#  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
+	mu=obs_params[0]
+	cov=obs_params[1]
+	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
+	cov =tf.reshape(cov,[-1,batch_size,dim_emit])
+	#  x: batch_size x emit_dim
+	d=mu-x[:,:]
+	w=-tf.reduce_sum(d**2/cov,axis=2)-100
+	# w:(proposal_sample_size x sample_size) x batch__size 
+	#  probs=w/tf.reduce_sum(w,axis=0)
+
+	resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+	# ids: resample x batch_size
+	#  particles: (proposal_sample_size x sample_size) x batch_size x dim
+	particle_ids=resample_dist.sample([resample_size])
+	particles =tf.reshape(particles,[-1,batch_size,dim])
+	#
+	dummy=np.zeros((resample_size,batch_size,1),dtype=np.int32)
+	particle_ids=tf.reshape(particle_ids,[resample_size,batch_size,1])
+	for i in range(batch_size):
+		dummy[:,i,0]=i
+	temp=tf.constant(dummy)
+	particle_ids=tf.concat([particle_ids, temp], 2)
+	# particles: (Sample x in_sample) x b x dim
+	out=tf.gather_nd(particles,particle_ids)
+
+	outputs={"sampled_pred_params":[mu,cov],
+			"sampled_z":out}
+	return outputs
 
 
-def p_filter(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size,control_params):
+
+
+def p_filter2(x,z,step,epsilon,n_steps,dim,dim_emit,batch_size,control_params):
 	params_tr=None
 	params_e=None
 	sample_size=10

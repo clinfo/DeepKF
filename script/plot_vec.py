@@ -1,10 +1,14 @@
 import numpy as np
-from matplotlib import pylab as plt
 import joblib
-from matplotlib import animation
 import json
 import sys
 
+if len(sys.argv)>2 and sys.argv[2]=="all":
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab as plt
+else:
+	from matplotlib import pylab as plt
 
 
 

@@ -1,8 +1,14 @@
 import numpy as np
-from matplotlib import pylab as plt
 import joblib
 import json
 import sys
+if len(sys.argv)>2 and sys.argv[2]=="all":
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab as plt
+else:
+	from matplotlib import pylab as plt
+
 
 filename_result="result/test.jbl"
 filename_obs="data/pack_data_emit_test.npy"
@@ -48,26 +54,30 @@ idx=302
 l=len(data_info[pid_key])
 
 z=p_filter_result["z"]
+print("z:",z[0,idx,:,0])
+print(z.shape)
 mu=p_filter_result["mu"]
 mu[:,m<0.1]=np.nan
 def plot_fig(idx):
 	s=steps[idx]
+	print("steps:",s)
+	print("z:",z[0,idx,:s,0])
 	plt.subplot(2,1,1)
 	plt.plot(z[0,idx,:s,0],label="dim0",color="b")
 	for i in range(10-1):
 		plt.plot(z[i+1,idx,:s,0],color="b")
-	plt.plot(z[0,idx,:s,1],label="dim0",color="g")
+	plt.plot(z[0,idx,:s,1],label="dim1",color="g")
 	for i in range(10-1):
 		plt.plot(z[i+1,idx,:s,1],color="g")
-	#plt.legend()
+	plt.legend()
 	plt.subplot(2,1,2)
 	plt.plot(o[idx,:s,d],label="x",color="b")
 	plt.plot(mu[0,idx,:s,d],label="pred",color="g")
 	for i in range(10):
 		plt.plot(mu[i,idx,:s,d],color="g")
 	mu2=np.mean(mu,axis=0)
-	plt.plot(mu2[idx,:s,d],label="pred_mu",color="r")
-	#plt.legend()
+	plt.plot(mu2[idx,:s,d],label="pred_mean",color="r")
+	plt.legend()
 
 name=data_info[pid_key][idx]
 if len(sys.argv)>2:

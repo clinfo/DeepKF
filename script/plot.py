@@ -1,9 +1,16 @@
 import numpy as np
-from matplotlib import pylab as plt
 import joblib
 import json
 import sys
 import os
+
+if len(sys.argv)>2 and sys.argv[2]=="all":
+	import matplotlib
+	matplotlib.use('Agg')
+	from matplotlib import pylab as plt
+else:
+	from matplotlib import pylab as plt
+
 
 filename_result="result/test.jbl"
 filename_obs="pack_data_emit_test.npy"

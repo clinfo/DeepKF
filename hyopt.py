@@ -34,7 +34,7 @@ def initialize_hyperparameter(load_filename):
 	hyperparameter["evaluation"]=None
 	hyperparameter["evaluation_output"]=None
 	hyperparameter["hyperparameter_input"]=load_filename
-	hyperparameter["emssion_internal_layers"]=[
+	hyperparameter["emission_internal_layers"]=[
 			{"name":"fc"}
 			]
 	hyperparameter["transition_internal_layers"]=[

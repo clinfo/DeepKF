@@ -294,21 +294,22 @@ def filtering(sess,config):
 	else:
 		dim=config["dim"]
 	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
-	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
+	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
+	m_holder=tf.placeholder(tf.float32,shape=(None))
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
-	step_holder=tf.placeholder(tf.int32)
+	#step_holder=tf.placeholder(tf.int32)
 	sample_size=10
-	z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
 	control_params={"dropout_rate":0.0}
 	# inference
-	outputs=p_filter(x_holder,z_holder,step_holder,None,n_steps,dim,dim_emit,batch_size,control_params=control_params)
+	outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
 	# loding model
 	saver = tf.train.Saver()# これ以前の変数のみ保存される
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	
-	feed_dict={x_holder:x[0:batch_size,:,:],z_holder:z0,step_holder:0}
+	feed_dict={x_holder:x[0:batch_size,0,:],z_holder:z0}
 	result=sess.run(outputs,feed_dict=feed_dict)
 	print(result["sampled_z"].shape)
 	print(result["sampled_pred_params"][0].shape)
@@ -319,18 +320,19 @@ def filtering(sess,config):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			feed_dict={x_holder:x[idx:idx+batch_size,:,:],z_holder:z,step_holder:step}
+			feed_dict={x_holder:x[idx:idx+batch_size,step,:],z_holder:z}
 			bs=batch_size
 			if idx+batch_size>x.shape[0]: # for last
-				x2=np.zeros((batch_size,x.shape[1],x.shape[2]),dtype=np.float32)
+				x2=np.zeros((batch_size,x.shape[2]),dtype=np.float32)
 				bs=batch_size-(idx+batch_size-x.shape[0])
-				x2[:bs,:,:]=x[idx:idx+batch_size,:,:]
-				feed_dict={x_holder:x2,z_holder:z,step_holder:step}
+				x2[:bs,:]=x[idx:idx+batch_size,step,:]
+				feed_dict={x_holder:x2,z_holder:z}
 			result=sess.run(outputs,feed_dict=feed_dict)
 			z=result["sampled_z"]
 			mu=result["sampled_pred_params"][0]
 			zs[:,idx:idx+batch_size,step,:]=z[:,:bs,:]
 			mus[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]
+			print(z[0,0,0])
 			z=np.reshape(z,[-1,dim])
 	## save results
 	if config["save_result_filter"]!="":

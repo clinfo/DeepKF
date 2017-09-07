@@ -1,98 +1,85 @@
 {
     "alpha": 1.0,
     "batch_size": 100,
-    "data_info_json": "data/pack_info.json",
-    "data_test_npy": "data/pack_data_emit_test.npy",
-    "data_train_npy": "data/pack_data_emit.npy",
     "dim": 2,
-    "emission_internal_layers": [
-        {
-            "name": "fc_bn"
-        },
-        {
-            "name": "fc_res_start"
-        },
-        {
-            "name": "fc_bn"
-        },
-        {
-            "name": "fc_res"
-        },
-        {
-            "name": "fc_res_start"
-        },
-        {
-            "name": "fc_bn"
-        },
-        {
-            "name": "fc_res"
-        },
-        {
-            "name": "fc"
-        }
-    ],
-    "emssion_internal_layers": [
-        {
-            "name": "fc"
-        }
-    ],
     "epoch": 1000,
-    "evaluation": {
-        "all_costs": [
-            -64514.203125,
-            7067.076171875,
-            0.0
-        ],
-        "cost": -51708.80847167969,
-        "error": 0.08162600003182886,
-        "validation_all_costs": [
-            -1298.8115234375,
-            139.9408416748047,
-            0.0
-        ],
-        "validation_cost": -1044.1044921875
-    },
-    "evaluation_output": "model_2d/hyparam.result.json",
-    "hyperparameter_input": "model_2d/hyparam.json",
-    "load_model": "model_2d/model/model.last.ckpt",
-    "mask_test_npy": "data/pack_mask_emit_test.npy",
-    "mask_train_npy": "data/pack_mask_emit.npy",
+    "evaluation_output": "model/hyparam.result.json",
+    "hyperparameter_input": "model/hyparam.json",
+    "load_model": "model/model/model.last.ckpt",
     "patience": 0,
-    "plot_path": "model_2d/plot",
+    "plot_path": "model/plot",
     "potential_enabled": true,
     "potential_grad_transition_enabled": true,
-    "potential_internal_layers": [
-        {
-            "name": "fc"
-        },
-        {
-            "name": "do"
-        },
-        {
-            "name": "fc"
-        },
-        {
-            "name": "do"
-        },
-        {
-            "name": "fc"
-        }
-    ],
     "potential_nn_enabled": true,
     "save_model": "",
-    "save_model_path": "model_2d/model",
-    "save_result_filter": "model_2d/result/filter.jbl",
-    "save_result_test": "model_2d/result/test.jbl",
-    "save_result_train": "model_2d/result/train.jbl",
-    "simulation_path": "model_2d/sim",
-    "steps_npy": "data/pack_steps.npy",
-    "steps_test_npy": "data/pack_steps_test.npy",
+    "save_model_path": "model/model",
+    "save_result_filter": "model/result/filter.jbl",
+    "save_result_test": "model/result/test.jbl",
+    "save_result_train": "model/result/train.jbl",
+    "simulation_path": "model/sim",
     "train_test_ratio": [
         0.8,
         0.2
     ],
+	"potential_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc_res_start"
+        },
+		{
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc_bn"
+        }
+    ],
+
+	"emission_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+
     "transition_internal_layers": [
         {
+            "dim_output": 32,
             "name": "fc_bn"
         },
         {
@@ -110,6 +97,7 @@
     ],
     "variational_internal_layers": [
         {
+            "dim_output": 32,
             "name": "fc_bn"
         },
         {
