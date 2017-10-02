@@ -2,6 +2,9 @@ import hyopt as hy
 import os
 import sys
 import itertools
+import random
+
+process_num=2
 
 
 if len(sys.argv)>1 and sys.argv[1]=="rm":
@@ -24,7 +27,7 @@ if len(sys.argv)>1 and sys.argv[1]=="rm":
 
 ###
 param_set={}
-param_set["dim"]=[16,32,64]
+param_set["dim"]=[2,4,8]
 param_set["emission_internal_layers"]=[
 		[
 		{"name":"fc_bn"},
@@ -91,7 +94,6 @@ param_set["variational_internal_layers"]=[
 		],
 	]
 
-fp=open("hyopt/run.sh","w")
 
 
 keys=param_set.keys()
@@ -101,13 +103,14 @@ xs=[param_set[k] for k in keys]
 #x3=param_set["variational_internal_layers"]
 
 cnt=0
+scripts=[]
 for l in itertools.product(*xs):
 	cnt+=1
 	idx="%05d"%(cnt)
 	model_path= "hyopt/model"+idx+"/"
 	result_path="hyopt/result"+idx+"/"
 	
-	hy.initialize_hyperparameter(load_filename="hyparam.json")
+	hy.initialize_hyperparameter(load_filename="hyopt_hyparam_template.json")
 	param=hy.get_hyperparameter()
 	param["evaluation_output"]="hyopt/hyparam"+idx+".result.json"
 	param["hyperparameter_input"]="hyopt/hyparam"+idx+".json"
@@ -128,5 +131,20 @@ for l in itertools.product(*xs):
 
 	###
 	hy.save_hyperparameter(param["hyperparameter_input"])
-	fp.write("python dkf.py --config hyopt/config_train.json --hyperparam "+param["hyperparameter_input"]+" train > "+result_path+"log.txt 2>&1"+"\n")
+	cmd="python dkf.py --config hyopt/config_train.json --hyperparam "+param["hyperparameter_input"]+" train > "+result_path+"log.txt 2>&1"+"\n"
+
+	scripts.append(cmd)
+
+
+random.shuffle(scripts)
+
+fps=[]
+for pid in range(process_num):
+	fp=open("hyopt/run"+str(pid)+".sh","w")
+	fp.write("export CUDA_VISIBLE_DEVICES="+str(pid)+"\n")
+	fps.append(fp)
+
+for i,line in enumerate(scripts):
+	j=i%process_num
+	fps[j].write(line)
 

@@ -1,0 +1,125 @@
+{
+    "alpha": 1.0,
+    "batch_size": 100,
+    "dim": 2,
+    "epoch": 1000,
+    "evaluation_output": "model/hyparam.result.json",
+    "hyperparameter_input": "model/hyparam.json",
+    "load_model": "model/model/model.last.ckpt",
+    "patience": 0,
+    "plot_path": "model/plot",
+    "potential_enabled": true,
+    "potential_grad_transition_enabled": false,
+    "potential_nn_enabled": false,
+    "save_model": "",
+    "save_model_path": "model/model",
+    "save_result_filter": "model/result/filter.jbl",
+    "save_result_test": "model/result/test.jbl",
+    "save_result_train": "model/result/train.jbl",
+    "simulation_path": "model/sim",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+	"potential_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc_res_start"
+        },
+		{
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc_bn"
+        }
+    ],
+
+	"emission_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+
+    "transition_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "dim_output": 32,
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "fc_res_start"
+        },
+        {
+            "name": "fc_bn"
+        },
+        {
+            "name": "fc_res"
+        },
+        {
+            "name": "lstm"
+        }
+    ]
+}
