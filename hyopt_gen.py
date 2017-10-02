@@ -10,8 +10,8 @@ process_num=2
 if len(sys.argv)>1 and sys.argv[1]=="rm":
 	cnt=1
 	idx="%05d"%(cnt)
-	model_path= "hyopt/model"+idx+"/"
-	result_path="hyopt/result"+idx+"/"
+	model_path= "hyopt/model"+idx+""
+	result_path="hyopt/result"+idx+""
 	try:
 		os.removedirs(model_path)
 	except OSError:
@@ -107,8 +107,8 @@ scripts=[]
 for l in itertools.product(*xs):
 	cnt+=1
 	idx="%05d"%(cnt)
-	model_path= "hyopt/model"+idx+"/"
-	result_path="hyopt/result"+idx+"/"
+	model_path= "hyopt/model"+idx+""
+	result_path="hyopt/result"+idx+""
 	
 	hy.initialize_hyperparameter(load_filename="hyopt_hyparam_template.json")
 	param=hy.get_hyperparameter()
@@ -118,9 +118,11 @@ for l in itertools.product(*xs):
 	os.makedirs(result_path,exist_ok=True)
 	param["save_model_path"]= model_path
 	param["load_model"]= ""
-	param["save_result_train"]= result_path+"train.jbl"
-	param["save_result_test"]=  result_path+"test.jbl"
-	param["save_result_filter"]=result_path+"filter.jbl"
+	param["save_result_train"]= result_path+"/train.jbl"
+	param["save_result_test"]=  result_path+"/test.jbl"
+	param["save_result_filter"]=result_path+"/filter.jbl"
+	param["plot_path"]=result_path+"/plot"
+	param["simulation_path"]=result_path+"/sim"
 	
 	#param["emssion_internal_layers"]    =l1
 	#param["transition_internal_layers"] =l2
