@@ -1,19 +1,8 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#		 http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# ==============================================================================
+# Load data
+# Copyright 2017 Kyoto Univ. Okuno lab. . All Rights Reserved.
 # ==============================================================================
 
-"""Routine for decoding the CIFAR-10 binary file format."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -21,16 +10,16 @@ from __future__ import print_function
 
 import os
 import numpy as np
-
-from six.moves import xrange	# pylint: disable=redefined-builtin
 import tensorflow as tf
 
-def inputs(config,with_shuffle=True,with_train_test=True,test_flag=False):
-	#x = np.load("test.npy")
-	#m = np.load("mask.npy")
+class dotdict(dict):
+	"""dot.notation access to dictionary attributes"""
+	__getattr__ = dict.get
+	__setattr__ = dict.__setitem__
+	__delattr__ = dict.__delitem__
 
-	#x = np.load("data_emit.npy")
-	#m = np.load("mask_emit.npy")
+
+def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,output_dict_flag=True):
 	if not test_flag:
 		x = np.load(config["data_train_npy"])
 		m = np.load(config["mask_train_npy"])
@@ -67,5 +56,22 @@ def inputs(config,with_shuffle=True,with_train_test=True,test_flag=False):
 	tr_m=m2[sep_idx[0][0]:sep_idx[0][1]]
 	te_x=x[sep_idx[1][0]:sep_idx[1][1]]
 	te_m=m2[sep_idx[1][0]:sep_idx[1][1]]
-	return tr_x,tr_m,te_x,te_m
+	tr_x=tr_x[0:100]
+	tr_m=tr_m[0:100]
+	te_x=te_x[0:100]
+	te_m=te_m[0:100]
+	#return tr_x,tr_m,te_x,te_m
+	train_data=dotdict({})
+	train_data.x=tr_x
+	train_data.m=tr_m
+	train_data.num=tr_x.shape[0]
+	train_data.n_steps=tr_x.shape[1]
+	train_data.dim=tr_x.shape[2]
+	valid_data=dotdict({})
+	valid_data.x=te_x
+	valid_data.m=te_m
+	valid_data.num=te_x.shape[0]
+	valid_data.n_steps=te_x.shape[1]
+	valid_data.dim=tr_x.shape[2]
+	return train_data,valid_data
 

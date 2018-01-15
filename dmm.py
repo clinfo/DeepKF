@@ -1,0 +1,532 @@
+#
+# pylint: disable=missing-docstring
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+import re
+import sys
+import tarfile
+
+from six.moves import urllib
+import tensorflow as tf
+import numpy as np
+import joblib
+import json
+import argparse
+
+import dkf_input
+from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
+from dmm_model import construct_placeholder
+import hyopt as hy
+
+FLAGS = tf.app.flags.FLAGS
+
+# Basic model parameters.
+tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
+
+class dotdict(dict):
+	"""dot.notation access to dictionary attributes"""
+	__getattr__ = dict.get
+	__setattr__ = dict.__setitem__
+	__delattr__ = dict.__delitem__
+
+class NumPyArangeEncoder(json.JSONEncoder):
+	def default(self, obj):
+		if isinstance(obj, np.int64):
+			return int(obj)
+		if isinstance(obj, np.int32):
+			return int(obj)
+		if isinstance(obj, np.float32):
+			return float(obj)
+		if isinstance(obj, np.float64):
+			return float(obj)
+		if isinstance(obj, np.ndarray):
+			return obj.tolist() # or map(int, obj)
+		return json.JSONEncoder.default(self, obj)
+
+
+def get_default_config():
+	config={}
+	# data and network
+	#config["dim"]=None
+	config["dim"]=2
+	# training
+	config["epoch"] = 10
+	config["patience"] = 5
+	config["batch_size"] = 100
+	config["alpha"] = 1.0
+	# dataset
+	config["train_test_ratio"]=[0.8,0.2]
+	config["data_train_npy"] = "data/pack_data_emit.npy"
+	config["mask_train_npy"] = "data/pack_mask_emit.npy"
+	config["data_test_npy"] = "data/pack_data_emit_test.npy"
+	config["mask_test_npy"] = "data/pack_mask_emit_test.npy"
+	# save/load model
+	config["save_model_path"] = "./model/"
+	config["load_model"] = "./model/model.last.ckpt"
+	config["save_result_train"]="./result/train.jbl"
+	config["save_result_test"]="./result/test.jbl"
+	config["save_result_filter"]="./result/filter.jbl"
+	# generate json
+	#fp = open("config.json", "w")
+	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
+
+	return config
+
+def construct_feed(idx,data,placeholders,alpha,is_train=False):
+	feed_dict={}
+	num_potential_points=100
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	n_steps=hy_param["n_steps"]
+	batch_size=len(idx)
+
+	dropout_rate=0.0
+	if is_train:
+		if "dropout_rate" in hy_param:
+			dropout_rate=hy_param["dropout_rate"]
+		else:
+			dropout_rate=0.5
+	# 
+	for key,ph in placeholders.items():
+		if key == "x":
+			feed_dict[ph]=data.x[idx,:,:]
+		elif key == "m":	
+			feed_dict[ph]=data.m[idx,:]
+		elif key == "alpha":
+			feed_dict[ph]=alpha
+		elif key == "vd_eps":
+			#eps=np.zeros((batch_size,n_steps,dim))
+			eps=np.random.standard_normal((batch_size,n_steps,dim))
+			feed_dict[ph]=eps
+		elif key == "tr_eps":
+			#eps=np.zeros((batch_size,n_steps,dim))
+			eps=np.random.standard_normal((batch_size,n_steps,dim))
+			feed_dict[ph]=eps
+		elif key == "potential_points":
+			pts=np.random.standard_normal((num_potential_points,dim))
+			feed_dict[ph]=pts
+		elif key == "dropout_rate":
+			feed_dict[ph]=dropout_rate
+		elif key == "is_train":
+			feed_dict[ph]=is_train
+	return feed_dict
+
+
+def print_variables():
+	# print variables
+	print('## emission variables')
+	vars_em = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="emission_var")
+	for v in vars_em:
+		print(v.name)
+	print('## variational dist. variables')
+	vars_vd = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="variational_dist_var")
+	for v in vars_vd:
+		print(v.name)
+	print('## transition variables')
+	vars_tr = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="transition_var")
+	for v in vars_tr:
+		print(v.name)
+	print('## potential variables')
+	vars_pot = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="potential_var")
+	for v in vars_pot:
+		print(v.name)
+	return
+
+def compute_alpha(config,i):
+	alpha_max=config["alpha"]
+	begin_tau=config["epoch"]*0.1
+	end_tau=config["epoch"]*0.9
+	tau=100.0
+	if i < begin_tau:
+		alpha=0.0
+	elif i<end_tau:
+		alpha=alpha_max*(1.0-np.exp(-(i-begin_tau)/tau))
+	else:
+		alpha=alpha_max
+	return alpha
+
+class EarlyStopping:
+	def __init__(self,config, **kwargs):
+		self.prev_validation_cost=None
+		self.validation_count=0
+		self.config=config
+	def evaluate_validation(self,validation_cost,info):
+		config=self.config
+		if self.prev_validation_cost is not None and self.prev_validation_cost<validation_cost:
+			self.validation_count+=1
+			if config["patience"] >0 and self.validation_count>=config["patience"]:
+				self.print_info(info)
+				print("[stop] by validation")
+				return True
+		else:
+			self.validation_count=0
+		self.prev_validation_cost=validation_cost
+		self.print_info(info)
+		return False
+	def print_info(self,info):
+		config=self.config
+		epoch=info["epoch"]
+		training_cost=info["training_cost"]
+		validation_cost=info["validation_cost"]
+		training_error=info["training_error"]
+		validation_error=info["validation_error"]
+		training_all_costs=info["training_all_costs"]
+		validation_all_costs=info["validation_all_costs"]
+		alpha=info["alpha"]
+		save_path=info["save_path"]
+		if save_path is None:
+			format_tuple=(epoch, training_cost, training_error,
+				validation_cost,validation_error, self.validation_count)
+			print("epoch %d, training cost %g (error=%g), validation cost %g (error=%g) (count=%d) "%format_tuple)
+			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(i, 
+				training_cost,validation_cost,training_error,validation_error,alpha,
+				training_all_costs[0],training_all_costs[1],training_all_costs[2],
+				validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+		else:
+			format_tuple=(epoch, training_cost,training_error,
+				validation_cost,validation_error,self.validation_count,save_path)
+			print("epoch %d, training cost %g (error=%g), validation cost %g (error=%g) (count=%d) ([SAVE] %s) "%format_tuple)
+			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(epoch, 
+				training_cost,validation_cost,training_error,validation_error,alpha,
+				training_all_costs[0],training_all_costs[1],training_all_costs[2],
+				validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+
+def compute_cost(sess,placeholders,data,data_idx,output_cost,batch_size,alpha,is_train):
+	# initialize costs
+	cost=0.0
+	error=0.0
+	all_costs=np.zeros((3,),np.float32)
+	# compute cost in data
+	n_batch=int(np.ceil(data.num*1.0/batch_size))
+	for j in range(n_batch):
+		idx=data_idx[j*batch_size:(j+1)*batch_size]
+		feed_dict=construct_feed(idx,data,placeholders,alpha,is_train=is_train)
+		cost     +=np.array(sess.run(output_cost["cost"],feed_dict=feed_dict))
+		all_costs+=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
+		error    +=np.array(sess.run(output_cost["error"],feed_dict=feed_dict))/n_batch
+	data_info={
+			"cost":cost,
+			"error":error,
+			"all_costs":all_costs,
+			}
+	return data_info
+
+def compute_cost_train_valid(sess,placeholders,train_data,valid_data,train_idx,valid_idx,output_cost,batch_size,alpha):
+	train_data_info=compute_cost(sess,placeholders,train_data,train_idx,output_cost,batch_size,alpha,is_train=True)
+	valid_data_info=compute_cost(sess,placeholders,valid_data,valid_idx,output_cost,batch_size,alpha,is_train=False)
+	all_info={}
+	for k,v in train_data_info.items():
+		all_info["training_"+k]=v
+	for k,v in valid_data_info.items():
+		all_info["validation_"+k]=v
+	return all_info
+
+def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
+	results={}
+	n_batch=int(np.ceil(data.num*1.0/batch_size))
+	for j in range(n_batch):
+		idx=data_idx[j*batch_size:(j+1)*batch_size]
+		feed_dict=construct_feed(idx,data,placeholders,alpha)
+		for k,v in outputs.items():
+			if v is not None:
+				res=sess.run(v,feed_dict=feed_dict)
+				if k in ["z_s"]:
+					if k in results:
+						results[k]=np.concatenate([results[k],res],axis=0)
+					else:
+						results[k]=res
+				elif k in ["obs_params","obs_pred", "z_params","z_pred"]:
+					if k in results:
+						for i in range(len(res)):
+							results[k][i]=np.concatenate([results[k][i],res[i]],axis=0)
+					else:
+						results[k]=res
+	for k,v in results.items():
+		if k in ["z_s"]:
+			print(k,v.shape)
+		elif k in ["obs_params","obs_pred", "z_params","z_pred"]:
+			if len(v)==1:
+				print(k,v[0].shape)
+			else:
+				print(k,v[0].shape,v[1].shape)
+	return results
+
+
+
+
+def train(sess,config):
+	hy_param=hy.get_hyperparameter()
+	train_data,valid_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
+
+	batch_size=config["batch_size"]
+	n_steps=train_data.n_steps
+	dim_emit=train_data.dim
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	hy_param["dim"]=dim
+	hy_param["dim_emit"]=dim_emit
+	hy_param["n_steps"]=n_steps
+	print("train_data_size:",train_data.num)
+	print("batch_size     :",batch_size)
+	print("n_steps        :",n_steps)
+	print("dim_emit       :",dim_emit)
+	
+	placeholders=construct_placeholder(config)
+	control_params={"config":config,"placeholders":placeholders,"state_type":"discrete"}
+	# inference
+	outputs=inference_by_sample(n_steps,control_params=control_params)
+	# cost
+	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
+	# train_step
+	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	with tf.control_dependencies(update_ops):
+		train_step = tf.train.AdamOptimizer(1e-3).minimize(output_cost["cost"])
+	print_variables()
+	# initialize
+	init = tf.global_variables_initializer()
+	saver = tf.train.Saver()
+	sess.run(init)
+
+	train_idx=list(range(train_data.num))
+	valid_idx=list(range(valid_data.num))
+	## training
+	validation_count=0
+	prev_validation_cost=0
+	alpha_mode=False
+	alpha=0.0
+	early_stopping=EarlyStopping(config)
+	print("[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
+	for i in range(config["epoch"]):
+		np.random.shuffle(train_idx)
+		if alpha_mode:
+			alpha=compute_alpha(config,i)
+		else:
+			alpha=1.0
+		if i%10 == 0:
+			training_info=compute_cost_train_valid(sess,placeholders,
+					train_data,valid_data,train_idx,valid_idx,
+					output_cost,batch_size,alpha)
+			# save
+			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
+			# early stopping
+			training_info["epoch"]=i
+			training_info["alpha"]=alpha
+			training_info["save_path"]=save_path
+			if early_stopping.evaluate_validation(training_info["validation_cost"],training_info):
+				break
+
+		# update
+		n_batch=int(np.ceil(train_data.num*1.0/batch_size))
+		for j in range(n_batch):
+			idx=train_idx[j*batch_size:(j+1)*batch_size]
+			feed_dict=construct_feed(idx,train_data,placeholders,alpha,is_train=True)
+			train_step.run(feed_dict=feed_dict)
+
+	training_info=compute_cost_train_valid(sess,placeholders,
+			train_data,valid_data,train_idx,valid_idx,
+			output_cost,batch_size,alpha)
+	print("[RESULT] training cost %g, validation cost %g, training error %g, validation error %g"%(
+		training_info["training_cost"],
+		training_info["validation_cost"],
+		training_info["training_error"],
+		training_info["validation_error"]))
+	hy_param["evaluation"]=training_info
+	# save hyperparameter
+	if "save_model_path" in config:
+		save_model_path=config["save_model_path"]+"/model.last.ckpt"
+		#hy_param["load_model"]=save_model_path
+		#hy_param["save_model"]=""
+	hy.save_hyperparameter()
+	## save results
+	save_path = saver.save(sess, save_model_path)
+	print("[SAVE] %s"%(save_path))
+	if config["save_result_train"]!="":
+		results=compute_result(sess,placeholders,train_data,train_idx,outputs,batch_size,alpha)
+		results["config"]=config
+		print("[SAVE] result : ",config["save_result_train"])
+		joblib.dump(results,config["save_result_train"])
+		
+def infer(sess,config):
+	hy_param=hy.get_hyperparameter()
+	_,test_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
+	batch_size=config["batch_size"]
+	n_batch=int(test_data.num/batch_size)
+	n_steps=test_data.n_steps
+	if n_batch==0:
+		batch_size=x.shape[0]
+		n_batch=1
+	elif n_batch*batch_size!=test_data.num:
+		n_batch+=1
+	dim_emit=test_data.dim
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	hy_param["dim"]=dim
+	hy_param["dim_emit"]=dim_emit
+	hy_param["n_steps"]=n_steps
+	print("test_data_size:",test_data.num)
+	print("batch_size     :",batch_size)
+	print("n_steps        :",n_steps)
+	print("dim_emit       :",dim_emit)
+	alpha=config["alpha"]
+	print("alpha          :",alpha)
+	
+	placeholders=construct_placeholder(config)
+	control_params={"config":config,"placeholders":placeholders,"state_type":"discrete"}
+	# inference
+	outputs=inference_by_sample(n_steps,control_params)
+	# cost
+	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
+	# train_step
+	saver = tf.train.Saver()
+	print("[LOAD]",config["load_model"])
+	saver.restore(sess,config["load_model"])
+	test_idx=list(range(test_data.num))
+	# check point
+	test_info=compute_cost(sess,placeholders,
+			test_data,test_idx,
+			output_cost,batch_size,alpha,is_train=False)
+	print("cost: %g"%(test_info["cost"]))
+
+	## save results
+	if config["save_result_test"]!="":
+		results=compute_result(sess,placeholders,test_data,test_idx,outputs,batch_size,alpha)
+		results["config"]=config
+		print("[SAVE] result : ",config["save_result_test"])
+		joblib.dump(results,config["save_result_test"])
+	
+
+def filtering(sess,config):
+	_,test_data = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	batch_size=config["batch_size"]
+	batch_size=10
+	n_batch=int(x.shape[0]/batch_size)
+	n_steps=x.shape[1]
+	if n_batch==0:
+		batch_size=x.shape[0]
+		n_batch=1
+	elif n_batch*batch_size!=x.shape[0]:
+		n_batch+=1
+	dim_emit=x.shape[2]
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
+	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
+	m_holder=tf.placeholder(tf.float32,shape=(None))
+	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	#step_holder=tf.placeholder(tf.int32)
+	sample_size=10
+	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
+	control_params={"dropout_rate":0.0}
+	# inference
+	outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
+	# loding model
+	saver = tf.train.Saver()
+	print("[LOAD]",config["load_model"])
+	saver.restore(sess,config["load_model"])
+	
+	feed_dict={x_holder:x[0:batch_size,0,:],z_holder:z0}
+	result=sess.run(outputs,feed_dict=feed_dict)
+	print(result["sampled_z"].shape)
+	print(result["sampled_pred_params"][0].shape)
+	z=np.reshape(result["sampled_z"],[-1,dim])
+	zs=np.zeros((sample_size,x.shape[0],n_steps,dim),dtype=np.float32)
+	mus=np.zeros((sample_size*sample_size,x.shape[0],n_steps,dim_emit),dtype=np.float32)
+	for j in range(n_batch):
+		idx=j*batch_size
+		print(j,"/",n_batch)
+		for step in range(n_steps):
+			feed_dict={x_holder:x[idx:idx+batch_size,step,:],z_holder:z}
+			bs=batch_size
+			if idx+batch_size>x.shape[0]: # for last
+				x2=np.zeros((batch_size,x.shape[2]),dtype=np.float32)
+				bs=batch_size-(idx+batch_size-x.shape[0])
+				x2[:bs,:]=x[idx:idx+batch_size,step,:]
+				feed_dict={x_holder:x2,z_holder:z}
+			result=sess.run(outputs,feed_dict=feed_dict)
+			z=result["sampled_z"]
+			mu=result["sampled_pred_params"][0]
+			zs[:,idx:idx+batch_size,step,:]=z[:,:bs,:]
+			mus[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]
+			print(z[0,0,0])
+			z=np.reshape(z,[-1,dim])
+	## save results
+	if config["save_result_filter"]!="":
+		results={}
+		results["z"]=zs
+		results["mu"]=mus
+		print("[SAVE] result : ",config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"])
+
+
+if __name__ == '__main__':
+	parser = argparse.ArgumentParser()
+	parser.add_argument('mode', type=str,
+			help='train/infer')
+	parser.add_argument('--config', type=str,
+			default=None,
+			nargs='?',
+			help='config json file')
+	parser.add_argument('--no-config',
+			action='store_true',
+			help='use default setting')
+	parser.add_argument('--save-config',
+			default=None,
+			nargs='?',
+			help='save config json file')
+	parser.add_argument('--model', type=str,
+			default=None,
+			help='model')
+	parser.add_argument('--hyperparam', type=str,
+			default=None,
+			nargs='?',
+			help='hyperparameter json file')
+
+	args=parser.parse_args()
+	# config
+	config=get_default_config()
+	if args.config is None:
+		if not args.no_config:
+			parser.print_help()
+			#quit()
+	else:
+		fp = open(args.config, 'r')
+		config.update(json.load(fp))
+	#if args.hyperparam is not None:
+	hy.initialize_hyperparameter(args.hyperparam)
+	config.update(hy.get_hyperparameter())
+	# setup
+	with tf.Graph().as_default():
+	#with tf.Graph().as_default(), tf.device('/cpu:0'):
+		with tf.Session() as sess:
+			# mode
+			if args.mode=="train":
+				train(sess,config)
+			elif args.mode=="infer":
+				if args.model is not None:
+					config["load_model"]=args.model
+				infer(sess,config)
+			elif args.mode=="filter":
+				if args.model is not None:
+					config["load_model"]=args.model
+				filtering(sess,config)
+	
+	if args.save_config is not None:
+		print("[SAVE] config: ",args.save_config)
+		fp = open(args.save_config, "w")
+		json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '),cls=NumPyArangeEncoder)
+
+
