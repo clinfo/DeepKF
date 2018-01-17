@@ -23,14 +23,13 @@ def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,outp
 	if not test_flag:
 		x = np.load(config["data_train_npy"])
 		m = np.load(config["mask_train_npy"])
+		s = np.load(config["steps_npy"])
 	else:
 		x = np.load(config["data_test_npy"])
 		m = np.load(config["mask_test_npy"])
+		s = np.load(config["steps_test_npy"])
 	x=x.transpose((0,2,1))
 	m=m.transpose((0,2,1))
-	m2=np.zeros(m.shape[0:2],dtype=int)
-	mm=np.sum(m,axis=2)
-	m2[mm>0]=1
 	# train / validatation/ test
 	data_num=x.shape[0]
 	data_idx=list(range(data_num))
@@ -51,25 +50,30 @@ def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,outp
 	print("#training data:",sep_idx[0][1]-sep_idx[0][0])
 	print("#valid data:",sep_idx[1][1]-sep_idx[1][0])
 	
-
-	tr_x=x[sep_idx[0][0]:sep_idx[0][1]]
-	tr_m=m2[sep_idx[0][0]:sep_idx[0][1]]
-	te_x=x[sep_idx[1][0]:sep_idx[1][1]]
-	te_m=m2[sep_idx[1][0]:sep_idx[1][1]]
-	tr_x=tr_x[0:100]
-	tr_m=tr_m[0:100]
-	te_x=te_x[0:100]
-	te_m=te_m[0:100]
+	tr_idx=data_idx[sep_idx[0][0]:sep_idx[0][1]]
+	te_idx=data_idx[sep_idx[1][0]:sep_idx[1][1]]
+	tr_x=x[tr_idx]
+	tr_m=m[tr_idx]
+	tr_s=s[tr_idx]
+	te_x=x[te_idx]
+	te_m=m[te_idx]
+	te_s=s[te_idx]
+	#tr_x=tr_x[0:100]
+	#tr_m=tr_m[0:100]
+	#te_x=te_x[0:100]
+	#te_m=te_m[0:100]
 	#return tr_x,tr_m,te_x,te_m
 	train_data=dotdict({})
 	train_data.x=tr_x
 	train_data.m=tr_m
+	train_data.s=tr_s
 	train_data.num=tr_x.shape[0]
 	train_data.n_steps=tr_x.shape[1]
 	train_data.dim=tr_x.shape[2]
 	valid_data=dotdict({})
 	valid_data.x=te_x
 	valid_data.m=te_m
+	valid_data.s=te_s
 	valid_data.num=te_x.shape[0]
 	valid_data.n_steps=te_x.shape[1]
 	valid_data.dim=tr_x.shape[2]

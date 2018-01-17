@@ -3,6 +3,30 @@ import joblib
 import json
 import sys
 import os
+from matplotlib.colors import LinearSegmentedColormap
+
+def generate_cmap(colors):
+		values = range(len(colors))
+		vmax = np.ceil(np.max(values))
+		color_list = []
+		for v, c in zip(values, colors):
+				color_list.append( ( v/ vmax, c) )
+		return LinearSegmentedColormap.from_list('custom_cmap', color_list)
+###
+def draw_heatmap(h1,h2,cmap,attr):
+	plt.figure(figsize=(16, 6))
+	plt.subplot(1, 1, 1)
+	plt.imshow(h1, aspect='auto', interpolation='none',
+					cmap=cmap, vmin=-1.0, vmax=1.0)#
+	plt.gca().xaxis.set_ticks_position('none')
+	plt.gca().yaxis.set_ticks_position('none')
+	if h2 is not None:
+		plt.subplot(2, 1, 2)
+		plt.imshow(h2, aspect='auto', interpolation='none',
+						cmap=cmap, vmin=-1.0, vmax=1.0)#
+		plt.gca().xaxis.set_ticks_position('none')
+		plt.gca().yaxis.set_ticks_position('none')
+
 
 if len(sys.argv)>2 and sys.argv[2]=="all":
 	import matplotlib
@@ -19,17 +43,9 @@ filename_info="pack_info.json"
 pid_key="pid_list_test"
 out_dir="plot_test"
 
-#filename_result="result_dim66/train.jbl"
-#filename_obs="pack_data_emit.npy"
-#filename_mask="pack_mask_emit.npy"
-#filename_info="pack_info.json"
-#pid_key="pid_list_train"
-#out_dir="plot_train"
-
 if len(sys.argv)>1:
 	fp = open(sys.argv[1], 'r')
 	config=json.load(fp)
-
 	filename_result=config["save_result_test"]
 	filename_obs=config["data_test_npy"]
 	filename_mask=config["mask_test_npy"]
@@ -37,17 +53,15 @@ if len(sys.argv)>1:
 	filename_info=config["data_info_json"]
 	if "plot_path" in config:
 		out_dir=config["plot_path"]
-		try:
-			os.makedirs(out_dir)
-		except:
-			pass
+		os.makedirs(out_dir,exist_ok=True)
 
 print("[LOAD]:",filename_result)
 obj=joblib.load(filename_result)
+print("[LOAD]:",filename_obs)
 o=np.load(filename_obs)
+o=o.transpose((0,2,1))
 print("[LOAD]:",filename_steps)
 steps=np.load(filename_steps)
-o=o.transpose((0,2,1))
 print("[LOAD]:",filename_mask)
 m=np.load(filename_mask)
 m=m.transpose((0,2,1))
@@ -58,17 +72,22 @@ d=data_info["attr_emit_list"].index("206010")
 print("206010:",d)
 o[m<0.1]=np.nan
 
+print(obj.keys())
 
-z_q=obj["z_q"].reshape((-1,o.shape[1],2))
-mu_q=obj["mu_q"]
-cov_q=obj["cov_q"]
+# z
+z_s=obj["z_s"]
+print(z_s.shape)
+mu_q=obj["z_params"][0]
+# obs
 obs_mu=obj["obs_params"][0]
-pred_mu=obj["pred_params"][0]
+pred_mu=obj["obs_pred"][0]
+print(m.shape)
+print(obs_mu.shape)
 obs_mu[m<0.1]=np.nan
 pred_mu[m<0.1]=np.nan
-x=obj["x"]
+
 print(mu_q.shape)
-idx=702
+idx=1
 l=len(data_info[pid_key])
 
 def plot_fig(idx):
@@ -82,8 +101,19 @@ def plot_fig(idx):
 	plt.plot(pred_mu[idx,:s,d],label="pred")
 	plt.legend()
 	plt.subplot(2,1,1)
-	plt.plot(mu_q[idx,:s,0],label="dim0")
-	plt.plot(mu_q[idx,:s,1],label="dim1")
+	if False:
+		plt.plot(mu_q[idx,:s,0],label="dim0")
+		plt.plot(mu_q[idx,:s,1],label="dim1")
+	else:
+		cmap = generate_cmap(['#0000FF','#FFFFFF','#FF0000'])
+		h=z_s[idx,:s,:]
+		#h=mu_q[idx,:s,:]
+		print(s)
+		print(h.shape)
+		plt.imshow(np.transpose(h), aspect='auto', interpolation='none',
+					cmap=cmap, vmin=-1.0, vmax=1.0)#
+		plt.gca().xaxis.set_ticks_position('none')
+		plt.gca().yaxis.set_ticks_position('none')
 	plt.legend()
 
 name=data_info[pid_key][idx]

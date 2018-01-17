@@ -25,7 +25,8 @@ def construct_placeholder(config):
 	n_steps=hy_param["n_steps"]
 	# 
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
+	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
+	s_holder=tf.placeholder(tf.int32,shape=(None,))
 	vd_eps_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim))
 	tr_eps_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim))
 	potential_points_holder=tf.placeholder(tf.float32,shape=(None,dim))
@@ -35,6 +36,7 @@ def construct_placeholder(config):
 	#
 	placeholders={"x":x_holder,
 			"m":m_holder,
+			"s":s_holder,
 			"potential_points": potential_points_holder,
 			"alpha": alpha_holder,
 			"vd_eps": vd_eps_holder,
@@ -111,13 +113,32 @@ def sample_normal(params,eps):
 def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	if control_params["state_type"]=="discrete":
 		qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
-		#z_s=qz[0]
-		dist=tf.contrib.distributions.OneHotCategorical(probs=qz[0])
-		z_s=tf.cast(dist.sample(),tf.float32)
+		if control_params["sampling_type"]=="none":
+			z_s=qz[0]
+		elif control_params["sampling_type"]=="gambel-max":
+			eps=control_params["placeholders"]["vd_eps"]
+			g=eps
+			#g=-tf.log(-tf.log(eps))
+			logpi=tf.log(qz[0]+1.0e-10)
+			dist=tf.contrib.distributions.OneHotCategorical(logit=(logpi+g))
+			z_s=tf.cast(dist.sample(),tf.float32)
+		elif control_params["sampling_type"]=="gambel-softmax":
+			eps=control_params["placeholders"]["vd_eps"]
+			g=eps
+			#g=-tf.log(-tf.log(eps))
+			logpi=tf.log(qz[0]+1.0e-5)
+			tau=10.0
+			z_s=tf.nn.softmax((logpi+g)/tau)
+		else:
+			dist=tf.contrib.distributions.OneHotCategorical(probs=qz[0])
+			z_s=tf.cast(dist.sample(),tf.float32)
 	else:
 		qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
-		eps=control_params["placeholders"]["vd_eps"]
-		z_s=sample_normal(qz,eps)
+		if control_params["sampling_type"]=="none":
+			z_s=qz[0]
+		else:
+			eps=control_params["placeholders"]["vd_eps"]
+			z_s=sample_normal(qz,eps)
 	return z_s,qz
 
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
@@ -150,9 +171,9 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 							dim_out, dim,
 							wd_w,wd_bias,
 							activate=tf.tanh,init_params_flag=init_params_flag)
-					layer_z=tf.nn.softmax(layer_logit)
 
-				layer_z=tf.reshape(layer_z,[-1,n_steps,dim])
+				layer_logit=tf.reshape(layer_logit,[-1,n_steps,dim])
+				layer_z=tf.nn.softmax(layer_logit)
 				params.append(layer_z)
 			else:
 				with tf.variable_scope('vd_fc_mu') as scope:
@@ -451,11 +472,12 @@ def computeNegCLL(x,outputs,mask,control_params):
 	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
 	negCLL=negCLL*0.5
 	#masked_negCLL=tf.reduce_sum(negCLL*0.5,axis=2)*mask
+	negCLL= negCLL*mask
 	negCLL = tf.reduce_sum(negCLL,axis=2)
 	negCLL = tf.reduce_sum(negCLL,axis=1)
 	return negCLL
 
-def computeTemporalKL(x,outputs,mask,control_params):
+def computeTemporalKL(x,outputs,length,control_params):
 	"""
 	z: bs x T x dim
 	prior0: bs x 1 x dim
@@ -474,7 +496,10 @@ def computeTemporalKL(x,outputs,mask,control_params):
 		kl_t=tf.log(cov_p)-tf.log(cov_q)-1+cov_q/cov_p+(mu_p-mu_q)**2/cov_p
 
 	#masked_kl=tf.reduce_sum(kl_t,axis=2)*mask
+	mask=tf.sequence_mask(length,maxlen=kl_t.shape[1],dtype=tf.float32)
 	kl_t=tf.reduce_sum(kl_t,axis=2)
+	kl_t=kl_t*mask
+
 	kl_t=tf.reduce_sum(kl_t,axis=1)
 	return kl_t
 
@@ -489,9 +514,10 @@ def loss(outputs,alpha=1,control_params=None):
 	placeholders=control_params["placeholders"]
 	x=placeholders["x"]
 	mask=placeholders["m"]
+	length=placeholders["s"]
 	# loss
 	negCLL=computeNegCLL(x,outputs,mask,control_params)
-	temporalKL=computeTemporalKL(x,outputs,mask,control_params)
+	temporalKL=computeTemporalKL(x,outputs,length,control_params)
 	cost_pot=tf.constant(0.0,dtype=np.float32)
 	if outputs["potential_loss"] is not None:
 		pot=outputs["potential_loss"]

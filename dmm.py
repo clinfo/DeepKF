@@ -69,6 +69,8 @@ def get_default_config():
 	config["save_result_train"]="./result/train.jbl"
 	config["save_result_test"]="./result/test.jbl"
 	config["save_result_filter"]="./result/filter.jbl"
+	config["state_type"]="discrete"
+	config["sampling_type"]="none"
 	# generate json
 	#fp = open("config.json", "w")
 	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
@@ -94,13 +96,19 @@ def construct_feed(idx,data,placeholders,alpha,is_train=False):
 	for key,ph in placeholders.items():
 		if key == "x":
 			feed_dict[ph]=data.x[idx,:,:]
-		elif key == "m":	
-			feed_dict[ph]=data.m[idx,:]
+		elif key == "m":
+			feed_dict[ph]=data.m[idx,:,:]
+		elif key == "s":
+			feed_dict[ph]=data.s[idx]
 		elif key == "alpha":
 			feed_dict[ph]=alpha
 		elif key == "vd_eps":
 			#eps=np.zeros((batch_size,n_steps,dim))
-			eps=np.random.standard_normal((batch_size,n_steps,dim))
+			if hy_param["state_type"]=="discrete":
+				eps=np.random.uniform(1.0e-10,1.0-1.0e-10,(batch_size,n_steps,dim))
+				eps=-np.log(-np.log(eps))
+			else:
+				eps=np.random.standard_normal((batch_size,n_steps,dim))
 			feed_dict[ph]=eps
 		elif key == "tr_eps":
 			#eps=np.zeros((batch_size,n_steps,dim))
@@ -279,7 +287,12 @@ def train(sess,config):
 	print("dim_emit       :",dim_emit)
 	
 	placeholders=construct_placeholder(config)
-	control_params={"config":config,"placeholders":placeholders,"state_type":"discrete"}
+	control_params={
+			"config":config,
+			"placeholders":placeholders,
+			"state_type":config["state_type"],
+			"sampling_type":config["sampling_type"],
+			}
 	# inference
 	outputs=inference_by_sample(n_steps,control_params=control_params)
 	# cost
@@ -339,28 +352,32 @@ def train(sess,config):
 		training_info["validation_error"]))
 	hy_param["evaluation"]=training_info
 	# save hyperparameter
-	if "save_model_path" in config:
-		save_model_path=config["save_model_path"]+"/model.last.ckpt"
+	if "save_model" in config:
+		#save_model_path=config["save_model"]+"/model.last.ckpt"
 		#hy_param["load_model"]=save_model_path
 		#hy_param["save_model"]=""
+		save_model_path=config["save_model"]
+		save_path = saver.save(sess, save_model_path)
+		print("[SAVE] %s"%(save_path))
 	hy.save_hyperparameter()
 	## save results
-	save_path = saver.save(sess, save_model_path)
-	print("[SAVE] %s"%(save_path))
 	if config["save_result_train"]!="":
 		results=compute_result(sess,placeholders,train_data,train_idx,outputs,batch_size,alpha)
 		results["config"]=config
 		print("[SAVE] result : ",config["save_result_train"])
+		base_path = os.path.dirname(config["save_result_train"])
+		os.makedirs(base_path,exist_ok=True)
 		joblib.dump(results,config["save_result_train"])
 		
 def infer(sess,config):
 	hy_param=hy.get_hyperparameter()
-	_,test_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
+	_,test_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=False,
+			test_flag=True)
 	batch_size=config["batch_size"]
 	n_batch=int(test_data.num/batch_size)
 	n_steps=test_data.n_steps
 	if n_batch==0:
-		batch_size=x.shape[0]
+		batch_size=test_data.num
 		n_batch=1
 	elif n_batch*batch_size!=test_data.num:
 		n_batch+=1
@@ -381,7 +398,12 @@ def infer(sess,config):
 	print("alpha          :",alpha)
 	
 	placeholders=construct_placeholder(config)
-	control_params={"config":config,"placeholders":placeholders,"state_type":"discrete"}
+	control_params={
+			"config":config,
+			"placeholders":placeholders,
+			"state_type":config["state_type"],
+			"sampling_type":config["sampling_type"],
+			}
 	# inference
 	outputs=inference_by_sample(n_steps,control_params)
 	# cost
@@ -402,6 +424,8 @@ def infer(sess,config):
 		results=compute_result(sess,placeholders,test_data,test_idx,outputs,batch_size,alpha)
 		results["config"]=config
 		print("[SAVE] result : ",config["save_result_test"])
+		base_path = os.path.dirname(config["save_result_test"])
+		os.makedirs(base_path,exist_ok=True)
 		joblib.dump(results,config["save_result_test"])
 	
 
@@ -508,6 +532,7 @@ if __name__ == '__main__':
 	#if args.hyperparam is not None:
 	hy.initialize_hyperparameter(args.hyperparam)
 	config.update(hy.get_hyperparameter())
+	hy.get_hyperparameter().update(config)
 	# setup
 	with tf.Graph().as_default():
 	#with tf.Graph().as_default(), tf.device('/cpu:0'):
