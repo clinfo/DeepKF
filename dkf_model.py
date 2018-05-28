@@ -15,7 +15,7 @@ import numpy as np
 import hyopt as hy
 
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 
 
 # Basic model parameters.
@@ -58,7 +58,8 @@ def _variable_on_cpu(name, shape, initializer):
 		Variable Tensor
 	"""
 	with tf.device('/cpu:0'):
-		dtype = tf.half if FLAGS.use_fp16 else tf.float32
+		#dtype = tf.half if FLAGS.use_fp16 else tf.float32
+		dtype = tf.float32
 		var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
 	return var
 
@@ -79,7 +80,7 @@ def _variable_with_weight_decay(name, shape,initializer_name, wd):
 	Returns:
 		Variable Tensor
 	"""
-	dtype = tf.half if FLAGS.use_fp16 else tf.float32
+	dtype = tf.float32
 	if initializer_name=="normal":
 		stddev=1e-5
 		var = _variable_on_cpu(name,shape,
@@ -177,10 +178,10 @@ def build_nn(x,dim_input,n_steps,hyparam_name,name,
 	hy_param=hy.get_hyperparameter()
 	for i,hy_layer in enumerate(hy_param[hyparam_name]):
 		layer_dim_out=layer_dim
-		print(">>>",layer_dim)
+		#print(">>>",layer_dim)
 		if "dim_output" in hy_layer:
 			layer_dim_out=hy_layer["dim_output"]
-			print(">>>",layer_dim,"=>",layer_dim_out)
+			#print(">>>",layer_dim,"=>",layer_dim_out)
 			
 		if hy_layer["name"]=="fc":
 			with tf.variable_scope(name+'_fc'+str(i)) as scope:
@@ -284,7 +285,7 @@ def computeEmission(z,n_steps,dim,dim_emit,params=None,control_params=None):
 					params=params,
 					control_params=control_params
 					)
-			print(">>>>",dim_out)
+			#print(">>>>",dim_out)
 			# layer -> layer_mean
 			with tf.variable_scope('em_fc_mean') as scope:
 				layer_mu=fc_layer("emission/em_fc2_mean",layer,
@@ -734,7 +735,7 @@ def computeNegCLL(x,outputs,mask):
 	mu_p=outputs["obs_params"][0]
 
 	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
-	masked_negCLL=tf.reduce_sum(negCLL*0.5,axis=2)*mask
+	masked_negCLL=tf.reduce_sum(negCLL*0.5*mask,axis=2)
 	return tf.reduce_sum(masked_negCLL,axis=1)
 
 def computeTemporalKL(x,outputs,mask):
@@ -754,7 +755,7 @@ def computeTemporalKL(x,outputs,mask):
 	
 
 	kl_t=tf.log(cov_p)-tf.log(cov_q)-1+cov_q/cov_p+(mu_p-mu_q)**2/cov_p
-	masked_kl=tf.reduce_sum(kl_t,axis=2)*mask
+	masked_kl=tf.reduce_sum(kl_t,axis=2)
 	return tf.reduce_sum(masked_kl,axis=1)
 
 def loss(x,outputs,mask,alpha=1,control_params=None):

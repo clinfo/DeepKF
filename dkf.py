@@ -72,22 +72,26 @@ def get_default_config():
 
 def train(sess,config):
 	hy_param=hy.get_hyperparameter()
-	x, m,x_val,m_val = dkf_input.inputs(config,with_shuffle=True,with_train_test=True)
+	#x, m,x_val,m_val = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
+	train_data, valid_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
 	batch_size=config["batch_size"]
-	n_batch=int(x.shape[0]/batch_size)
-	n_steps=x.shape[1]
+	n_batch=int(train_data.num/batch_size)
+	n_steps=train_data.n_steps
 	if n_batch==0:
-		batch_size=x.shape[0]
+		batch_size=train_data.num
 		n_batch=1
-	dim_emit=x.shape[2]
+	dim_emit=train_data.dim
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
+	print("data_size",train_data.num,
+		"batch_size",batch_size,
+		", n_step",train_data.n_steps,
+		", dim_emit",train_data.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
+	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	eps_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	potential_points_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	num_potential_points=100
@@ -123,7 +127,7 @@ def train(sess,config):
 	saver = tf.train.Saver()
 	sess.run(init)
 
-	data_idx=list(range(x.shape[0]))
+	data_idx=list(range(train_data.num))
 	## training
 	validation_count=0
 	prev_validation_cost=0
@@ -155,7 +159,9 @@ def train(sess,config):
 			for j in range(n_batch):
 				idx=data_idx[j*batch_size:(j+1)*batch_size]
 				eps=np.zeros((batch_size*n_steps,dim))
-				feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
+				feed_dict={x_holder:train_data.x[idx,:,:],
+					m_holder:train_data.m[idx,:],
+					eps_holder:eps,alpha_holder:alpha}
 				if potential_points_holder is not None:
 					pts=np.random.standard_normal((num_potential_points,dim))
 					feed_dict[potential_points_holder]=pts
@@ -163,8 +169,8 @@ def train(sess,config):
 				all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 				error+=diff.eval(feed_dict=feed_dict)/n_batch
 			# compute cost in validation data
-			eps=np.zeros((x_val.shape[0]*x_val.shape[1],dim))
-			feed_dict={x_holder:x_val,m_holder:m_val,eps_holder:eps,alpha_holder:alpha}
+			eps=np.zeros((valid_data.num*valid_data.n_steps,dim))
+			feed_dict={x_holder:valid_data.x,m_holder:valid_data.m,eps_holder:eps,alpha_holder:alpha}
 			if potential_points_holder is not None:
 				pts=np.random.standard_normal((num_potential_points,dim))
 				feed_dict[potential_points_holder]=pts
@@ -189,7 +195,9 @@ def train(sess,config):
 		for j in range(n_batch):
 			eps=np.random.standard_normal((batch_size*n_steps,dim))
 			idx=data_idx[j*batch_size:(j+1)*batch_size]
-			feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:],eps_holder:eps,alpha_holder:alpha}
+			feed_dict={x_holder:train_data.x[idx,:,:],
+				m_holder:train_data.m[idx,:,:],
+				eps_holder:eps,alpha_holder:alpha}
 			if potential_points_holder is not None:
 				pts=np.random.standard_normal((num_potential_points,dim))
 				feed_dict[potential_points_holder]=pts
@@ -209,39 +217,42 @@ def train(sess,config):
 	print("[SAVE] %s"%(save_path))
 	if config["save_result_train"]!="":
 		results={}
-		eps=np.zeros((x.shape[0]*x.shape[1],dim))
+		eps=np.zeros((train_data.num*train_data.n_steps,dim))
 		for k,v in outputs.items():
 			if v is not None:
-				feed_dict={x_holder:x,m_holder:m,eps_holder:eps,alpha_holder:alpha}
+				feed_dict={x_holder:train_data.x,m_holder:train_data.m,eps_holder:eps,alpha_holder:alpha}
 				if potential_points_holder is not None:
 					pts=np.random.standard_normal((num_potential_points,dim))
 					feed_dict[potential_points_holder]=pts
 				res=sess.run(v,feed_dict=feed_dict)
 				results[k]=res
-		results["x"]=x
+		results["x"]=train_data.x
 		results["config"]=config
 		joblib.dump(results,config["save_result_train"])
 
 
 def infer(sess,config):
-	_,_,x, m = dkf_input.inputs(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	_,data_test = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	batch_size=config["batch_size"]
-	n_batch=int(x.shape[0]/batch_size)
-	n_steps=x.shape[1]
+	n_batch=int(data_test.num/batch_size)
+	n_steps=data_test.n_steps
 	if n_batch==0:
-		batch_size=x.shape[0]
+		batch_size=data_test.num
 		n_batch=1
-	elif n_batch*batch_size!=x.shape[0]:
+	elif n_batch*batch_size!=data_test.num:
 		n_batch+=1
-	dim_emit=x.shape[2]
+	dim_emit=data_test.dim
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
+	print("data_size",data_test.num,
+		"batch_size",batch_size,
+		", n_step",data_test.n_steps,
+		", dim_emit",data_test.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps))
+	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	control_params={"dropout_rate":0.0}
 	
 	# inference
@@ -254,12 +265,12 @@ def infer(sess,config):
 	saver = tf.train.Saver()# これ以前の変数のみ保存される
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
-	data_idx=list(range(x.shape[0]))
+	data_idx=list(range(data_test.num))
 	# check point
 	cost=0.0
 	for j in range(n_batch):
 		idx=data_idx[j*batch_size:(j+1)*batch_size]
-		feed_dict={x_holder:x[idx,:,:],m_holder:m[idx,:]}
+		feed_dict={x_holder:data_test.x[idx,:,:],m_holder:data_test.m[idx,:]}
 		cost+=total_cost.eval(feed_dict=feed_dict)
 	print("cost: %g"%(cost))
 
@@ -268,34 +279,37 @@ def infer(sess,config):
 		results={}
 		for k,v in outputs.items():
 			if v is not None:
-				feed_dict={x_holder:x,m_holder:m}
+				feed_dict={x_holder:data_test.x,m_holder:data_test.m}
 				res=sess.run(v,feed_dict=feed_dict)
 				results[k]=res
-		results["x"]=x
+		results["x"]=data_test.x
 		print("[SAVE] result : ",config["save_result_test"])
 		joblib.dump(results,config["save_result_test"])
 
 
 def filtering(sess,config):
-	_,_,x, m = dkf_input.inputs(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	_,data_test = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	batch_size=config["batch_size"]
 	batch_size=10
-	n_batch=int(x.shape[0]/batch_size)
-	n_steps=x.shape[1]
+	n_batch=int(data_test.num/batch_size)
+	n_steps=data_test.n_steps
 	if n_batch==0:
-		batch_size=x.shape[0]
+		batch_size=data_test.num
 		n_batch=1
-	elif n_batch*batch_size!=x.shape[0]:
+	elif n_batch*batch_size!=data_test.num:
 		n_batch+=1
-	dim_emit=x.shape[2]
+	dim_emit=data_test.dim
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
+	print("data_size",data_test.num,
+		"batch_size",batch_size,
+		", n_step",data_test.n_steps,
+		", dim_emit",data_test.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None))
+	m_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	#step_holder=tf.placeholder(tf.int32)
 	sample_size=10
@@ -309,23 +323,24 @@ def filtering(sess,config):
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	
-	feed_dict={x_holder:x[0:batch_size,0,:],z_holder:z0}
+	feed_dict={x_holder:data_test.x[0:batch_size,0,:],z_holder:z0}
 	result=sess.run(outputs,feed_dict=feed_dict)
 	print(result["sampled_z"].shape)
 	print(result["sampled_pred_params"][0].shape)
 	z=np.reshape(result["sampled_z"],[-1,dim])
-	zs=np.zeros((sample_size,x.shape[0],n_steps,dim),dtype=np.float32)
-	mus=np.zeros((sample_size*sample_size,x.shape[0],n_steps,dim_emit),dtype=np.float32)
+	zs=np.zeros((sample_size,data_test.num,n_steps,dim),dtype=np.float32)
+	mus=np.zeros((sample_size*sample_size,data_test.num,n_steps,dim_emit),dtype=np.float32)
 	for j in range(n_batch):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			feed_dict={x_holder:x[idx:idx+batch_size,step,:],z_holder:z}
+			feed_dict={x_holder:data_test.x[idx:idx+batch_size,step,:],
+				z_holder:z}
 			bs=batch_size
-			if idx+batch_size>x.shape[0]: # for last
-				x2=np.zeros((batch_size,x.shape[2]),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-x.shape[0])
-				x2[:bs,:]=x[idx:idx+batch_size,step,:]
+			if idx+batch_size>data_test.num: # for last
+				x2=np.zeros((batch_size,dim),dtype=np.float32)
+				bs=batch_size-(idx+batch_size-data_test.num)
+				x2[:bs,:]=data_test.x[idx:idx+batch_size,step,:]
 				feed_dict={x_holder:x2,z_holder:z}
 			result=sess.run(outputs,feed_dict=feed_dict)
 			z=result["sampled_z"]
