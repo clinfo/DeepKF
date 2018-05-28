@@ -68,26 +68,27 @@ m=m.transpose((0,2,1))
 print("[LOAD]:",filename_info)
 fp = open(filename_info, 'r')
 data_info = json.load(fp)
-d=data_info["attr_emit_list"].index("206010")
-print("206010:",d)
+#d=data_info["attr_emit_list"].index("206010")
+#print("206010:",d)
+d=0
 o[m<0.1]=np.nan
 
 print(obj.keys())
 
 # z
-z_s=obj["z_s"]
-print(z_s.shape)
-mu_q=obj["z_params"][0]
+z_q=obj["z_q"]
+print(z_q.shape)
+mu_q=obj["mu_q"]
 # obs
 obs_mu=obj["obs_params"][0]
-pred_mu=obj["obs_pred"][0]
+pred_mu=obj["pred_params"][0]
 print(m.shape)
 print(obs_mu.shape)
 obs_mu[m<0.1]=np.nan
 pred_mu[m<0.1]=np.nan
 
 print(mu_q.shape)
-idx=1
+idx=0
 l=len(data_info[pid_key])
 
 def plot_fig(idx):
@@ -106,7 +107,7 @@ def plot_fig(idx):
 		plt.plot(mu_q[idx,:s,1],label="dim1")
 	else:
 		cmap = generate_cmap(['#0000FF','#FFFFFF','#FF0000'])
-		h=z_s[idx,:s,:]
+		h=z_q[idx,:s,:]
 		#h=mu_q[idx,:s,:]
 		print(s)
 		print(h.shape)

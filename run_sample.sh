@@ -8,5 +8,5 @@ python attractor.py --config model/config.result.json --hyperparam model/hyparam
 
 python script/plot_p.py ./model/config.result.json all 
 python script/plot.py model/config.result.json all
-python script/plot_vec.py model/config.result.json
+python script/plot_vec.py model/config.result.json all
 

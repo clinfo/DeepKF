@@ -724,6 +724,7 @@ def inference(x,epsilon,n_steps,dim,dim_emit,pot_points=None,control_params=None
 		pred_params,_=computeEmission(mu_trans_input,n_steps,dim,dim_emit,params,control_params=control_params)
 		#_activation_summary(softmax_linear)
 
+	z_q=tf.reshape(z_q,[-1,n_steps,dim])
 	outputs={"mu_q":mu_q,"cov_q":cov_q,
 			"mu_tr":mu_trans,"cov_tr":cov_trans,
 			"obs_params":obs_params,"pred_params":pred_params,"z_q":z_q,"potential_loss":pot_loss}

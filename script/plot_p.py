@@ -28,6 +28,7 @@ if len(sys.argv)>1:
 	filename_filter=config["save_result_filter"]
 	filename_steps=config["steps_test_npy"]
 	out_dir=config["plot_path"]
+	filename_info=config["data_info_json"]
 
 print("[LOAD] ",filename_filter)
 p_filter_result=joblib.load(filename_filter)
@@ -44,13 +45,14 @@ m=m.transpose((0,2,1))
 print("[LOAD] ",filename_info)
 fp = open(filename_info, 'r')
 data_info = json.load(fp)
-d=data_info["attr_emit_list"].index("206010")
-print("206010:",d)
+#d=data_info["attr_emit_list"].index("206010")
+#print("206010:",d)
+d=0
+idx=0
 o[m<0.1]=np.nan
 
 
 x=obj["x"]
-idx=302
 l=len(data_info[pid_key])
 
 z=p_filter_result["z"]
