@@ -22,12 +22,26 @@ class dotdict(dict):
 def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,output_dict_flag=True):
 	if not test_flag:
 		x = np.load(config["data_train_npy"])
-		m = np.load(config["mask_train_npy"])
-		s = np.load(config["steps_npy"])
+		if config["mask_train_npy"] is None:
+			m = np.ones_like(x)
+		else:
+			m = np.load(config["mask_train_npy"])
+		if config["steps_npy"] is None:
+			s=[len(x[i]) for i in range(len(x))]
+			s=np.array(s)
+		else:
+			s = np.load(config["steps_npy"])
 	else:
 		x = np.load(config["data_test_npy"])
-		m = np.load(config["mask_test_npy"])
-		s = np.load(config["steps_test_npy"])
+		if config["mask_test_npy"] is None:
+			m = np.ones_like(x)
+		else:
+			m = np.load(config["mask_test_npy"])
+		if config["steps_test_npy"] is None:
+			s=[len(x[i]) for i in range(len(x))]
+			s=np.array(s)
+		else:
+			s = np.load(config["steps_test_npy"])
 	x=x.transpose((0,2,1))
 	m=m.transpose((0,2,1))
 	# train / validatation/ test

@@ -54,9 +54,11 @@ def get_default_config():
 	# dataset
 	config["train_test_ratio"]=[0.8,0.2]
 	config["data_train_npy"] = "data/pack_data_emit.npy"
-	config["mask_train_npy"] = "data/pack_mask_emit.npy"
+	config["mask_train_npy"] = None
 	config["data_test_npy"] = "data/pack_data_emit_test.npy"
-	config["mask_test_npy"] = "data/pack_mask_emit_test.npy"
+	config["mask_test_npy"] = None
+	config["steps_npy"]=None
+	config["steps_test_npy"]=None
 	# save/load model
 	config["save_model_path"] = "./model/"
 	config["load_model"] = "./model/model.last.ckpt"
