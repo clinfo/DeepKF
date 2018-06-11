@@ -38,8 +38,8 @@ else:
 
 filename_result="result/test.jbl"
 filename_obs="pack_data_emit_test.npy"
-filename_mask="pack_mask_emit_test.npy"
-filename_info="pack_info.json"
+filename_mask=None
+filename_info=None
 pid_key="pid_list_test"
 out_dir="plot_test"
 
@@ -48,7 +48,8 @@ if len(sys.argv)>1:
 	config=json.load(fp)
 	filename_result=config["save_result_test"]
 	filename_obs=config["data_test_npy"]
-	filename_mask=config["mask_test_npy"]
+	if "mask_test_npy" in config:
+		filename_mask=config["mask_test_npy"]
 	filename_steps=config["steps_test_npy"]
 	filename_info=config["data_info_json"]
 	if "plot_path" in config:
@@ -62,9 +63,11 @@ o=np.load(filename_obs)
 o=o.transpose((0,2,1))
 print("[LOAD]:",filename_steps)
 steps=np.load(filename_steps)
-print("[LOAD]:",filename_mask)
-m=np.load(filename_mask)
-m=m.transpose((0,2,1))
+if filename_mask is None:
+	print("[LOAD]:",filename_mask)
+	m=np.load(filename_mask)
+	m=m.transpose((0,2,1))
+
 print("[LOAD]:",filename_info)
 fp = open(filename_info, 'r')
 data_info = json.load(fp)

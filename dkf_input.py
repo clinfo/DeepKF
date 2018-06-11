@@ -20,6 +20,7 @@ class dotdict(dict):
 
 
 def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,output_dict_flag=True):
+	time_major=config["time_major"]
 	if not test_flag:
 		x = np.load(config["data_train_npy"])
 		if config["mask_train_npy"] is None:
@@ -42,8 +43,9 @@ def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,outp
 			s=np.array(s)
 		else:
 			s = np.load(config["steps_test_npy"])
-	x=x.transpose((0,2,1))
-	m=m.transpose((0,2,1))
+	if not time_major:
+		x=x.transpose((0,2,1))
+		m=m.transpose((0,2,1))
 	# train / validatation/ test
 	data_num=x.shape[0]
 	data_idx=list(range(data_num))

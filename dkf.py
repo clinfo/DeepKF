@@ -19,11 +19,8 @@ import argparse
 import dkf_input
 from dkf_model import inference, loss, p_filter
 import hyopt as hy
-
-FLAGS = tf.app.flags.FLAGS
-
-# Basic model parameters.
-tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
+# for profiler
+from tensorflow.python.client import timeline
 
 
 class NumPyArangeEncoder(json.JSONEncoder):
@@ -51,6 +48,7 @@ def get_default_config():
 	config["patience"] = 5
 	config["batch_size"] = 100
 	config["alpha"] = 1.0
+	config["learning_rate"] = 1.0e-3
 	# dataset
 	config["train_test_ratio"]=[0.8,0.2]
 	config["data_train_npy"] = "data/pack_data_emit.npy"
@@ -65,6 +63,8 @@ def get_default_config():
 	config["save_result_train"]="./result/train.jbl"
 	config["save_result_test"]="./result/test.jbl"
 	config["save_result_filter"]="./result/filter.jbl"
+	config["profile"]=False
+	config["time_major"]=True
 	# generate json
 	#fp = open("config.json", "w")
 	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
@@ -106,7 +106,7 @@ def train(sess,config):
 	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
 	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
 	# train_step
-	train_step = tf.train.AdamOptimizer(1e-3).minimize(total_cost)
+	train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(total_cost)
 	# print variables
 	print('## emission variables')
 	vars_em = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="emission_var")
@@ -129,6 +129,10 @@ def train(sess,config):
 	saver = tf.train.Saver()
 	sess.run(init)
 
+	if config["profile"]:
+		vars_to_train = tf.trainable_variables()
+		writer = tf.summary.FileWriter('logs', sess.graph)
+
 	data_idx=list(range(train_data.num))
 	## training
 	validation_count=0
@@ -138,19 +142,19 @@ def train(sess,config):
 	alpha=0.0
 	alpha_max=config["alpha"]
 	print("[LOG] epoch, cost,cost(validation),error,alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
-	for i in range(config["epoch"]):
+	for epoch in range(config["epoch"]):
 		np.random.shuffle(data_idx)
 		if alpha_mode:
 			begin_tau=config["epoch"]*0.1
 			end_tau=config["epoch"]*0.9
 			tau=100.0
-			if i < begin_tau:
+			if epoch < begin_tau:
 				alpha=0.0
-			elif i<end_tau:
-				alpha=alpha_max*(1.0-np.exp(-(i-begin_tau)/tau))
+			elif epoch<end_tau:
+				alpha=alpha_max*(1.0-np.exp(-(epoch-begin_tau)/tau))
 			else:
 				alpha=alpha_max
-		if i%10 == 0:
+		if epoch%1 == 0:
 			# check point
 			cost=0.0
 			validation_cost=0.0
@@ -179,22 +183,28 @@ def train(sess,config):
 			validation_cost+=total_cost.eval(feed_dict=feed_dict)
 			validation_all_costs+=np.array(sess.run(costs,feed_dict=feed_dict))
 			# save
-			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
+			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(epoch))
 			# early stopping
 			if prev_validation_cost<validation_cost:
 				validation_count+=1
 				if config["patience"] >0 and validation_count>=config["patience"]:
-					print("step %d, training cost %g, validation cost %g (%s)[alpha=%g]"%(i, cost, validation_cost,save_path,alpha))
+					print("step %d, training cost %g, validation cost %g (%s)[alpha=%g]"%(epoch, cost, validation_cost,save_path,alpha))
 					print("[stop] by validation")
 					break;
 			else:
 				validation_count=0
-			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(i, cost, validation_cost,save_path,error,alpha))
+			print("step %d, training cost %g, validation cost %g (%s) [error=%g,alpha=%g]"%(epoch, cost, validation_cost,save_path,error,alpha))
 			print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
-			print("[LOG] %d, %g,%g,%g,%g, %g,%g,%g, %g,%g,%g"%(i, cost,validation_cost,error,alpha, all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+			print("[LOG] %d, %g,%g,%g,%g, %g,%g,%g, %g,%g,%g"%(epoch, cost,validation_cost,error,alpha, all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
 			prev_validation_cost=validation_cost
 		# update
 		for j in range(n_batch):
+			profiler_start=False
+			print(config["profile"], epoch==2, j==0)
+			if config["profile"] and epoch==2 and j==0:
+				profiler_start=True
+				run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+				run_metadata = tf.RunMetadata()
 			eps=np.random.standard_normal((batch_size*n_steps,dim))
 			idx=data_idx[j*batch_size:(j+1)*batch_size]
 			feed_dict={x_holder:train_data.x[idx,:,:],
@@ -203,7 +213,26 @@ def train(sess,config):
 			if potential_points_holder is not None:
 				pts=np.random.standard_normal((num_potential_points,dim))
 				feed_dict[potential_points_holder]=pts
-			train_step.run(feed_dict=feed_dict)
+			
+			if profiler_start:
+				sess.run([train_step],feed_dict=feed_dict,
+					options=run_options,
+					run_metadata=run_metadata)
+			else:
+				sess.run([train_step],feed_dict=feed_dict)
+			##
+			if profiler_start:
+				step_stats = run_metadata.step_stats
+				tl = timeline.Timeline(step_stats)
+				ctf = tl.generate_chrome_trace_format(
+					show_memory=False,
+					show_dataflow=True)
+				with open("logs/timeline.json", "w") as f:
+					f.write(ctf)
+				print("[SAVE] logs/timeline.json")
+				profiler_start=False
+			##
+
 
 	print("[RESULT] training cost %g, validation cost %g, error %g"%(cost, validation_cost,error))
 	print("  training:[%g,%g,%g] validation:[%g,%g,%g]"%(all_costs[0],all_costs[1],all_costs[2],validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
@@ -359,8 +388,11 @@ def filtering(sess,config):
 		print("[SAVE] result : ",config["save_result_filter"])
 		joblib.dump(results,config["save_result_filter"])
 
-
 if __name__ == '__main__':
+	# set random seed
+	seed = 1234
+	np.random.seed(seed)
+	#
 	parser = argparse.ArgumentParser()
 	parser.add_argument('mode', type=str,
 			help='train/infer')
@@ -382,6 +414,13 @@ if __name__ == '__main__':
 			default=None,
 			nargs='?',
 			help='hyperparameter json file')
+	parser.add_argument('--gpu', type=str,
+			default=None,
+			help='constraint gpus (default: all) (e.g. --gpu 0,2)')
+	parser.add_argument('--cpu',
+			action='store_true',
+			help='cpu mode (calcuration only with cpu)')
+	
 
 	args=parser.parse_args()
 	# config
@@ -396,9 +435,16 @@ if __name__ == '__main__':
 	#if args.hyperparam is not None:
 	hy.initialize_hyperparameter(args.hyperparam)
 	config.update(hy.get_hyperparameter())
+	# gpu/cpu
+	if args.cpu:
+		os.environ['CUDA_VISIBLE_DEVICES'] = ""
+	elif args.gpu is not None:
+		os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 	# setup
 	with tf.Graph().as_default():
 	#with tf.Graph().as_default(), tf.device('/cpu:0'):
+		seed = 4321
+		tf.set_random_seed(seed)
 		with tf.Session() as sess:
 			# mode
 			if args.mode=="train":
