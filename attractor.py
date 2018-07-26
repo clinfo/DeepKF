@@ -17,13 +17,12 @@ import json
 import argparse
 
 import dkf_input
-from dmm_model import computeTransitionFunc
+from dmm_model import computeTransitionFunc,computeTransitionDistWithNN
 from dmm_model import computeEmission, computePotential
 import hyopt as hy
-FLAGS = tf.app.flags.FLAGS
 
-# Basic model parameters.
-tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
+#FLAGS = tf.app.flags.FLAGS
+#tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
 def make_griddata(dim,nx,rx=1,max_dim=-1):
 	arr=[]
@@ -65,15 +64,24 @@ def field(sess,config):
 		}
 	# inference
 	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
-	z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
-	z_m =tf.reshape(z_m,[-1,dim])
+	if control_params["dynamics_type"]=="distribution" :
+		params=computeTransitionDistWithNN(z_holder,n_steps,control_params=control_params)
+		z_m=params[0]
+	elif control_params["dynamics_type"]=="function" :
+		z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
+	else:
+		raise Exception('[Error] unknown dynamics type')
 	
+	z_m =tf.reshape(z_m,[-1,dim])
 	# grad
 	g_z = tf.gradients(z_m, [z_holder])
 	# load
-	saver = tf.train.Saver()
-	print("[LOAD] ",config["load_model"])
-	saver.restore(sess,config["load_model"])
+	try:
+		saver = tf.train.Saver()
+		print("[LOAD] ",config["load_model"])
+		saver.restore(sess,config["load_model"])
+	except:
+		print("[SKIP] Load parameters")
 	#
 	feed_dict={z_holder:z0}
 	g=sess.run(g_z,feed_dict=feed_dict)

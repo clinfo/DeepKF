@@ -27,15 +27,14 @@ if data.mask:
 l=len(data.info[data.pid_key])
 
 z=data.result["z"]
-print("z:",z[0,idx,:,0])
-print(z.shape)
+#print("z:",z[0,idx,:,0])
+#print(z.shape)
 mu=data.result["mu"]
 
 def plot_fig(idx):
 	s=data.steps[idx]
 	print("steps:",s)
-	print("z:",z[0,idx,:s,0])
-	
+	#print("z:",z[0,idx,:s,0])
 	plt.subplot(3,1,1)
 	plt.plot(z[0,idx,:s,0],label="dim0",color="b")
 	for i in range(10-1):
@@ -61,8 +60,7 @@ def plot_fig(idx):
 if args.mode=="all":
 	for idx in range(l):
 		name=data.info[data.pid_key][idx]
-		print(data.info[data.pid_key][idx])
-		name=data.info[data.pid_key][idx]
+		#print(data.info[data.pid_key][idx])
 		plot_fig(idx)
 		out_filename=data.out_dir+"/"+str(idx)+"_"+name+"_p.png"
 		print("[SAVE] :",out_filename)
@@ -70,7 +68,7 @@ if args.mode=="all":
 		plt.clf()
 else:
 	idx=args.index
-	print(data.info[data.pid_key][idx])
+	#print(data.info[data.pid_key][idx])
 	plot_fig(idx)
 	out_filename=data.out_dir+"/"+str(idx)+"_"+name+"_p.png"
 	print("[SAVE] :",out_filename)

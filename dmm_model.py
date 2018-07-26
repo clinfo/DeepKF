@@ -109,10 +109,8 @@ def sample_normal(params,eps):
 	else:
 		return mu
 
-# return sample z from q(z): tensors: batch_size x n_steps x dim
-def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
+def sampleState(qz,control_params):
 	if control_params["state_type"]=="discrete":
-		qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
 		if control_params["sampling_type"]=="none":
 			z_s=qz[0]
 		elif control_params["sampling_type"]=="gambel-max":
@@ -120,7 +118,7 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 			g=eps
 			#g=-tf.log(-tf.log(eps))
 			logpi=tf.log(qz[0]+1.0e-10)
-			dist=tf.contrib.distributions.OneHotCategorical(logit=(logpi+g))
+			dist=tf.contrib.distributions.OneHotCategorical(logits=(logpi+g))
 			z_s=tf.cast(dist.sample(),tf.float32)
 		elif control_params["sampling_type"]=="gambel-softmax":
 			eps=control_params["placeholders"]["vd_eps"]
@@ -135,7 +133,6 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 		else:
 			raise Exception('[Error] unknown sampling type')
 	elif control_params["state_type"]=="normal":
-		qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
 		if control_params["sampling_type"]=="none":
 			z_s=qz[0]
 		elif control_params["sampling_type"]=="normal":
@@ -145,8 +142,13 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 			raise Exception('[Error] unknown sampling type')
 	else:
 		raise Exception('[Error] unknown state type')
-	return z_s,qz
+	return z_s
 
+
+def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
+	qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
+	qs=sampleState(qz,control_params)
+	return qs,qz
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
 def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	"""
@@ -413,17 +415,22 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 			#  cov_trans: (sample_size x batch_size) x dim
 			mu_trans=tf.reshape(mu_trans,[-1,dim])
 			cov_trans=tf.reshape(cov_trans,[-1,dim])+0.01
-			#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
 			#
 			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
 			particles=proposal_dist.sample(proposal_sample_size)
 		elif control_params["dynamics_type"]=="distribution":
 			out_params=computeTransitionDistWithNN(z,1,init_params_flag=True,control_params=control_params)
-			mu_trans=out_params[0]
-			cov_trans=out_params[1]+0.01
-			
-			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
-			particles=proposal_dist.sample(proposal_sample_size)
+			if control_params["state_type"]=="discrete":
+				logpi=tf.log(out_params[0]+1.0e-10)
+				proposal_dist=tf.contrib.distributions.OneHotCategorical(logits=logpi)
+				particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
+			elif control_params["state_type"]=="normal":
+				mu_trans=out_params[0]
+				cov_trans=out_params[1]+0.01
+				proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
+				particles=proposal_dist.sample(proposal_sample_size)
+			else:
+				raise Exception('[Error] unknown state type')
 		else:
 			raise Exception('[Error] unknown dynamics type')
 	elif control_params["pfilter_type"]=="zero_dynamics":
@@ -707,7 +714,7 @@ def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
 					use_data_points=True
 				if use_data_points:
 					## compute V(x(t+1))-V(x(t)) < 0 for stability
-					mu_trans_1,cov_trans_1,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,None,None,params_tr,init_params_flag=False,control_params=control_params)
+					mu_trans_1,cov_trans_1=computeTransitionUKF(mu_q,cov_q,n_steps,None,None,init_params_flag=False,control_params=control_params)
 					#mu_q: bs x T x dim
 					#mu_trans_1: bs x T x dim
 					params_pot=None
@@ -718,30 +725,32 @@ def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
 					pot=tf.nn.relu(pot1-pot0+c)
 					pot_loss=tf.reshape(pot,[-1,n_steps])
 				else:
-					mu_trans_1,params_tr=computeTransitionFunc(pot_points,1,init_params_flag=False,control_params=control_params)
+					mu_trans_1=computeTransitionFunc(pot_points,1,init_params_flag=False,control_params=control_params)
 					params_pot=None
-					pot0,params_pot=computePotential(pot_points,1,control_params=control_params)
-					pot1,params_pot=computePotential(mu_trans_1,1,init_params_flag=False,control_params=control_params)
+					pot0=computePotential(pot_points,1,control_params=control_params)
+					pot1=computePotential(mu_trans_1,1,init_params_flag=False,control_params=control_params)
 					#pot: bs x T
 					c=0.1
 					pot=tf.nn.relu(pot1-pot0+c)
 					pot_loss=tf.reshape(pot,[-1,1])
 	return pot_loss
 
-def computePotential(z_input,n_steps,dim,params=None,control_params=None):
+def computePotential(z_input,n_steps,init_params_flag=True,control_params=None):
 	hy_param=hy.get_hyperparameter()
 	if hy_param["potential_nn_enabled"]:
-		return computePotentialFromNN(z_input,n_steps,dim,params,control_params)
+		return computePotentialFromNN(z_input,n_steps,init_params_flag,control_params)
 	else:
-		return computePotentialWithBinaryPot(z_input,n_steps,dim,params,control_params)
+		return computePotentialWithBinaryPot(z_input,n_steps,init_params_flag,control_params)
 
-def computePotentialWithBinaryPot(z_input,n_steps,dim,params=None,control_params=None):
+def computePotentialWithBinaryPot(z_input,n_steps,dim,init_params_flag=True,control_params=None):
 	"""
 	z: (bs x T) x dim
 	pot: (bs x T)
 	"""
 	pot_pole=[]
 
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
 	z=tf.reshape(z_input,[-1,dim])
 	#z=tf.reshape(z_input,[900,dim])
 	for d in range(dim):
@@ -762,19 +771,16 @@ def computePotentialWithBinaryPot(z_input,n_steps,dim,params=None,control_params
 	#z1=z+tf.constant([-1,0],dtype=np.float32)
 	#z2=z+tf.constant([ 1,0],dtype=np.float32)
 	#pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
-	return pot,params
+	return pot
 
 
-def computePotentialFromNN(z_input,n_steps,dim,params=None,control_params=None):
+def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=None):
 	"""
 	z: (bs x T) x dim
 	pot: (bs x T)
 	"""
-	if params is None:
-		init_params_flag=True
-		params={}
-	else:
-		init_params_flag=False
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
 	
 	wd_bias=None
 	wd_w=0.1
@@ -787,7 +793,6 @@ def computePotentialFromNN(z_input,n_steps,dim,params=None,control_params=None):
 				layer,dim_out=build_nn(z,dim_input=dim,n_steps=n_steps,
 					hyparam_name="potential_internal_layers",name="pot",
 					init_params_flag=init_params_flag,
-					params=params,
 					control_params=control_params
 					)
 				# layer -> layer_mean
@@ -803,14 +808,8 @@ def computePotentialFromNN(z_input,n_steps,dim,params=None,control_params=None):
 					wd_w,wd_bias,
 					activate=tf.sigmoid,init_params_flag=init_params_flag)
 	layer_mean=tf.reshape(layer_mean,[-1])
-	return layer_mean,params
+	return layer_mean
 
-
-	if params is None:
-		init_params_flag=True
-		params={}
-	else:
-		init_params_flag=False
 	wd_bias=None
 	wd_w=0.1
 	hy_param=hy.get_hyperparameter()
@@ -835,21 +834,21 @@ def computePotentialFromNN(z_input,n_steps,dim,params=None,control_params=None):
 	#z1=z+tf.constant([-1,0],dtype=np.float32)
 	#z2=z+tf.constant([ 1,0],dtype=np.float32)
 	#pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
-	return pot,params
+	return pot
 
-def computeTransitionFuncFromPotential(in_points,n_steps,dim,params=None,control_params=None):
+def computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag=True,control_params=None):
 	"""
 	in_points: points x dim
 	"""
 	with tf.name_scope('transition') as scope_parent:
 		#z  : (bs x T) x dim
 		#pot: (bs x T)
-		pot,params=computePotential(in_points,n_steps,dim,params=params,control_params=control_params)
+		pot=computePotential(in_points,n_steps,init_params_flag=init_params_flag,control_params=control_params)
 		sum_pot=tf.reduce_sum(pot)
 		g_z = tf.gradients(sum_pot, [in_points])
-		print(g_z)
+		#print(g_z)
 		layer_mean=in_points+g_z
 	
-	return layer_mean,params
+	return layer_mean
 		
 
