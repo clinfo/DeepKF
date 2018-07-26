@@ -58,11 +58,11 @@ def get_default_config():
 	config["steps_npy"]=None
 	config["steps_test_npy"]=None
 	# save/load model
-	config["save_model_path"] = "./model/"
-	config["load_model"] = "./model/model.last.ckpt"
-	config["save_result_train"]="./result/train.jbl"
-	config["save_result_test"]="./result/test.jbl"
-	config["save_result_filter"]="./result/filter.jbl"
+	config["save_model_path"] = None
+	config["load_model"] = None
+	config["save_result_train"]=None
+	config["save_result_test"]=None
+	config["save_result_filter"]=None
 	config["profile"]=False
 	config["time_major"]=True
 	# generate json
@@ -104,7 +104,8 @@ def train(sess,config):
 	outputs=inference(x_holder,eps_holder,n_steps,dim,dim_emit,pot_points=potential_points_holder,control_params=control_params)
 	# cost
 	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
-	diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
+	#diff=tf.reduce_mean((x_holder-outputs["pred_params"][0])**2)
+	diff=tf.reduce_mean((x_holder-outputs["obs_params"][0])**2)
 	# train_step
 	train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(total_cost)
 	# print variables
@@ -200,7 +201,6 @@ def train(sess,config):
 		# update
 		for j in range(n_batch):
 			profiler_start=False
-			print(config["profile"], epoch==2, j==0)
 			if config["profile"] and epoch==2 and j==0:
 				profiler_start=True
 				run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
@@ -284,12 +284,14 @@ def infer(sess,config):
 		", dim_emit",data_test.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
+	alpha_holder=tf.placeholder(tf.float32)
 	control_params={"dropout_rate":0.0}
+	alpha=config["alpha"]
 	
 	# inference
 	outputs=inference(x_holder,None,n_steps,dim,dim_emit,control_params=control_params)
 	# cost
-	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,control_params=control_params)
+	total_cost,cost_mean,costs=loss(x_holder,outputs,m_holder,alpha_holder,control_params=control_params)
 	# train_step
 	#init = tf.global_variables_initializer()
 	#sess.run(init)
@@ -301,7 +303,7 @@ def infer(sess,config):
 	cost=0.0
 	for j in range(n_batch):
 		idx=data_idx[j*batch_size:(j+1)*batch_size]
-		feed_dict={x_holder:data_test.x[idx,:,:],m_holder:data_test.m[idx,:]}
+		feed_dict={x_holder:data_test.x[idx,:,:],m_holder:data_test.m[idx,:],alpha_holder:alpha}
 		cost+=total_cost.eval(feed_dict=feed_dict)
 	print("cost: %g"%(cost))
 
@@ -310,7 +312,7 @@ def infer(sess,config):
 		results={}
 		for k,v in outputs.items():
 			if v is not None:
-				feed_dict={x_holder:data_test.x,m_holder:data_test.m}
+				feed_dict={x_holder:data_test.x,m_holder:data_test.m,alpha_holder:alpha}
 				res=sess.run(v,feed_dict=feed_dict)
 				results[k]=res
 		results["x"]=data_test.x
@@ -321,7 +323,6 @@ def infer(sess,config):
 def filtering(sess,config):
 	_,data_test = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	batch_size=config["batch_size"]
-	batch_size=10
 	n_batch=int(data_test.num/batch_size)
 	n_steps=data_test.n_steps
 	if n_batch==0:

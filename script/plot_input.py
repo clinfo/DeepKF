@@ -48,6 +48,7 @@ def get_param(config,key,default_value):
 	return default_value
 	
 def load_plot_data(args,result_key="save_result_test"):
+	print("====",result_key)
 	if args.config is None:
 		parser.print_help()
 		quit()

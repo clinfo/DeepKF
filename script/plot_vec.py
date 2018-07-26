@@ -30,8 +30,8 @@ print("[LOAD] ",filename_result)
 obj=joblib.load(filename_result)
 data_z=obj["z"]
 data_gz=-obj["gz"][0]
-print(data_z.shape)
-print(data_gz.shape)
+print("shape z:",data_z.shape)
+print("shape grad. z",data_gz.shape)
 #
 #fp = open(filename_info, 'r')
 #data_info = json.load(fp)

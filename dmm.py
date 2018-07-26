@@ -17,14 +17,15 @@ import json
 import argparse
 
 import dkf_input
-from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
+#from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
+from dmm_model import inference, loss, p_filter, sampleVariationalDist
 from dmm_model import construct_placeholder
 import hyopt as hy
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 
 # Basic model parameters.
-tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
+#tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
 class dotdict(dict):
 	"""dot.notation access to dictionary attributes"""
@@ -57,20 +58,25 @@ def get_default_config():
 	config["patience"] = 5
 	config["batch_size"] = 100
 	config["alpha"] = 1.0
+	config["learning_rate"] = 1.0e-2
 	# dataset
 	config["train_test_ratio"]=[0.8,0.2]
-	config["data_train_npy"] = "data/pack_data_emit.npy"
-	config["mask_train_npy"] = "data/pack_mask_emit.npy"
-	config["data_test_npy"] = "data/pack_data_emit_test.npy"
-	config["mask_test_npy"] = "data/pack_mask_emit_test.npy"
+	config["data_train_npy"] = None
+	config["mask_train_npy"] = None
+	config["data_test_npy"] = None
+	config["mask_test_npy"] = None
 	# save/load model
-	config["save_model_path"] = "./model/"
-	config["load_model"] = "./model/model.last.ckpt"
-	config["save_result_train"]="./result/train.jbl"
-	config["save_result_test"]="./result/test.jbl"
-	config["save_result_filter"]="./result/filter.jbl"
-	config["state_type"]="discrete"
+	config["save_model_path"] = None
+	config["load_model"] = None
+	config["save_result_train"]=None
+	config["save_result_test"]=None
+	config["save_result_filter"]=None
+	#config["state_type"]="discrete"
+	config["state_type"]="normal"
 	config["sampling_type"]="none"
+	config["time_major"]=True
+	config["steps_npy"]=None
+	config["steps_test_npy"]=None
 	# generate json
 	#fp = open("config.json", "w")
 	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
@@ -247,7 +253,7 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 						results[k]=np.concatenate([results[k],res],axis=0)
 					else:
 						results[k]=res
-				elif k in ["obs_params","obs_pred", "z_params","z_pred"]:
+				elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params"]:
 					if k in results:
 						for i in range(len(res)):
 							results[k][i]=np.concatenate([results[k][i],res[i]],axis=0)
@@ -292,19 +298,22 @@ def train(sess,config):
 			"placeholders":placeholders,
 			"state_type":config["state_type"],
 			"sampling_type":config["sampling_type"],
+			"emission_type":config["emission_type"],
+			"dynamics_type":config["dynamics_type"],
 			}
 	# inference
-	outputs=inference_by_sample(n_steps,control_params=control_params)
+	#outputs=inference_by_sample(n_steps,control_params=control_params)
+	outputs=inference(n_steps,control_params=control_params)
 	# cost
 	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
 	# train_step
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
 	with tf.control_dependencies(update_ops):
-		train_step = tf.train.AdamOptimizer(1e-3).minimize(output_cost["cost"])
+		train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(output_cost["cost"])
 	print_variables()
+	saver = tf.train.Saver()
 	# initialize
 	init = tf.global_variables_initializer()
-	saver = tf.train.Saver()
 	sess.run(init)
 
 	train_idx=list(range(train_data.num))
@@ -352,10 +361,7 @@ def train(sess,config):
 		training_info["validation_error"]))
 	hy_param["evaluation"]=training_info
 	# save hyperparameter
-	if "save_model" in config:
-		#save_model_path=config["save_model"]+"/model.last.ckpt"
-		#hy_param["load_model"]=save_model_path
-		#hy_param["save_model"]=""
+	if config["save_model"] is not None and config["save_model"]!="":
 		save_model_path=config["save_model"]
 		save_path = saver.save(sess, save_model_path)
 		print("[SAVE] %s"%(save_path))
@@ -369,6 +375,9 @@ def train(sess,config):
 		os.makedirs(base_path,exist_ok=True)
 		joblib.dump(results,config["save_result_train"])
 		
+		#
+		e=(train_data.x-results["obs_params"][0])**2
+		#
 def infer(sess,config):
 	hy_param=hy.get_hyperparameter()
 	_,test_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=False,
@@ -403,9 +412,11 @@ def infer(sess,config):
 			"placeholders":placeholders,
 			"state_type":config["state_type"],
 			"sampling_type":config["sampling_type"],
+			"emission_type":config["emission_type"],
+			"dynamics_type":config["dynamics_type"],
 			}
 	# inference
-	outputs=inference_by_sample(n_steps,control_params)
+	outputs=inference(n_steps,control_params)
 	# cost
 	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
 	# train_step
@@ -430,68 +441,87 @@ def infer(sess,config):
 	
 
 def filtering(sess,config):
-	_,test_data = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	hy_param=hy.get_hyperparameter()
+	_,data_test = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	batch_size=config["batch_size"]
-	batch_size=10
-	n_batch=int(x.shape[0]/batch_size)
-	n_steps=x.shape[1]
+	n_batch=int(data_test.num/batch_size)
+	n_steps=data_test.n_steps
 	if n_batch==0:
-		batch_size=x.shape[0]
+		batch_size=data_test.num
 		n_batch=1
-	elif n_batch*batch_size!=x.shape[0]:
+	elif n_batch*batch_size!=data_test.num:
 		n_batch+=1
-	dim_emit=x.shape[2]
+	dim_emit=data_test.dim
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
-	print("data_size",x.shape[0],"batch_size",batch_size,", n_step",x.shape[1],", dim_emit",x.shape[2])
+	hy_param["dim"]=dim
+	hy_param["dim_emit"]=dim_emit
+	hy_param["n_steps"]=n_steps
+	print("data_size",data_test.num,
+		"batch_size",batch_size,
+		", n_step",data_test.n_steps,
+		", dim_emit",data_test.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None))
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	#step_holder=tf.placeholder(tf.int32)
 	sample_size=10
+	proposal_sample_size=1000
 	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
 	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
-	control_params={"dropout_rate":0.0}
+	control_params={
+		"config":config,
+		"state_type":config["state_type"],
+		"sampling_type":config["sampling_type"],
+		"emission_type":config["emission_type"],
+		"dynamics_type":config["dynamics_type"],
+		"pfilter_type":config["pfilter_type"],
+		"dropout_rate":0.0,
+		}
 	# inference
-	outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
+	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
+	outputs=p_filter(x_holder,z_holder,None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
 	# loding model
+	print_variables()
 	saver = tf.train.Saver()
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	
-	feed_dict={x_holder:x[0:batch_size,0,:],z_holder:z0}
+	feed_dict={x_holder:data_test.x[0:batch_size,0,:],z_holder:z0}
 	result=sess.run(outputs,feed_dict=feed_dict)
-	print(result["sampled_z"].shape)
-	print(result["sampled_pred_params"][0].shape)
+
 	z=np.reshape(result["sampled_z"],[-1,dim])
-	zs=np.zeros((sample_size,x.shape[0],n_steps,dim),dtype=np.float32)
-	mus=np.zeros((sample_size*sample_size,x.shape[0],n_steps,dim_emit),dtype=np.float32)
+	zs=np.zeros((sample_size,data_test.num,n_steps,dim),dtype=np.float32)
+	mus=np.zeros((proposal_sample_size*sample_size,data_test.num,n_steps,dim_emit),dtype=np.float32)
+	errors=np.zeros((proposal_sample_size*sample_size,data_test.num,n_steps,dim_emit),dtype=np.float32)
 	for j in range(n_batch):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			feed_dict={x_holder:x[idx:idx+batch_size,step,:],z_holder:z}
-			bs=batch_size
-			if idx+batch_size>x.shape[0]: # for last
-				x2=np.zeros((batch_size,x.shape[2]),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-x.shape[0])
-				x2[:bs,:]=x[idx:idx+batch_size,step,:]
-				feed_dict={x_holder:x2,z_holder:z}
+			if idx+batch_size>data_test.num: # for last
+				x=np.zeros((batch_size,dim),dtype=np.float32)
+				bs=batch_size-(idx+batch_size-data_test.num)
+				x[:bs,:]=data_test.x[idx:idx+batch_size,step,:]
+			else:
+				x=data_test.x[idx:idx+batch_size,step,:]
+				bs=batch_size
+			feed_dict={x_holder:x,z_holder:z}
 			result=sess.run(outputs,feed_dict=feed_dict)
 			z=result["sampled_z"]
 			mu=result["sampled_pred_params"][0]
 			zs[:,idx:idx+batch_size,step,:]=z[:,:bs,:]
 			mus[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]
-			print(z[0,0,0])
+			errors[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]-x[:bs,:]
 			z=np.reshape(z,[-1,dim])
 	## save results
 	if config["save_result_filter"]!="":
 		results={}
 		results["z"]=zs
 		results["mu"]=mus
+		results["error"]=errors
 		print("[SAVE] result : ",config["save_result_filter"])
 		joblib.dump(results,config["save_result_filter"])
 

@@ -35,7 +35,8 @@ def plot_fig(idx):
 	s=data.steps[idx]
 	print("steps:",s)
 	print("z:",z[0,idx,:s,0])
-	plt.subplot(2,1,1)
+	
+	plt.subplot(3,1,1)
 	plt.plot(z[0,idx,:s,0],label="dim0",color="b")
 	for i in range(10-1):
 		plt.plot(z[i+1,idx,:s,0],color="b")
@@ -43,7 +44,8 @@ def plot_fig(idx):
 	for i in range(10-1):
 		plt.plot(z[i+1,idx,:s,1],color="g")
 	plt.legend()
-	plt.subplot(2,1,2)
+	
+	plt.subplot(3,1,2)
 	plt.plot(data.obs[idx,:s,d],label="x",color="b")
 	plt.plot(mu[0,idx,:s,d],label="pred",color="g")
 	for i in range(10):
@@ -52,6 +54,10 @@ def plot_fig(idx):
 	plt.plot(mu2[idx,:s,d],label="pred_mean",color="r")
 	plt.legend()
 
+	plt.subplot(3,1,3)
+	errors=data.result["error"]
+	plt.plot(errors[0,idx,:s,d],label="x",color="b")
+	
 if args.mode=="all":
 	for idx in range(l):
 		name=data.info[data.pid_key][idx]

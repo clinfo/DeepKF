@@ -14,7 +14,7 @@ import tensorflow as tf
 import numpy as np
 #import hyopt as hy
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 
 
 def _variable_on_cpu(name, shape, initializer):
@@ -29,7 +29,8 @@ def _variable_on_cpu(name, shape, initializer):
 		Variable Tensor
 	"""
 	with tf.device('/cpu:0'):
-		dtype = tf.half if FLAGS.use_fp16 else tf.float32
+		#dtype = tf.half if FLAGS.use_fp16 else tf.float32
+		dtype = tf.float32
 		var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
 	return var
 
@@ -50,7 +51,8 @@ def _variable_with_weight_decay(name, shape,initializer_name, wd):
 	Returns:
 		Variable Tensor
 	"""
-	dtype = tf.half if FLAGS.use_fp16 else tf.float32
+	#dtype = tf.half if FLAGS.use_fp16 else tf.float32
+	dtype = tf.float32
 	if initializer_name=="normal":
 		stddev=1e-1
 		var = _variable_on_cpu(name,shape,

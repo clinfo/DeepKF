@@ -17,8 +17,8 @@ import json
 import argparse
 
 import dkf_input
-from dkf_model import computeTransitionFunc
-from dkf_model import computeEmission, computePotential
+from dmm_model import computeTransitionFunc
+from dmm_model import computeEmission, computePotential
 import hyopt as hy
 FLAGS = tf.app.flags.FLAGS
 
@@ -55,16 +55,23 @@ def field(sess,config):
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	z0=make_griddata(2,max_dim=dim,nx=30,rx=2.0)
 	batch_size=z0.shape[0]
-	control_params={"dropout_rate":0.0}
+	control_params={
+		"dropout_rate":0.0,
+		"config":config,
+		"state_type":config["state_type"],
+		"sampling_type":config["sampling_type"],
+		"emission_type":config["emission_type"],
+		"dynamics_type":config["dynamics_type"],
+		}
 	# inference
 	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
-	z_m,_=computeTransitionFunc(z_holder,n_steps,dim,params=None,control_params=control_params)
+	z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
 	z_m =tf.reshape(z_m,[-1,dim])
 	
 	# grad
 	g_z = tf.gradients(z_m, [z_holder])
 	# load
-	saver = tf.train.Saver()# これ以前の変数のみ保存される
+	saver = tf.train.Saver()
 	print("[LOAD] ",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	#
@@ -72,8 +79,6 @@ def field(sess,config):
 	g=sess.run(g_z,feed_dict=feed_dict)
 	#
 	## save results
-	print(z0.shape)
-	print(g[0].shape)
 	if config["simulation_path"]!="":
 		sim_filename=config["simulation_path"]+"/field.jbl"
 		results={}

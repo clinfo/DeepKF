@@ -40,7 +40,7 @@ if args.mode=="all":
 	from matplotlib import pylab as plt
 else:
 	from matplotlib import pylab as plt
-data=load_plot_data(args)
+data=load_plot_data(args,result_key="save_result_test")
 
 #d=data_info["attr_emit_list"].index("206010")
 #print("206010:",d)
@@ -49,21 +49,21 @@ d=0
 print(data.result.keys())
 
 # z
-z_q=data.result["z_q"]
-print(z_q.shape)
-mu_q=data.result["mu_q"]
+if "z_q" in data.result:
+	z_q=data.result["z_q"]
+	mu_q=data.result["mu_q"]
+else:
+	z_q=data.result["z_params"][0]
+print("z_q.shape=",z_q.shape)
 # obs
 obs_mu=data.result["obs_params"][0]
-pred_mu=data.result["pred_params"][0]
-print(obs_mu.shape)
+#pred_mu=data.result["pred_params"][0]
+pred_mu=data.result["obs_pred_params"][0]
 if data.mask:
-	print(data.mask.shape)
 	data.obs[data.mask<0.1]=np.nan
 	obs_mu[data.mask<0.1]=np.nan
 	pred_mu[data.mask<0.1]=np.nan
 
-
-print(mu_q.shape)
 l=len(data.info[data.pid_key])
 
 def plot_fig(idx):
@@ -84,8 +84,7 @@ def plot_fig(idx):
 		cmap = generate_cmap(['#0000FF','#FFFFFF','#FF0000'])
 		h=z_q[idx,:s,:]
 		#h=mu_q[idx,:s,:]
-		print(s)
-		print(h.shape)
+		print("upper plot:z_q:",h.shape)
 		plt.imshow(np.transpose(h), aspect='auto', interpolation='none',
 					cmap=cmap, vmin=-1.0, vmax=1.0)#
 		plt.gca().xaxis.set_ticks_position('none')

@@ -16,7 +16,7 @@ import hyopt as hy
 
 import layers
 
-FLAGS = tf.app.flags.FLAGS
+#FLAGS = tf.app.flags.FLAGS
 
 def construct_placeholder(config):
 	hy_param=hy.get_hyperparameter()
@@ -59,10 +59,10 @@ def build_nn(x,dim_input,n_steps,hyparam_name,name,
 	hy_param=hy.get_hyperparameter()
 	for i,hy_layer in enumerate(hy_param[hyparam_name]):
 		layer_dim_out=layer_dim
-		print(">>>",layer_dim)
+		#print(">>>",layer_dim)
 		if "dim_output" in hy_layer:
 			layer_dim_out=hy_layer["dim_output"]
-			print(">>>",layer_dim,"=>",layer_dim_out)
+			#print(">>>",layer_dim,"=>",layer_dim_out)
 			
 		if hy_layer["name"]=="fc":
 			with tf.variable_scope(name+'_fc'+str(i)) as scope:
@@ -129,16 +129,22 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 			logpi=tf.log(qz[0]+1.0e-5)
 			tau=10.0
 			z_s=tf.nn.softmax((logpi+g)/tau)
-		else:
+		elif control_params["sampling_type"]=="naive":
 			dist=tf.contrib.distributions.OneHotCategorical(probs=qz[0])
 			z_s=tf.cast(dist.sample(),tf.float32)
-	else:
+		else:
+			raise Exception('[Error] unknown sampling type')
+	elif control_params["state_type"]=="normal":
 		qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
 		if control_params["sampling_type"]=="none":
 			z_s=qz[0]
-		else:
+		elif control_params["sampling_type"]=="normal":
 			eps=control_params["placeholders"]["vd_eps"]
 			z_s=sample_normal(qz,eps)
+		else:
+			raise Exception('[Error] unknown sampling type')
+	else:
+		raise Exception('[Error] unknown state type')
 	return z_s,qz
 
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
@@ -166,8 +172,8 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 					control_params=control_params
 					)
 			if control_params["state_type"]=="discrete":
-				with tf.variable_scope('vd_fc_out') as scope:
-					layer_logit=layers.fc_layer("vd_fc_out",layer,
+				with tf.variable_scope('vd_fc_logits') as scope:
+					layer_logit=layers.fc_layer("vd_fc_logits",layer,
 							dim_out, dim,
 							wd_w,wd_bias,
 							activate=tf.tanh,init_params_flag=init_params_flag)
@@ -175,7 +181,7 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 				layer_logit=tf.reshape(layer_logit,[-1,n_steps,dim])
 				layer_z=tf.nn.softmax(layer_logit)
 				params.append(layer_z)
-			else:
+			elif control_params["state_type"]=="normal":
 				with tf.variable_scope('vd_fc_mu') as scope:
 					layer_mu=layers.fc_layer("vd_fc_mu",layer,
 							dim_out, dim,
@@ -191,6 +197,8 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
 					layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 					params.append(layer_cov)
+			else:
+				raise Exception('[Error] unknown state type')
 
 	return params
 
@@ -216,7 +224,7 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 					init_params_flag=init_params_flag,
 					control_params=control_params
 					)
-			if True:
+			if control_params["emission_type"]=="normal":
 				# layer -> layer_mean
 				with tf.variable_scope('em_fc_mean') as scope:
 					layer_mu=layers.fc_layer("emission/em_fc2_mean",layer,
@@ -232,7 +240,7 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
 				layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim_emit])
 				params.append(layer_cov)
-			else:
+			elif control_params["emission_type"]=="binary":
 				# layer -> sigmoid
 				with tf.variable_scope('em_fc_out') as scope:
 					layer_logit=layers.fc_layer("emission/em_fc_out",layer,
@@ -242,6 +250,8 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 					layer_out=tf.nn.sigmoid(layer_logit)
 				layer_out=tf.reshape(layer_out,[-1,n_steps,dim_emit])
 				params.append(layer_out)
+			else:
+				raise Exception('[Error] unknown emmition type')
 
 
 	return params
@@ -253,7 +263,6 @@ def computeTransitionFunc(in_points,n_steps,init_params_flag=True,control_params
 		return computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag,control_params)
 	else:
 		return computeTransitionFuncFromNN(in_points,n_steps,init_params_flag,control_params)
-	#return computeTransitionFuncFromNN(in_points,n_steps,init_params_flag,control_params)
 	
 # p(z_t|z_t+1)
 def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_params=None):
@@ -280,15 +289,15 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					)
 			if control_params["state_type"]=="discrete":
 				# layer -> layer_mean
-				with tf.variable_scope('tr_fc_out') as scope:
-					layer_logit=layers.fc_layer("tr_fc_out",layer,
+				with tf.variable_scope('tr_fc_logits') as scope:
+					layer_logit=layers.fc_layer("tr_fc_logits",layer,
 							dim_out, dim,
 							wd_w,wd_bias,
 							activate=None,init_params_flag=init_params_flag)
 					layer_z=tf.nn.softmax(layer_logit)
 					layer_z=tf.reshape(layer_z,[-1,n_steps,dim])
 					params.append(layer_z)
-			else:
+			elif control_params["state_type"]=="normal":
 				with tf.variable_scope('vd_fc_mu') as scope:
 					layer_mu=layers.fc_layer("vd_fc_mu",layer,
 							dim_out, dim,
@@ -304,6 +313,8 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
 					layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 					params.append(layer_cov)
+			else:
+				raise Exception('[Error] unknown emmition type')
 	return params
 
 
@@ -335,20 +346,36 @@ def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_
 						dim_out, dim,
 						wd_w,wd_bias,
 						activate=None,init_params_flag=init_params_flag)
-			if True:
+			if control_params["state_type"]=="discrete":
 				layer_z=tf.nn.softmax(layer_logit)
+			elif control_params["state_type"]=="normal":
+				layer_z=layer_logit
+			else:
+				raise Exception('[Error] unknown state type')
 	return layer_z
 
+
+def sampleTransitionFromDist(z_param,n_steps,init_state,init_params_flag=True,control_params=None):
+	if control_params["state_type"]=="normal" :
+		eps=control_params["placeholders"]["tr_eps"]
+		q_zz=computeTransitionUKF(z_param[0],z_param[1],n_steps,mean_prior0=init_state[0],cov_prior0=init_state[1],init_params_flag=init_params_flag,control_params=control_params)
+		z_s=sample_normal(q_zz,eps)
+	else:
+		raise Exception('[Error] not supported dynamics_type=function & state_type=%s'%(control_params["state_type"],))
+	return z_s,q_zz
+
 def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
-	if True:
+	if control_params["state_type"]=="discrete":
 		q_zz=computeTransition(z,n_steps,init_state,init_params_flag=init_params_flag,control_params=control_params)
 		#z_s=q_zz[0]
 		dist=tf.contrib.distributions.OneHotCategorical(probs=q_zz[0])
 		z_s=tf.cast(dist.sample(),tf.float32)
-	else:
+	elif control_params["state_type"]=="normal":
 		q_zz=computeTransition(z,n_steps,init_state,init_params_flag=init_params_flag,control_params=control_params)
 		eps=control_params["placeholders"]["tr_eps"]
 		z_s=sample_normal(q_zz,eps)
+	else:
+		raise Exception('[Error] unknown state type')
 	return z_s,q_zz
 
 def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
@@ -366,28 +393,45 @@ def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=
 	out_param=computeTransitionDistWithNN(in_z,n_steps,init_params_flag,control_params=control_params)
 	return out_param
 	
-def p_filter(x,z,epsilon,sample_size,batch_size,control_params):
+def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
-	proposal_sample_size=10
-	resample_size=10
-	#  x: (sample_size x batch_size) x dim_emit
-	#  z: (sample_size x batch_size) x dim
-	mu_trans=computeTransitionFunc(z,1,dim,control_params=control_params)
-	#  m: sample_size x batch_size x dim
-	m=tf.reshape(mu_trans,[sample_size,-1,dim])
-	d=m - tf.reduce_mean(m,axis=0)
-	cov=tf.reduce_mean(d**2,axis=0)
-	cov_trans=tf.tile(cov,[sample_size,1])
-	#  mu_trans : (sample_size x batch_size) x dim
-	#  cov_trans: (sample_size x batch_size) x dim
-	mu_trans=tf.reshape(mu_trans,[-1,dim])
-	cov_trans=tf.reshape(cov_trans,[-1,dim])+0.01
-	#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
-	#
-	proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
-	particles=proposal_dist.sample(proposal_sample_size)
+	
+	resample_size=sample_size
+	if control_params["pfilter_type"]=="trained_dynamics":
+		if control_params["dynamics_type"]=="function":
+			#  x: (sample_size x batch_size) x dim_emit
+			#  z: (sample_size x batch_size) x dim
+			mu_trans=computeTransitionFunc(z,1,control_params=control_params)
+			#  m: sample_size x batch_size x dim
+			m=tf.reshape(mu_trans,[sample_size,-1,dim])
+			d=m - tf.reduce_mean(m,axis=0)
+			cov=tf.reduce_mean(d**2,axis=0)
+			cov_trans=tf.tile(cov,[sample_size,1])
+			#  mu_trans : (sample_size x batch_size) x dim
+			#  cov_trans: (sample_size x batch_size) x dim
+			mu_trans=tf.reshape(mu_trans,[-1,dim])
+			cov_trans=tf.reshape(cov_trans,[-1,dim])+0.01
+			#mu_trans,cov_trans,params_tr=computeTransitionUKF(mu_q,cov_q,1,dim,None,None,param_tr)
+			#
+			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
+			particles=proposal_dist.sample(proposal_sample_size)
+		elif control_params["dynamics_type"]=="distribution":
+			out_params=computeTransitionDistWithNN(z,1,init_params_flag=True,control_params=control_params)
+			mu_trans=out_params[0]
+			cov_trans=out_params[1]+0.01
+			
+			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
+			particles=proposal_dist.sample(proposal_sample_size)
+		else:
+			raise Exception('[Error] unknown dynamics type')
+	elif control_params["pfilter_type"]=="zero_dynamics":
+		proposal_dist=tf.contrib.distributions.Normal(z,1.0)
+		particles=proposal_dist.sample(proposal_sample_size)
+	else:
+		raise Exception('[Error] unknown pfilter type')
+		
 	#  particles: proposal_sample_size x (sample_size x batch_size) x dim
 	#particles_d=particles-mu_trans[:,:]
 	#particles_w=particles_d**2/cov_trans[:,:]
@@ -399,10 +443,10 @@ def p_filter(x,z,epsilon,sample_size,batch_size,control_params):
 	mu=obs_params[0]
 	cov=obs_params[1]
 	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
-	cov =tf.reshape(cov,[-1,batch_size,dim_emit])
+	cov = tf.clip_by_value(tf.reshape(cov,[-1,batch_size,dim_emit]),1.0e-10,2)
 	#  x: batch_size x emit_dim
 	d=mu-x[:,:]
-	w=-tf.reduce_sum(d**2/cov,axis=2)-100
+	w=-tf.reduce_sum(d**2/cov,axis=2)
 	# w:(proposal_sample_size x sample_size) x batch__size 
 	#  probs=w/tf.reduce_sum(w,axis=0)
 
@@ -418,11 +462,11 @@ def p_filter(x,z,epsilon,sample_size,batch_size,control_params):
 		dummy[:,i,0]=i
 	temp=tf.constant(dummy)
 	particle_ids=tf.concat([particle_ids, temp], 2)
-	# particles: (Sample x in_sample) x b x dim
+	# particles: (resample) x b x dim
 	out=tf.gather_nd(particles,particle_ids)
-
-	outputs={"sampled_pred_params":[mu,cov],
-			"sampled_z":out}
+	outputs={
+		"sampled_pred_params":[mu,cov],
+		"sampled_z":out}
 	return outputs
 
 def get_init_state(batch_size,dim):
@@ -430,6 +474,55 @@ def get_init_state(batch_size,dim):
 	init_s[:,:,0]=1
 	init_state=tf.tile(tf.constant(init_s,dtype=np.float32),(batch_size,1,1))
 	return init_state
+
+def get_init_dist(batch_size,dim):
+	init_m=np.zeros((1,1,dim),dtype=np.float32)
+	init_mu=tf.tile(tf.constant(init_m,dtype=np.float32),(batch_size,1,1))
+	init_v=np.ones((1,1,dim),dtype=np.float32)
+	init_var=tf.tile(tf.constant(init_v,dtype=np.float32),(batch_size,1,1))
+	return [init_mu,init_var]
+
+def inference(n_steps,control_params):
+	if control_params["dynamics_type"]=="distribution" :
+		return inference_by_sample(n_steps,control_params)
+	elif control_params["dynamics_type"]=="function" :
+		return inference_by_dist(n_steps,control_params)
+	else:
+		raise Exception('[Error] unknown dynamics type')
+	
+def inference_by_dist(n_steps,control_params):
+	"""
+	Returns:
+		indference results
+	"""
+	# get input data
+	placeholders=control_params["placeholders"]
+	x=placeholders["x"]
+	pot_points=placeholders["potential_points"]
+	# get parameters
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	bs=tf.shape(x)[0]
+	with tf.name_scope('inference') as scope_parent:
+		#z_q: (bs x T) x dim
+		z_s,z_params=sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=control_params)
+		init_state=get_init_dist(bs,dim)
+		z_pred_s,z_pred_params=sampleTransitionFromDist(z_params,n_steps,init_state,
+				init_params_flag=True,control_params=control_params)
+		pot_loss=None
+		# compute emission
+		obs_params=computeEmission(z_s,n_steps,init_params_flag=True,control_params=control_params)
+		obs_pred_params=computeEmission(z_pred_s,n_steps,init_params_flag=False,control_params=control_params)
+	outputs={"z_s":z_s,
+			"z_params":z_params,
+			"z_pred_s":z_pred_s,
+			"z_pred_params":z_pred_params,
+			"obs_params":obs_params,
+			"obs_pred_params":obs_pred_params,
+			"potential_loss":pot_loss}
+	return outputs
+
 
 def inference_by_sample(n_steps,control_params):
 	"""
@@ -448,52 +541,59 @@ def inference_by_sample(n_steps,control_params):
 	with tf.name_scope('inference') as scope_parent:
 		#z_q: (bs x T) x dim
 		z_s,z_params=sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=control_params)
-		#logq=tf.log(tf.reduce_sum(z_param[0]*z_s,axis=1))
 		init_state=get_init_state(bs,dim)
-		z_pred_s,z_pred=sampleTransition(z_s,n_steps,init_state,
+		z_pred_s,z_pred_params=sampleTransition(z_s,n_steps,init_state,
 				init_params_flag=True,control_params=control_params)
 		pot_loss=None
 		# compute emission
 		obs_params=computeEmission(z_s,n_steps,init_params_flag=True,control_params=control_params)
-		pred_params=computeEmission(z_pred_s,n_steps,init_params_flag=False,control_params=control_params)
+		obs_pred_params=computeEmission(z_pred_s,n_steps,init_params_flag=False,control_params=control_params)
 	outputs={"z_s":z_s,
 			"z_params":z_params,
-			"z_pred":z_pred,
-			"obs_params":obs_params,"obs_pred":pred_params,"potential_loss":pot_loss}
+			"z_pred_s":z_pred_s,
+			"z_pred_params":z_pred_params,
+			"obs_params":obs_params,
+			"obs_pred_params":obs_pred_params,
+			"potential_loss":pot_loss}
 	return outputs
 
 
 
 def computeNegCLL(x,outputs,mask,control_params):
 	eps=1.0e-10
+	max_var=2
 	cov_p=outputs["obs_params"][1]+eps
 	mu_p=outputs["obs_params"][0]
 
-	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
+	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/tf.clip_by_value(cov_p,eps,max_var)
 	negCLL=negCLL*0.5
-	#masked_negCLL=tf.reduce_sum(negCLL*0.5,axis=2)*mask
 	negCLL= negCLL*mask
 	negCLL = tf.reduce_sum(negCLL,axis=2)
 	negCLL = tf.reduce_sum(negCLL,axis=1)
 	return negCLL
 
+def kl_normal(mu1,var1,mu2,var2):
+	return tf.log(var2)/2.0-tf.log(var1)/2.0+var1/(2.0*var2)+(mu1-mu2)**2/(2.0*var2)-1/2
 def computeTemporalKL(x,outputs,length,control_params):
 	"""
 	z: bs x T x dim
 	prior0: bs x 1 x dim
 	"""
 	eps=1.0e-10
+	max_var=2.0
 	if control_params["state_type"]=="discrete":
-		mu_p=outputs["z_pred"][0]
+		mu_p=outputs["z_pred_params"][0]
 		mu_q=outputs["z_params"][0]	
 		kl_t= mu_q* (tf.log(mu_q+eps)-tf.log(mu_p+eps))
-	else:
+	elif control_params["state_type"]=="normal":
 		eps=1.0e-10
-		cov_p=outputs["z_pred"][1]+eps
-		mu_p=outputs["z_pred"][0]
+		cov_p=outputs["z_pred_params"][1]+eps
+		mu_p=outputs["z_pred_params"][0]
 		cov_q=outputs["z_params"][1]+eps
 		mu_q=outputs["z_params"][0]
-		kl_t=tf.log(cov_p)-tf.log(cov_q)-1+cov_q/cov_p+(mu_p-mu_q)**2/cov_p
+		kl_t=tf.log(cov_p)-tf.log(cov_q)-1+(cov_q+(mu_p-mu_q)**2)/tf.clip_by_value(cov_p,eps,max_var)
+	else:
+		raise Exception('[Error] unknown state type')
 
 	#masked_kl=tf.reduce_sum(kl_t,axis=2)*mask
 	mask=tf.sequence_mask(length,maxlen=kl_t.shape[1],dtype=tf.float32)
@@ -533,8 +633,9 @@ def loss(outputs,alpha=1,control_params=None):
 	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
 	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL),cost_pot]
 	diff=None
-	if "obs_pred" in outputs:
-		diff=tf.reduce_mean((x-outputs["obs_pred"][0])**2/outputs["obs_pred"][1])
+	if "obs_params" in outputs:
+		#diff=tf.reduce_mean((x-outputs["obs_pred"][0])**2/outputs["obs_pred"][1])
+		diff=tf.reduce_mean((x-outputs["obs_params"][0])**2)
 	return {"cost":total_cost,"mean_cost":mean_cost,"all_costs":costs,"error":diff}
 
 
@@ -564,12 +665,14 @@ def _add_loss_summaries(total_loss):
 	return loss_averages_op
 
 
-def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,control_params=None):
+def computeTransitionUKF(mu,cov,n_steps,mean_prior0=None,cov_prior0=None,init_params_flag=True,control_params=None):
 	"""
 	mu: bs x T x dim
 	cov: bs x T x dim
 	prior0: bs x 1 x dim
 	"""
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
 	#in_mu=tf.reshape(mu,[1,-1,dim])
 	in_mu=tf.reshape(mu,[-1,dim])
 	in_sigma=tf.sqrt(tf.reshape(cov,[-1,dim]))
@@ -582,7 +685,7 @@ def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,par
 		#in_points[i*2+1+1,:,:]-=in_sigma
 	in_points=tf.stack(in_points)
 
-	out_points,params=computeTransitionFunc(in_points,n_steps,dim,params=params,control_params=control_params)
+	out_points=computeTransitionFunc(in_points,n_steps,init_params_flag=init_params_flag,control_params=control_params)
 	# N x bs x T x dim
 	layer_mean=tf.reshape(out_points,[dim*2+1,-1,n_steps,dim])
 	temp_sigma=layer_mean-layer_mean[0,:,:,:]
@@ -591,9 +694,9 @@ def computeTransitionUKF(mu,cov,n_steps,dim,mean_prior0=None,cov_prior0=None,par
 	if mean_prior0 is not None and cov_prior0 is not None:
 		output_mu=tf.concat([mean_prior0,layer_mean[0,:,:-1,:]],axis=1)
 		output_cov =tf.concat([cov_prior0 ,layer_cov[:,:-1,:]],axis=1)
-		return output_mu,output_cov,params
+		return output_mu,output_cov
 	else:
-		return layer_mean[0,:,:,:],layer_cov,params
+		return layer_mean[0,:,:,:],layer_cov
 
 def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
 	pot_loss=None
@@ -604,7 +707,7 @@ def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
 					use_data_points=True
 				if use_data_points:
 					## compute V(x(t+1))-V(x(t)) < 0 for stability
-					mu_trans_1,cov_trans_1,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,None,None,params_tr,control_params=control_params)
+					mu_trans_1,cov_trans_1,params_tr=computeTransitionUKF(mu_q,cov_q,n_steps,None,None,params_tr,init_params_flag=False,control_params=control_params)
 					#mu_q: bs x T x dim
 					#mu_trans_1: bs x T x dim
 					params_pot=None

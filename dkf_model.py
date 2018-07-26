@@ -736,9 +736,11 @@ def computeNegCLL(x,outputs,mask):
 	mu_p=outputs["obs_params"][0]
 
 	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
+	negCLL+=1000*(x-mu_p)**2
 	masked_negCLL=tf.reduce_sum(negCLL*0.5*mask,axis=2)
 	return tf.reduce_sum(masked_negCLL,axis=1)
-
+def kl_normal(mu1,var1,mu2,var2):
+	return tf.log(var2)/2.0-tf.log(var1)/2.0+var1/(2.0*var2)+(mu1-mu2)**2/(2.0*var2)-1/2
 def computeTemporalKL(x,outputs,mask):
 	"""
 	z: bs x T x dim
@@ -755,7 +757,8 @@ def computeTemporalKL(x,outputs,mask):
 	#mu_q=outputs["mu_q"][:,1:,:]
 	
 
-	kl_t=tf.log(cov_p)-tf.log(cov_q)-1+cov_q/cov_p+(mu_p-mu_q)**2/cov_p
+	#kl_t=tf.log(cov_p)/2.0 -tf.log(cov_q)/2.0 -1/2.0 +cov_q/2.0*cov_p +(mu_p-mu_q)**2/cov_p
+	kl_t=kl_normal(mu_q,cov_q,mu_p,cov_p)
 	masked_kl=tf.reduce_sum(kl_t,axis=2)
 	return tf.reduce_sum(masked_kl,axis=1)
 
