@@ -16,7 +16,7 @@ import joblib
 import json
 import argparse
 
-import dkf_input
+import dmm_input
 from dmm_model import computeTransitionFunc,computeTransitionDistWithNN
 from dmm_model import computeEmission, computePotential
 import hyopt as hy

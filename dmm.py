@@ -16,7 +16,7 @@ import joblib
 import json
 import argparse
 
-import dkf_input
+import dmm_input
 #from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
 from dmm_model import inference, loss, p_filter, sampleVariationalDist
 from dmm_model import construct_placeholder
@@ -274,7 +274,7 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 
 def train(sess,config):
 	hy_param=hy.get_hyperparameter()
-	train_data,valid_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=True)
+	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
 
 	batch_size=config["batch_size"]
 	n_steps=train_data.n_steps
@@ -380,7 +380,7 @@ def train(sess,config):
 		#
 def infer(sess,config):
 	hy_param=hy.get_hyperparameter()
-	_,test_data = dkf_input.load_data(config,with_shuffle=True,with_train_test=False,
+	_,test_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=False,
 			test_flag=True)
 	batch_size=config["batch_size"]
 	n_batch=int(test_data.num/batch_size)
@@ -442,7 +442,7 @@ def infer(sess,config):
 
 def filtering(sess,config):
 	hy_param=hy.get_hyperparameter()
-	_,data_test = dkf_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	_,data_test = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	batch_size=config["batch_size"]
 	n_batch=int(data_test.num/batch_size)
 	n_steps=data_test.n_steps
