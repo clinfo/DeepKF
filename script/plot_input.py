@@ -26,15 +26,17 @@ def get_default_argparser():
 	parser.add_argument('--info_key', type=str,
 			default="pid_list_test",
 			nargs='?',
-			help='config json file')
+			help='the key of the info file for data list, e.g., pid_list_test/pid_list_train')
 	parser.add_argument('--out_dir', type=str,
 			default="plot_test",
-			nargs='?',
-			help='config json file')
+			help='output directory for images')
 	parser.add_argument('--index', type=int,
 			default=0,
-			nargs='?',
-			help='config json file')
+			help='data index of plotting target (only test mode)')
+	parser.add_argument('--show',
+			action='store_true',
+			default=False,
+			help='data index of plotting target (only test mode)')
 	return parser
 
 def make_default_info(x):

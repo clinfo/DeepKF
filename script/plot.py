@@ -31,10 +31,14 @@ def draw_heatmap(h1,h2,cmap,attr):
 
 
 parser=get_default_argparser()
+parser.add_argument('--obs_dim', type=int,
+		default=0,
+		help='a dimension of observation for plotting')
+
 args=parser.parse_args()
 # config
 
-if args.mode=="all":
+if not args.show:
 	import matplotlib
 	matplotlib.use('Agg')
 	from matplotlib import pylab as plt
@@ -67,10 +71,13 @@ if data.mask:
 l=len(data.info[data.pid_key])
 
 def plot_fig(idx):
-	print("id   =",idx)
-	print("data =",data.info[data.pid_key][idx])
-	print("error=",np.nanmean((obs_mu[:,:-1,:]-data.obs[:,1:,:])**2))
+	d=args.obs_dim
 	s=data.steps[idx]
+	print("data index:",idx)
+	#print("data =",data.info[data.pid_key][idx])
+	print("error=",np.nanmean((obs_mu[:,:-1,:]-data.obs[:,1:,:])**2))
+	print("dimension (observation):",d)
+	print("steps:",s)
 	plt.subplot(2,1,2)
 	plt.plot(data.obs[idx,:s,d],label="x")
 	plt.plot(obs_mu[idx,:s,d],label="recons")

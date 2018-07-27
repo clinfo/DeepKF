@@ -495,8 +495,14 @@ def filtering(sess,config):
 
 	z=np.reshape(result["sampled_z"],[-1,dim])
 	zs=np.zeros((sample_size,data_test.num,n_steps,dim),dtype=np.float32)
-	mus=np.zeros((proposal_sample_size*sample_size,data_test.num,n_steps,dim_emit),dtype=np.float32)
-	errors=np.zeros((proposal_sample_size*sample_size,data_test.num,n_steps,dim_emit),dtype=np.float32)
+	
+	# max: proposal_sample_size*sample_size
+	save_sample_num=10
+	sample_idx=list(range(proposal_sample_size*sample_size))
+	np.random.shuffle(sample_idx)
+	sample_idx=sample_idx[:save_sample_num]
+	mus=np.zeros((save_sample_num,data_test.num,n_steps,dim_emit),dtype=np.float32)
+	errors=np.zeros((save_sample_num,data_test.num,n_steps,dim_emit),dtype=np.float32)
 	for j in range(n_batch):
 		idx=j*batch_size
 		print(j,"/",n_batch)
@@ -513,9 +519,11 @@ def filtering(sess,config):
 			z=result["sampled_z"]
 			mu=result["sampled_pred_params"][0]
 			zs[:,idx:idx+batch_size,step,:]=z[:,:bs,:]
-			mus[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]
-			errors[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]-x[:bs,:]
+			mus[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]
+			errors[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]-x[:bs,:]
 			z=np.reshape(z,[-1,dim])
+			print("*", end="")
+		print("")
 	## save results
 	if config["save_result_filter"]!="":
 		results={}
