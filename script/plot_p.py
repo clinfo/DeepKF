@@ -37,7 +37,6 @@ if data.mask is not None:
 	data.obs[data.mask<0.1]=np.nan
 
 #x=obj["x"]
-l=len(data.info[data.pid_key])
 
 z=data.result["z"]
 #print("z:",z[0,idx,:,0])
@@ -72,11 +71,15 @@ def plot_fig(idx):
 
 	plt.subplot(3,1,3)
 	errors=data.result["error"]
-	for i in range(args.obs_num_particle):
-		plt.plot(errors[i,idx,:s,d],label="error",color="b")
+	plt.plot(errors[0,idx,:s,d],label="error",color="b")
+	for i in range(args.obs_num_particle-1):
+		plt.plot(errors[i+1,idx,:s,d],color="b")
 	plt.legend()
 	
 if args.mode=="all":
+	l=len(data.info[data.pid_key])
+	if args.limit_all is not None and l > args.limit_all:
+		l = args.limit_all
 	for idx in range(l):
 		name=data.info[data.pid_key][idx]
 		#print(data.info[data.pid_key][idx])

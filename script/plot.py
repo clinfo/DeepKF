@@ -68,8 +68,6 @@ if data.mask is not None:
 	obs_mu[data.mask<0.1]=np.nan
 	pred_mu[data.mask<0.1]=np.nan
 
-l=len(data.info[data.pid_key])
-
 def plot_fig(idx):
 	d=args.obs_dim
 	s=data.steps[idx]
@@ -99,6 +97,9 @@ def plot_fig(idx):
 	plt.legend()
 
 if args.mode=="all":
+	l=len(data.info[data.pid_key])
+	if args.limit_all is not None and l > args.limit_all:
+		l = args.limit_all
 	for idx in range(l):
 		plot_fig(idx)
 		name=data.info[data.pid_key][idx]

@@ -14,7 +14,7 @@ class dotdict(dict):
 def get_default_argparser():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('mode', type=str,
-			help='test/all')
+			help='one/all')
 	parser.add_argument('--config', type=str,
 			default=None,
 			nargs='?',
@@ -33,6 +33,9 @@ def get_default_argparser():
 	parser.add_argument('--index', type=int,
 			default=0,
 			help='data index of plotting target (only test mode)')
+	parser.add_argument('--limit_all', type=int,
+			default=None,
+			help='the number of output images (all mode)')
 	parser.add_argument('--show',
 			action='store_true',
 			default=False,
