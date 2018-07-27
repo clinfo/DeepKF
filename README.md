@@ -35,7 +35,7 @@ data/sample_*
 ### 学習
 
 ```
-python dkf.py --config sample/config.json --hyperparam sample/hyparam.json train 
+python dmm.py --config sample/config.json --hyperparam sample/hyparam.json train 
 ```
 config.jsonファイルはデータ入出力等に関する設定を記述する設定ファイル
 hyparam.jsonファイルは主に学習に関する設定を記述する設定ファイル
@@ -44,7 +44,7 @@ hyparam.jsonファイルは主に学習に関する設定を記述する設定�
 ### 予測
 
 ```
-python dkf.py --config sample/config.json --hyperparam model/hyparam.result.json --save-config ./model/config.result.json infer
+python dmm.py --config sample/config.json --hyperparam model/hyparam.result.json --save-config ./model/config.result.json test
 ```
 model/hyparam.result.json
 は学習時に与えられたhyparam.jsonファイルから自動決定されたパラメータ等も含めた設定ファイル
@@ -53,35 +53,62 @@ model/hyparam.result.json
 ### フィルタリング
 
 ```
-python dkf.py --config model/config.result.json --hyperparam model/hyparam.result.json filter
+python dmm.py --config model/config.result.json --hyperparam model/hyparam.result.json filter
 ```
 
 
 ### 状態空間の計算
 
 ```
-python attractor.py --config model/config.result.json --hyperparam model/hyparam.result.json field
+python dmm.py --config model/config.result.json --hyperparam model/hyparam.result.json field
 ```
 
+### 上述のサンプルスクリプトをまとめて実行
+
+```
+python dmm.py --config sample/config.json --hyperparam sample/hyparam.json train,test,filter,field
+```
 ### 予測のプロット
 
 ```
-python script/plot.py model_2d/config_infer.result.json all
+python script/plot.py --config model/config.result.json --obs_dim 0 all
 ```
+
+２段のプロットを作成する。
+上段が推定された状態空間、下段が観測空間になっており、観測空間は１次元のみ表示している。
+この例ではデフォルトで0次元目のみを出力している``--obs_dim``オプションで何次元目を出力するかを指定可能。
+観測空間の各項目は、``x``が観測値、``recons``が再構築された観測値、``pred``が予測値を表している。
 
 ### フィルタリングのプロット
+
 ```
-python script/plot_p.py ./model_2d/config_infer.result.json all 
+python script/plot_p.py --config model/config.result.json --num_dim 2 --obs_dim 0 all
 ```
+３段のプロットを作成する。
+上段がサンプリングされた状態空間、中段が観測空間になっており、下段は観測空間の予測値と実際のずれをプロット
+
+状態空間は最初の２次元のみをプロットしている。
+``--num_dim``オプションで何次元を出力するかを指定可能。
+各次元はdim0, dim1, dim2, ...のように表示される。
+
+また、中段は観測空間は１次元のみ表示している。
+この例ではデフォルトで0次元目のみを出力している``--obs_dim``オプションで何次元目を出力するかを指定可能。
+``x`` は観測値、``pred``は予測値（パーティクル）、``pred(mean)``は予測値（パーティクル）の平均、のように表示される。
+
+下段は観測空間と同じで観測値とのずれを表示している。
+
 
 ### 状態空間のプロット
+
 ```
-python script/plot_vec.py model/config_infer.result.json
+python script/plot_vec.py model/config.result.json all
 ```
+
+状態空間の時間による遷移方向の表示
 
 ## パラメータ
 sample/config.jsonやsample/hyparam.jsonのような形式で各種パラメータを設定することができます。
-これらは実行に
+これらは実行時に
 ```
 --config sample/config.result.json --hyperparam sample/hyparam.result.json
 ```
@@ -181,4 +208,25 @@ config.jsonには複数回の実験で変化しないパラメータを設定し
 #### *"potential_internal_layers"*
 - 状態空間からポテンシャルへのニューラルネットワークのアーキテクチャを設定
 
-    
+#### *"state_type"*
+- 状態空間に関する設定
+- normal/discreteのいずれかを指定
+
+#### *"sampling_type"*
+- 状態空間のサンプリングの方法を指定する。
+- state_type=normalとした場合、none/normalのいずれかを指定
+- state_type=discreteとした場合、none/gambel-max/gambel-softmax/naiveのいずれかを指定
+
+#### *"dynamics_type"*
+- 状態空間の時間発展に関する設定
+- distribution/function のいずれかを指定
+
+#### *"pfilter_type"*
+- パーティクルフィルタに関する設定
+- trained_dynamics/zero_dynamisc のいずれかを指定
+
+#### *"emission_type"*
+- 観測データに関する設定
+- normal/binary のいずれかを指定
+
+
