@@ -33,7 +33,7 @@ data=load_plot_data(args,result_key="save_result_filter")
 #d=data.info["attr_emit_list"].index("206010")
 #print("206010:",d)
 idx=args.index
-if data.mask:
+if data.mask is not None:
 	data.obs[data.mask<0.1]=np.nan
 
 #x=obj["x"]
@@ -59,8 +59,6 @@ def plot_fig(idx):
 		plt.plot(z[0,idx,:s,j],label="dim"+str(j),color=colorlist[j])
 		for i in range(args.num_particle-1):
 			plt.plot(z[i+1,idx,:s,j],color=colorlist[j])
-		
-	
 	plt.legend()
 	
 	plt.subplot(3,1,2)
@@ -74,7 +72,9 @@ def plot_fig(idx):
 
 	plt.subplot(3,1,3)
 	errors=data.result["error"]
-	plt.plot(errors[0,idx,:s,d],label="x",color="b")
+	for i in range(args.obs_num_particle):
+		plt.plot(errors[i,idx,:s,d],label="error",color="b")
+	plt.legend()
 	
 if args.mode=="all":
 	for idx in range(l):

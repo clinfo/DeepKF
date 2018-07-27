@@ -21,6 +21,7 @@ import dmm_input
 from dmm_model import inference, loss, p_filter, sampleVariationalDist
 from dmm_model import construct_placeholder
 import hyopt as hy
+from attractor import field,potential
 
 #FLAGS = tf.app.flags.FLAGS
 
@@ -77,6 +78,15 @@ def get_default_config():
 	config["time_major"]=True
 	config["steps_npy"]=None
 	config["steps_test_npy"]=None
+	config["sampling_type"]="normal"
+	config["emission_type"]="normal"
+	config["state_type"]="normal"
+	config["dynamics_type"]="distribution"
+	config["pfilter_type"]="trained_dynamics"
+	config["potential_enabled"]=True,
+	config["potential_grad_transition_enabled"]=True,
+	config["potential_nn_enabled"]=False,
+ 
 	# generate json
 	#fp = open("config.json", "w")
 	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
@@ -556,7 +566,12 @@ if __name__ == '__main__':
 			default=None,
 			nargs='?',
 			help='hyperparameter json file')
-
+	parser.add_argument('--cpu',
+			action='store_true',
+			help='cpu mode (calcuration only with cpu)')
+	parser.add_argument('--gpu', type=str,
+			default=None,
+			help='constraint gpus (default: all) (e.g. --gpu 0,2)')
 	args=parser.parse_args()
 	# config
 	config=get_default_config()
@@ -571,22 +586,32 @@ if __name__ == '__main__':
 	hy.initialize_hyperparameter(args.hyperparam)
 	config.update(hy.get_hyperparameter())
 	hy.get_hyperparameter().update(config)
+	# gpu/cpu
+	if args.cpu:
+		os.environ['CUDA_VISIBLE_DEVICES'] = ""
+	elif args.gpu is not None:
+		os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
 	# setup
-	with tf.Graph().as_default():
+	mode_list=args.mode.split(",")
 	#with tf.Graph().as_default(), tf.device('/cpu:0'):
-		with tf.Session() as sess:
-			# mode
-			if args.mode=="train":
-				train(sess,config)
-			elif args.mode=="infer":
-				if args.model is not None:
-					config["load_model"]=args.model
-				infer(sess,config)
-			elif args.mode=="filter":
-				if args.model is not None:
-					config["load_model"]=args.model
-				filtering(sess,config)
-	
+	for mode in mode_list:
+		with tf.Graph().as_default():
+			with tf.Session() as sess:
+				# mode
+				if mode=="train":
+					train(sess,config)
+				elif mode=="infer" or mode=="test":
+					if args.model is not None:
+						config["load_model"]=args.model
+					infer(sess,config)
+				elif mode=="filter":
+					if args.model is not None:
+						config["load_model"]=args.model
+					filtering(sess,config)
+				elif mode=="field":
+					field(sess,config)
+				elif mode=="potential":
+					potential(sess,config)
 	if args.save_config is not None:
 		print("[SAVE] config: ",args.save_config)
 		fp = open(args.save_config, "w")

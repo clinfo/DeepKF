@@ -63,7 +63,7 @@ print("z_q.shape=",z_q.shape)
 obs_mu=data.result["obs_params"][0]
 #pred_mu=data.result["pred_params"][0]
 pred_mu=data.result["obs_pred_params"][0]
-if data.mask:
+if data.mask is not None:
 	data.obs[data.mask<0.1]=np.nan
 	obs_mu[data.mask<0.1]=np.nan
 	pred_mu[data.mask<0.1]=np.nan

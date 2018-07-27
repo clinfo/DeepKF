@@ -9,9 +9,8 @@
     "data_info_json": "data/sample_info.json",
     "dim": 0,
     "epoch": 100,
-    "load_model": "",
-	"save_model_path":"dummy",
-	"patience": 0,
+    "save_model_path":"dummy",
+    "patience": 0,
     "save_result_test": "dummy",
     "save_result_train": "dummy",
     "train_test_ratio": [

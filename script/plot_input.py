@@ -56,8 +56,9 @@ def load_plot_data(args,result_key="save_result_test"):
 		quit()
 	fp = open(args.config, 'r')
 	config=json.load(fp)
-	fp = open(args.hyperparam, 'r')
-	config.update(json.load(fp))
+	if args.hyperparam=="":
+		fp = open(args.hyperparam, 'r')
+		config.update(json.load(fp))
 	pid_key=args.info_key
 	out_dir=args.out_dir
 	filename_result=get_param(config,result_key,None)
