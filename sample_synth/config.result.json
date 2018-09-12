@@ -1,0 +1,81 @@
+{
+    "alpha": 0.01,
+    "batch_size": 100,
+    "data_info_json": "sample_synth/info.json",
+    "data_test_npy": "sample_synth/data_test.npy",
+    "data_train_npy": "sample_synth/data_train.npy",
+    "dim": 2,
+    "dim_emit": 1,
+    "dynamics_type": "distribution",
+    "emission_internal_layers": [
+        {
+            "dim_output": 2,
+            "name": "fc"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "emission_type": "normal",
+    "epoch": 2000,
+    "evaluation": {
+        "training_all_costs": [
+            149.4718017578125,
+            53.98661422729492,
+            0.0
+        ],
+        "training_cost": 221.07992553710938,
+        "training_error": 1.1638116836547852,
+        "validation_all_costs": [
+            147.89918518066406,
+            55.47919845581055,
+            0.0
+        ],
+        "validation_cost": 220.99990844726562,
+        "validation_error": 1.126707911491394
+    },
+    "evaluation_output": "sample_synth/model/hyparam.result.json",
+    "hyperparameter_input": "sample_synth/hyparam.json",
+    "learning_rate": 0.03,
+    "load_model": "sample_synth/model/model/model.last.ckpt",
+    "mask_test_npy": null,
+    "mask_train_npy": null,
+    "n_steps": 100,
+    "patience": 0,
+    "pfilter_type": "trained_dynamics",
+    "plot_path": "sample_synth/model/plot",
+    "potential_enabled": true,
+    "potential_grad_transition_enabled": false,
+    "potential_internal_layers": [
+        {
+            "dim_output": 2,
+            "name": "fc"
+        }
+    ],
+    "potential_nn_enabled": false,
+    "sampling_type": "normal",
+    "save_model": "sample_synth/model/model/model.last.ckpt",
+    "save_model_path": "sample_synth/model/model",
+    "save_result_filter": "sample_synth/model/result/filter.jbl",
+    "save_result_test": "sample_synth/model/result/test.jbl",
+    "save_result_train": "sample_synth/model/result/train.jbl",
+    "simulation_path": "sample_synth/model/sim",
+    "state_type": "normal",
+    "steps_npy": null,
+    "steps_test_npy": null,
+    "time_major": true,
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+    "transition_internal_layers": [
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "fc"
+        }
+    ]
+}
