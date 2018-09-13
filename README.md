@@ -179,16 +179,16 @@ config.jsonには複数回の実験で変化しないパラメータを設定し
 - --hyparamオプションを使用した場合そちらが優先される
 
 #### *"simulation_path"*
-- シミュレーションデータを保存する
+- シミュレーションデータを保存するパス
 
 #### *"potential_enabled"*
 - ポテンシャルを有効にする
 
 #### *"potential_grad_transition_enabled"*
-- ポテンシャルに沿った勾配での状態遷移を有効にする
+- ポテンシャルに沿った勾配での状態遷移を有効にする（potential_enabled=trueの場合のみ有効）
 
 #### *"potential_nn_enabled"*
-- ポテンシャルのニューラルネットを有効にする
+- ポテンシャルのニューラルネットを有効にする（potential_enabled=trueの場合のみ有効）
 
 #### *"save_result_train"/"save_result_test"/"save_result_filter"*
 - 結果を保存するファイル
@@ -209,7 +209,7 @@ config.jsonには複数回の実験で変化しないパラメータを設定し
 - 状態空間からポテンシャルへのニューラルネットワークのアーキテクチャを設定
 
 #### *"state_type"*
-- 状態空間に関する設定
+- 状態空間の分布のタイプ（連続・離散）に関する設定
 - normal/discreteのいずれかを指定
 
 #### *"sampling_type"*
@@ -220,10 +220,14 @@ config.jsonには複数回の実験で変化しないパラメータを設定し
 #### *"dynamics_type"*
 - 状態空間の時間発展に関する設定
 - distribution/function のいずれかを指定
+- distribution：分布のパラメータを出力するニューラルネットを構築
+- function：状態遷移関数を表現するニューラルネットを構築
 
 #### *"pfilter_type"*
 - パーティクルフィルタに関する設定
 - trained_dynamics/zero_dynamisc のいずれかを指定
+- trained_dynamics：学習済みの状態遷移を使用する
+- zero_dynamisc：平均ゼロ分散１の状態遷移を使用する
 
 #### *"emission_type"*
 - 観測データに関する設定
