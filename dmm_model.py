@@ -91,6 +91,12 @@ def build_nn(x,dim_input,n_steps,hyparam_name,name,
 					layer_dim, layer_dim_out,
 					wd_w,wd_bias,activate=tf.sigmoid,with_bn=True,init_params_flag=init_params_flag,is_train=is_train)
 				layer_dim=layer_dim_out
+		elif hy_layer["name"]=="cnn":
+			with tf.variable_scope(name+'_cnn'+str(i)) as scope:
+				layer=tf.reshape(layer,[-1,n_steps,layer_dim])
+				layer=tf.layers.conv1d(layer, layer_dim_out, 1, padding='SAME', reuse=(not init_params_flag),name='conv'+str(i))
+				layer=tf.reshape(layer,[-1,layer_dim_out])
+				layer_dim=layer_dim_out
 		elif hy_layer["name"]=="lstm":
 			with tf.variable_scope(name+'_lstm'+str(i)) as scope:
 				layer=tf.reshape(layer,[-1,n_steps,layer_dim])
@@ -110,32 +116,34 @@ def sample_normal(params,eps):
 		return mu
 
 def sampleState(qz,control_params):
-	if control_params["state_type"]=="discrete":
-		if control_params["sampling_type"]=="none":
+	sttype=control_params["config"]["state_type"]
+	stype=control_params["config"]["sampling_type"]
+	if sttype=="discrete" or sttype=="discrete_tr":
+		if stype=="none":
 			z_s=qz[0]
-		elif control_params["sampling_type"]=="gambel-max":
+		elif stype=="gambel-max" or stype=="gumbel-max":
 			eps=control_params["placeholders"]["vd_eps"]
 			g=eps
 			#g=-tf.log(-tf.log(eps))
 			logpi=tf.log(qz[0]+1.0e-10)
 			dist=tf.contrib.distributions.OneHotCategorical(logits=(logpi+g))
 			z_s=tf.cast(dist.sample(),tf.float32)
-		elif control_params["sampling_type"]=="gambel-softmax":
+		elif stype=="gambel-softmax" or stype=="gumbel-softmax":
+			tau=control_params["config"]["sampling_tau"]
 			eps=control_params["placeholders"]["vd_eps"]
 			g=eps
 			#g=-tf.log(-tf.log(eps))
 			logpi=tf.log(qz[0]+1.0e-5)
-			tau=10.0
 			z_s=tf.nn.softmax((logpi+g)/tau)
-		elif control_params["sampling_type"]=="naive":
+		elif stype=="naive":
 			dist=tf.contrib.distributions.OneHotCategorical(probs=qz[0])
 			z_s=tf.cast(dist.sample(),tf.float32)
 		else:
 			raise Exception('[Error] unknown sampling type')
-	elif control_params["state_type"]=="normal":
-		if control_params["sampling_type"]=="none":
+	elif sttype=="normal":
+		if stype=="none":
 			z_s=qz[0]
-		elif control_params["sampling_type"]=="normal":
+		elif stype=="normal":
 			eps=control_params["placeholders"]["vd_eps"]
 			z_s=sample_normal(qz,eps)
 		else:
@@ -173,17 +181,25 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 					init_params_flag=init_params_flag,
 					control_params=control_params
 					)
-			if control_params["state_type"]=="discrete":
+			sttype=control_params["config"]["state_type"]
+			if sttype=="discrete" or sttype=="discrete_tr":
 				with tf.variable_scope('vd_fc_logits') as scope:
 					layer_logit=layers.fc_layer("vd_fc_logits",layer,
 							dim_out, dim,
 							wd_w,wd_bias,
 							activate=tf.tanh,init_params_flag=init_params_flag)
-
 				layer_logit=tf.reshape(layer_logit,[-1,n_steps,dim])
+				#
+				"""
+				with tf.variable_scope('vd_cnn_logits') as scope:
+					layer=tf.reshape(layer,[-1,n_steps,dim_out])
+					#layer=tf.layers.conv1d(layer, dim, 3, padding='SAME', reuse=(not init_params_flag),name='conv1',activation=tf.nn.relu)
+					layer_logit=tf.layers.conv1d(layer, dim, 3, padding='SAME', reuse=(not init_params_flag),name='conv2',kernel_initializer=tf.truncated_normal_initializer(0.0,1.0e-3))
+				"""
+				#
 				layer_z=tf.nn.softmax(layer_logit)
 				params.append(layer_z)
-			elif control_params["state_type"]=="normal":
+			elif sttype=="normal":
 				with tf.variable_scope('vd_fc_mu') as scope:
 					layer_mu=layers.fc_layer("vd_fc_mu",layer,
 							dim_out, dim,
@@ -197,6 +213,9 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 							wd_w,wd_bias,
 							activate=None,init_params_flag=init_params_flag)
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
+					max_var=control_params["config"]["normal_max_var"]
+					min_var=control_params["config"]["normal_min_var"]
+					layer_cov = tf.clip_by_value(layer_cov,min_var,max_var)
 					layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 					params.append(layer_cov)
 			else:
@@ -226,23 +245,28 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 					init_params_flag=init_params_flag,
 					control_params=control_params
 					)
-			if control_params["emission_type"]=="normal":
+			
+			etype=control_params["config"]["emission_type"]
+			if etype=="normal":
 				# layer -> layer_mean
 				with tf.variable_scope('em_fc_mean') as scope:
-					layer_mu=layers.fc_layer("emission/em_fc2_mean",layer,
+					layer_mu=layers.fc_layer("emission/em_fc_mean",layer,
 							dim_out, dim_emit,
 							wd_w,wd_bias,activate=None,init_params_flag=init_params_flag)
 				layer_mu=tf.reshape(layer_mu,[-1,n_steps,dim_emit])
 				params.append(layer_mu)
 				# layer -> layer_cov
 				with tf.variable_scope('em_fc_cov') as scope:
-					pre_activate=layers.fc_layer("emission/em_fc2_cov",layer,
+					pre_activate=layers.fc_layer("emission/em_fc_cov",layer,
 							dim_out, dim_emit,
 							wd_w,wd_bias,activate=None,init_params_flag=init_params_flag)
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
+					max_var=control_params["config"]["normal_max_var"]
+					min_var=control_params["config"]["normal_min_var"]
+					layer_cov = tf.clip_by_value(layer_cov,min_var,max_var)
 				layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim_emit])
 				params.append(layer_cov)
-			elif control_params["emission_type"]=="binary":
+			elif etype=="binary":
 				# layer -> sigmoid
 				with tf.variable_scope('em_fc_out') as scope:
 					layer_logit=layers.fc_layer("emission/em_fc_out",layer,
@@ -282,6 +306,7 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 	with tf.name_scope('transition') as scope_parent:
 		with tf.variable_scope('transition_var') as v_scope_parent:
 			layer=z
+			dim_out=dim
 			if hy_param["transition_internal_layers"]:
 				# z -> layer
 				layer,dim_out=build_nn(layer,dim_input=dim,n_steps=n_steps,
@@ -289,7 +314,9 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					init_params_flag=init_params_flag,
 					control_params=control_params
 					)
-			if control_params["state_type"]=="discrete":
+			
+			sttype=control_params["config"]["state_type"]
+			if sttype=="discrete":
 				# layer -> layer_mean
 				with tf.variable_scope('tr_fc_logits') as scope:
 					layer_logit=layers.fc_layer("tr_fc_logits",layer,
@@ -299,7 +326,19 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					layer_z=tf.nn.softmax(layer_logit)
 					layer_z=tf.reshape(layer_z,[-1,n_steps,dim])
 					params.append(layer_z)
-			elif control_params["state_type"]=="normal":
+			if sttype=="discrete_tr":
+				# layer -> layer_mean
+				with tf.variable_scope('tr_fc_logits') as scope:
+					layer_logit=layers.discrete_tr_layer("tr_fc_logits",
+							layer,
+							dim_out, dim,
+							wd_w,init_params_flag=init_params_flag,
+							beta=1.0)
+					layer_z=layer_logit
+					layer_z=tf.reshape(layer_z,[-1,n_steps,dim])
+					params.append(layer_z)
+
+			elif sttype=="normal":
 				with tf.variable_scope('vd_fc_mu') as scope:
 					layer_mu=layers.fc_layer("vd_fc_mu",layer,
 							dim_out, dim,
@@ -313,6 +352,9 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 							wd_w,wd_bias,
 							activate=None,init_params_flag=init_params_flag)
 					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
+					max_var=control_params["config"]["normal_max_var"]
+					min_var=control_params["config"]["normal_min_var"]
+					layer_cov = tf.clip_by_value(layer_cov,min_var,max_var)
 					layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 					params.append(layer_cov)
 			else:
@@ -348,9 +390,10 @@ def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_
 						dim_out, dim,
 						wd_w,wd_bias,
 						activate=None,init_params_flag=init_params_flag)
-			if control_params["state_type"]=="discrete":
+			sttype=control_params["config"]["state_type"]
+			if sttype=="discrete" or sttype=="discrete_tr":
 				layer_z=tf.nn.softmax(layer_logit)
-			elif control_params["state_type"]=="normal":
+			elif sttype=="normal":
 				layer_z=layer_logit
 			else:
 				raise Exception('[Error] unknown state type')
@@ -358,21 +401,23 @@ def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_
 
 
 def sampleTransitionFromDist(z_param,n_steps,init_state,init_params_flag=True,control_params=None):
-	if control_params["state_type"]=="normal" :
+	sttype=control_params["config"]["state_type"]
+	if sttype=="normal" :
 		eps=control_params["placeholders"]["tr_eps"]
 		q_zz=computeTransitionUKF(z_param[0],z_param[1],n_steps,mean_prior0=init_state[0],cov_prior0=init_state[1],init_params_flag=init_params_flag,control_params=control_params)
 		z_s=sample_normal(q_zz,eps)
 	else:
-		raise Exception('[Error] not supported dynamics_type=function & state_type=%s'%(control_params["state_type"],))
+		raise Exception('[Error] not supported dynamics_type=function & state_type=%s'%(sttype,))
 	return z_s,q_zz
 
 def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
-	if control_params["state_type"]=="discrete":
+	sttype=control_params["config"]["state_type"]
+	if sttype=="discrete" or sttype=="discrete_tr":
 		q_zz=computeTransition(z,n_steps,init_state,init_params_flag=init_params_flag,control_params=control_params)
 		#z_s=q_zz[0]
 		dist=tf.contrib.distributions.OneHotCategorical(probs=q_zz[0])
 		z_s=tf.cast(dist.sample(),tf.float32)
-	elif control_params["state_type"]=="normal":
+	elif sttype=="normal":
 		q_zz=computeTransition(z,n_steps,init_state,init_params_flag=init_params_flag,control_params=control_params)
 		eps=control_params["placeholders"]["tr_eps"]
 		z_s=sample_normal(q_zz,eps)
@@ -401,8 +446,11 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 	dim_emit=hy_param["dim_emit"]
 	
 	resample_size=sample_size
-	if control_params["pfilter_type"]=="trained_dynamics":
-		if control_params["dynamics_type"]=="function":
+	ptype=control_params["config"]["pfilter_type"]
+	dytype=control_params["config"]["dynamics_type"]
+	sttype=control_params["config"]["state_type"]
+	if ptype=="trained_dynamics":
+		if dytype=="function":
 			#  x: (sample_size x batch_size) x dim_emit
 			#  z: (sample_size x batch_size) x dim
 			mu_trans=computeTransitionFunc(z,1,control_params=control_params)
@@ -418,13 +466,16 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 			#
 			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
 			particles=proposal_dist.sample(proposal_sample_size)
-		elif control_params["dynamics_type"]=="distribution":
+		elif dytype=="distribution":
 			out_params=computeTransitionDistWithNN(z,1,init_params_flag=True,control_params=control_params)
-			if control_params["state_type"]=="discrete":
+			if sttype=="discrete":
 				logpi=tf.log(out_params[0]+1.0e-10)
 				proposal_dist=tf.contrib.distributions.OneHotCategorical(logits=logpi)
 				particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
-			elif control_params["state_type"]=="normal":
+			elif sttype=="discrete_tr":
+				proposal_dist=tf.contrib.distributions.OneHotCategorical(probs=out_params[0])
+				particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
+			elif sttype=="normal":
 				mu_trans=out_params[0]
 				cov_trans=out_params[1]+0.01
 				proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
@@ -433,8 +484,9 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 				raise Exception('[Error] unknown state type')
 		else:
 			raise Exception('[Error] unknown dynamics type')
-	elif control_params["pfilter_type"]=="zero_dynamics":
-		proposal_dist=tf.contrib.distributions.Normal(z,1.0)
+	elif ptype=="zero_dynamics":
+		var=control_params["config"]["zero_dynamics_var"]
+		proposal_dist=tf.contrib.distributions.Normal(z,var)
 		particles=proposal_dist.sample(proposal_sample_size)
 	else:
 		raise Exception('[Error] unknown pfilter type')
@@ -490,9 +542,10 @@ def get_init_dist(batch_size,dim):
 	return [init_mu,init_var]
 
 def inference(n_steps,control_params):
-	if control_params["dynamics_type"]=="distribution" :
+	dytype=control_params["config"]["dynamics_type"]
+	if dytype=="distribution" :
 		return inference_by_sample(n_steps,control_params)
-	elif control_params["dynamics_type"]=="function" :
+	elif dytype=="function" :
 		return inference_by_dist(n_steps,control_params)
 	else:
 		raise Exception('[Error] unknown dynamics type')
@@ -567,12 +620,10 @@ def inference_by_sample(n_steps,control_params):
 
 
 def computeNegCLL(x,outputs,mask,control_params):
-	eps=1.0e-10
-	max_var=2
-	cov_p=outputs["obs_params"][1]+eps
 	mu_p=outputs["obs_params"][0]
+	cov_p=outputs["obs_params"][1]
 
-	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/tf.clip_by_value(cov_p,eps,max_var)
+	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
 	negCLL=negCLL*0.5
 	negCLL= negCLL*mask
 	negCLL = tf.reduce_sum(negCLL,axis=2)
@@ -586,19 +637,18 @@ def computeTemporalKL(x,outputs,length,control_params):
 	z: bs x T x dim
 	prior0: bs x 1 x dim
 	"""
-	eps=1.0e-10
-	max_var=2.0
-	if control_params["state_type"]=="discrete":
+	sttype=control_params["config"]["state_type"]
+	if sttype=="discrete" or sttype=="discrete_tr":
 		mu_p=outputs["z_pred_params"][0]
-		mu_q=outputs["z_params"][0]	
-		kl_t= mu_q* (tf.log(mu_q+eps)-tf.log(mu_p+eps))
-	elif control_params["state_type"]=="normal":
-		eps=1.0e-10
-		cov_p=outputs["z_pred_params"][1]+eps
-		mu_p=outputs["z_pred_params"][0]
-		cov_q=outputs["z_params"][1]+eps
 		mu_q=outputs["z_params"][0]
-		kl_t=tf.log(cov_p)-tf.log(cov_q)-1+(cov_q+(mu_p-mu_q)**2)/tf.clip_by_value(cov_p,eps,max_var)
+		eps=1.0e-10
+		kl_t= mu_q* (tf.log(mu_q+eps)-tf.log(mu_p+eps))
+	elif sttype=="normal":
+		cov_p=outputs["z_pred_params"][1]
+		mu_p=outputs["z_pred_params"][0]
+		cov_q=outputs["z_params"][1]
+		mu_q=outputs["z_params"][0]
+		kl_t=tf.log(cov_p)-tf.log(cov_q)-1+(cov_q+(mu_p-mu_q)**2)/cov_p
 	else:
 		raise Exception('[Error] unknown state type')
 

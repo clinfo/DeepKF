@@ -54,7 +54,7 @@ def _variable_with_weight_decay(name, shape,initializer_name, wd):
 	#dtype = tf.half if FLAGS.use_fp16 else tf.float32
 	dtype = tf.float32
 	if initializer_name=="normal":
-		stddev=1e-1
+		stddev=1e-3
 		var = _variable_on_cpu(name,shape,
 				tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
 	elif initializer_name=="zero":
@@ -270,6 +270,20 @@ def fc_layer(name,input_layer,dim_in,dim_out,wd_w,wd_b,activate,with_bn=False,is
 	else:
 		layer = activate(pre_activate)
 	return layer
+
+def discrete_tr_layer(name,input_layer,dim_in,dim_out,wd_w,is_train=True,init_params_flag=True,params=None,beta=1.0):
+	if not init_params_flag:
+		tf.get_variable_scope().reuse_variables()
+	layer=input_layer/tf.reduce_sum(input_layer,axis=-1,keepdims=True)
+	w = _variable_with_weight_decay('weights', [dim_in, dim_out],
+		initializer_name="normal", wd=wd_w)
+	wi = tf.diag(tf.ones((dim_in,)))
+	w=tf.nn.softmax(w)
+	w=beta*w+(1.0-beta)*wi
+	
+	layer=tf.matmul(layer,w)
+	return layer
+
 
 
 def graph_dropout_layer(layer,node_num,input_dim,dropout_rate):

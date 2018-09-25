@@ -1,3 +1,5 @@
+cd `dirname $0`
+cd ..
 
 export  CUDA_VISIBLE_DEVICES=3
 

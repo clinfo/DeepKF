@@ -42,7 +42,73 @@ def get_dim_emit(config):
 	x=np.load(filename)
 	return x.shape[1]
 
+def make_griddata_discrete(dim):
+	return np.identity(dim, dtype=float)
+	
+
+def compute_discrete_transition_mat(sess,config):
+	batch_size=config["batch_size"]
+	dim_emit=get_dim_emit(config)
+	if config["dim"] is None:
+		dim=dim_emit
+		config["dim"]=dim
+	else:
+		dim=config["dim"]
+	n_steps=1
+	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	z0=make_griddata_discrete(dim)
+	batch_size=z0.shape[0]
+	control_params={
+		"dropout_rate":0.0,
+		"config":config,
+		"state_type":config["state_type"],
+		"sampling_type":config["sampling_type"],
+		"emission_type":config["emission_type"],
+		"dynamics_type":config["dynamics_type"],
+		}
+	# inference
+	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
+	if control_params["dynamics_type"]=="distribution" :
+		params=computeTransitionDistWithNN(z_holder,n_steps,control_params=control_params)
+		z_m=params[0]
+	elif control_params["dynamics_type"]=="function" :
+		z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
+	else:
+		raise Exception('[Error] unknown dynamics type')
+	# load
+	try:
+		saver = tf.train.Saver()
+		print("[LOAD] ",config["load_model"])
+		saver.restore(sess,config["load_model"])
+	except:
+		print("[SKIP] Load parameters")
+	#
+	feed_dict={z_holder:z0}
+	z_next=sess.run(z_m,feed_dict=feed_dict)
+	z_next=z_next.reshape((dim,dim))
+	return z_next
+	
+def field_discrete(sess,config):
+	z_next=compute_discrete_transition_mat(sess,config)
+	#
+	## save results
+	"""
+	if config["simulation_path"]!="":
+		sim_filename=config["simulation_path"]+"/field.jbl"
+		results={}
+		results["z"]=z0
+		results["z_next"]=z_next
+		print("[SAVE] result : ",sim_filename)
+		joblib.dump(results,sim_filename)
+	"""
+
 def field(sess,config):
+	if config["state_type"]=="discrete" or config["state_type"]=="discrete_tr":
+		return field_discrete(sess,config)
+	else:
+		return field_continuous(sess,config)
+
+def field_continuous(sess,config):
 	batch_size=config["batch_size"]
 	dim_emit=get_dim_emit(config)
 	if config["dim"] is None:

@@ -19,9 +19,9 @@ import argparse
 import dmm_input
 #from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
 from dmm_model import inference, loss, p_filter, sampleVariationalDist
-from dmm_model import construct_placeholder
+from dmm_model import construct_placeholder, computeEmission, computeVariationalDist
 import hyopt as hy
-from attractor import field,potential
+from attractor import field,potential,make_griddata_discrete,compute_discrete_transition_mat
 
 #FLAGS = tf.app.flags.FLAGS
 
@@ -60,6 +60,16 @@ def get_default_config():
 	config["batch_size"] = 100
 	config["alpha"] = 1.0
 	config["learning_rate"] = 1.0e-2
+	config["curriculum_alpha"]=False
+	config["epoch_interval_save"] =10#100
+	config["epoch_interval_print"] =10#100
+	config["sampling_tau"]=10#0.1
+	config["normal_max_var"]=5.0#1.0
+	config["normal_min_var"]=1.0e-5
+	config["zero_dynamics_var"]=1.0
+	config["pfilter_sample_size"]=10
+	config["pfilter_proposal_sample_size"]=1000
+	config["pfilter_save_sample_num"]=100
 	# dataset
 	config["train_test_ratio"]=[0.8,0.2]
 	config["data_train_npy"] = None
@@ -162,16 +172,18 @@ def print_variables():
 
 def compute_alpha(config,i):
 	alpha_max=config["alpha"]
-	begin_tau=config["epoch"]*0.1
-	end_tau=config["epoch"]*0.9
-	tau=100.0
-	if i < begin_tau:
-		alpha=0.0
-	elif i<end_tau:
-		alpha=alpha_max*(1.0-np.exp(-(i-begin_tau)/tau))
-	else:
-		alpha=alpha_max
-	return alpha
+	if config["curriculum_alpha"]:
+		begin_tau=config["epoch"]*0.1
+		end_tau=config["epoch"]*0.9
+		tau=100.0
+		if i < begin_tau:
+			alpha=0.0
+		elif i<end_tau:
+			alpha=alpha_max*(1.0-np.exp(-(i-begin_tau)/tau))
+		else:
+			alpha=alpha_max
+		return alpha
+	return alpha_max
 
 class EarlyStopping:
 	def __init__(self,config, **kwargs):
@@ -189,7 +201,6 @@ class EarlyStopping:
 		else:
 			self.validation_count=0
 		self.prev_validation_cost=validation_cost
-		self.print_info(info)
 		return False
 	def print_info(self,info):
 		config=self.config
@@ -206,7 +217,7 @@ class EarlyStopping:
 			format_tuple=(epoch, training_cost, training_error,
 				validation_cost,validation_error, self.validation_count)
 			print("epoch %d, training cost %g (error=%g), validation cost %g (error=%g) (count=%d) "%format_tuple)
-			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(i, 
+			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(epoch, 
 				training_cost,validation_cost,training_error,validation_error,alpha,
 				training_all_costs[0],training_all_costs[1],training_all_costs[2],
 				validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
@@ -280,15 +291,8 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 	return results
 
 
-
-
-def train(sess,config):
-	hy_param=hy.get_hyperparameter()
-	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
-
-	batch_size=config["batch_size"]
-	n_steps=train_data.n_steps
-	dim_emit=train_data.dim
+def get_dim(config,hy_param,data):
+	dim_emit=data.dim
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
@@ -296,6 +300,15 @@ def train(sess,config):
 		dim=config["dim"]
 	hy_param["dim"]=dim
 	hy_param["dim_emit"]=dim_emit
+	return dim,dim_emit
+
+def train(sess,config):
+	hy_param=hy.get_hyperparameter()
+	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
+
+	batch_size,n_batch=get_batch_size(config,hy_param,train_data)
+	dim,dim_emit=get_dim(config,hy_param,train_data)
+	n_steps=train_data.n_steps
 	hy_param["n_steps"]=n_steps
 	print("train_data_size:",train_data.num)
 	print("batch_size     :",batch_size)
@@ -306,10 +319,6 @@ def train(sess,config):
 	control_params={
 			"config":config,
 			"placeholders":placeholders,
-			"state_type":config["state_type"],
-			"sampling_type":config["sampling_type"],
-			"emission_type":config["emission_type"],
-			"dynamics_type":config["dynamics_type"],
 			}
 	# inference
 	#outputs=inference_by_sample(n_steps,control_params=control_params)
@@ -331,26 +340,26 @@ def train(sess,config):
 	## training
 	validation_count=0
 	prev_validation_cost=0
-	alpha_mode=False
-	alpha=0.0
+	alpha=None
 	early_stopping=EarlyStopping(config)
 	print("[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
 	for i in range(config["epoch"]):
 		np.random.shuffle(train_idx)
-		if alpha_mode:
-			alpha=compute_alpha(config,i)
-		else:
-			alpha=1.0
-		if i%10 == 0:
-			training_info=compute_cost_train_valid(sess,placeholders,
-					train_data,valid_data,train_idx,valid_idx,
-					output_cost,batch_size,alpha)
-			# save
+		alpha=compute_alpha(config,i)
+		training_info=compute_cost_train_valid(sess,placeholders,
+				train_data,valid_data,train_idx,valid_idx,
+				output_cost,batch_size,alpha)
+		# save
+		save_path=None
+		if i%config["epoch_interval_save"] == 0:
 			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
-			# early stopping
-			training_info["epoch"]=i
-			training_info["alpha"]=alpha
-			training_info["save_path"]=save_path
+		# early stopping
+		training_info["epoch"]=i
+		training_info["alpha"]=alpha
+		training_info["save_path"]=save_path
+		if i%config["epoch_interval_print"] == 0:
+			early_stopping.print_info(training_info)
+		if i%100:
 			if early_stopping.evaluate_validation(training_info["validation_cost"],training_info):
 				break
 
@@ -388,26 +397,15 @@ def train(sess,config):
 		#
 		e=(train_data.x-results["obs_params"][0])**2
 		#
+
+
 def infer(sess,config):
 	hy_param=hy.get_hyperparameter()
-	_,test_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=False,
+	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,
 			test_flag=True)
-	batch_size=config["batch_size"]
-	n_batch=int(test_data.num/batch_size)
+	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
+	dim,dim_emit=get_dim(config,hy_param,test_data)
 	n_steps=test_data.n_steps
-	if n_batch==0:
-		batch_size=test_data.num
-		n_batch=1
-	elif n_batch*batch_size!=test_data.num:
-		n_batch+=1
-	dim_emit=test_data.dim
-	if config["dim"] is None:
-		dim=dim_emit
-		config["dim"]=dim
-	else:
-		dim=config["dim"]
-	hy_param["dim"]=dim
-	hy_param["dim_emit"]=dim_emit
 	hy_param["n_steps"]=n_steps
 	print("test_data_size:",test_data.num)
 	print("batch_size     :",batch_size)
@@ -420,10 +418,6 @@ def infer(sess,config):
 	control_params={
 			"config":config,
 			"placeholders":placeholders,
-			"state_type":config["state_type"],
-			"sampling_type":config["sampling_type"],
-			"emission_type":config["emission_type"],
-			"dynamics_type":config["dynamics_type"],
 			}
 	# inference
 	outputs=inference(n_steps,control_params)
@@ -450,45 +444,164 @@ def infer(sess,config):
 		joblib.dump(results,config["save_result_test"])
 	
 
+def filter_discrete_forward(sess,config):
+	hy_param=hy.get_hyperparameter()
+	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
+	dim,dim_emit=get_dim(config,hy_param,test_data)
+	
+	n_steps=1
+	hy_param["n_steps"]=n_steps
+	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	z0=make_griddata_discrete(dim)
+	batch_size=z0.shape[0]
+	control_params={
+		"dropout_rate":0.0,
+		"config":config,
+		}
+	# inference
+	params=computeEmission(z_holder,n_steps,
+		init_params_flag=True,control_params=control_params)
+	
+	x_holder=tf.placeholder(tf.float32,shape=(None,100,dim_emit))
+	qz=computeVariationalDist(x_holder,n_steps,init_params_flag=True,control_params=control_params)
+	# load
+	try:
+		saver = tf.train.Saver()
+		print("[LOAD] ",config["load_model"])
+		saver.restore(sess,config["load_model"])
+	except:
+		print("[SKIP] Load parameters")
+	#
+	feed_dict={z_holder:z0}
+	x_params=sess.run(params,feed_dict=feed_dict)
+	
+	x=test_data.x
+	feed_dict={x_holder:x}
+	out_qz=sess.run(qz,feed_dict=feed_dict)
+	print(out_qz[0].shape)
+	print(len(out_qz))
+	# data:
+	# data_num x n_steps x emit_dim
+	num_d=x_params[0].shape[0]
+	dist_x=[]
+	
+	for d in range(num_d):
+		m=x_params[0][d,0,:]
+		print("##,",d,",".join(map(str,m)))
+	for d in range(num_d):
+		cov=x_params[1][d,0,:]
+		print("##,",d,",".join(map(str,cov)))
+	for d in range(num_d):
+		m=x_params[0][d,0,:]
+		cov=x_params[1][d,0,:]
+		diff_x=-(x-m)**2/(2*cov)
+		prob=-1.0/2.0*np.log(2*np.pi*cov)+diff_x
+		# prob: data_num x n_steps x emit_dim
+		prob=np.mean(prob,axis=2)
+		dist_x.append(prob)
+	dist_x=np.array(dist_x)
+	dist_x=np.transpose(dist_x,[1,2,0])
+	# dist: data_num x n_steps x dim
+	dist_x_max=np.zeros_like(dist_x)
+	for i in range(dist_x.shape[0]):
+		for j in range(dist_x.shape[1]):
+			k=np.argmax(dist_x[i,j,:])
+			dist_x_max[i,j,k]=1
+	##
+	## p(x|z)*q(z)
+	## p(x,z)
+	dist_qz=out_qz[0].reshape((20,100,dim))
+	dist_pxz=dist_qz*np.exp(dist_x)
+	##
+	tr_mat=compute_discrete_transition_mat(sess,config)
+	print(tr_mat)
+	beta=5.0e-2
+	tr_mat=beta*tr_mat+(1.0-beta)*np.identity(dim)
+	print(tr_mat)
+	## viterbi
+	prob_viterbi=np.zeros_like(dist_x)
+	prob_viterbi[:,:,:]=-np.inf
+	path_viterbi=np.zeros_like(dist_x)
+	index_viterbi=np.zeros_like(dist_x,dtype=np.int32)
+	for d in range(dist_x.shape[0]):
+		prob_viterbi[d,0,:]=dist_pxz[d,0,:]
+		index_viterbi[d,0,:]=np.argmax(dist_pxz[d,0,:])
+		step=dist_x.shape[1]-1
+		for t in range(step):
+			for i in range(dim):
+				for j in range(dim):
+					p=0
+					p+=prob_viterbi[d,t,i]
+					p+=np.log(dist_pxz[d,t+1,j])
+					#p+=np.log(dist_qz[d,t+1,j])
+					p+=np.log(tr_mat[i,j])
+					"""
+					if i==j:
+						p+=np.log(tr_mat[i,j]*0.9)
+					else:
+						p+=np.log(tr_mat[i,j]*0.1)
+					"""
+					if prob_viterbi[d,t+1,j]<p:
+						prob_viterbi[d,t+1,j]=p
+						index_viterbi[d,t+1,j]=i
+			##
+		i=np.argmax(prob_viterbi[d,step,:])
+		path_viterbi[d,step,i]=1.0
+		for t in range(step):
+			j=index_viterbi[d,step-t-1,i]
+			#print(prob_viterbi[d,step-t-1,i])
+			path_viterbi[d,step-t-1,j]=1.0
+			i=j
+
+
+	## save results
+	if config["save_result_filter"]!="":
+		results={}
+		#results["dist"]=dist_x
+		results["dist_max"]=dist_x_max
+		results["dist_qz"]=dist_qz
+		results["dist_pxz"]=dist_pxz
+		results["dist_px"]=dist_x
+		results["dist_viterbi"]=path_viterbi
+		results["tr_mat"]=tr_mat
+		print("[SAVE] result : ",config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"])
+
+
+def get_batch_size(config,hy_param,data):
+	batch_size=config["batch_size"]
+	n_batch=int(data.num/batch_size)
+	if n_batch==0:
+		batch_size=data.num
+		n_batch=1
+	elif n_batch*batch_size!=data.num:
+		n_batch+=1
+	return batch_size,n_batch
+
 def filtering(sess,config):
 	hy_param=hy.get_hyperparameter()
-	_,data_test = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
-	batch_size=config["batch_size"]
-	n_batch=int(data_test.num/batch_size)
-	n_steps=data_test.n_steps
-	if n_batch==0:
-		batch_size=data_test.num
-		n_batch=1
-	elif n_batch*batch_size!=data_test.num:
-		n_batch+=1
-	dim_emit=data_test.dim
-	if config["dim"] is None:
-		dim=dim_emit
-		config["dim"]=dim
-	else:
-		dim=config["dim"]
-	hy_param["dim"]=dim
-	hy_param["dim_emit"]=dim_emit
+	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	n_steps=test_data.n_steps
 	hy_param["n_steps"]=n_steps
-	print("data_size",data_test.num,
+	dim,dim_emit=get_dim(config,hy_param,test_data)
+	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
+
+	print("data_size",test_data.num,
 		"batch_size",batch_size,
-		", n_step",data_test.n_steps,
-		", dim_emit",data_test.dim)
+		", n_step",test_data.n_steps,
+		", dim_emit",test_data.dim)
 	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None))
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
-	#step_holder=tf.placeholder(tf.int32)
-	sample_size=10
-	proposal_sample_size=1000
+
+	sample_size=config["pfilter_sample_size"]
+	proposal_sample_size=config["pfilter_proposal_sample_size"]
+	save_sample_num=config["pfilter_save_sample_num"]
 	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
 	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
 	control_params={
 		"config":config,
-		"state_type":config["state_type"],
-		"sampling_type":config["sampling_type"],
-		"emission_type":config["emission_type"],
-		"dynamics_type":config["dynamics_type"],
-		"pfilter_type":config["pfilter_type"],
 		"dropout_rate":0.0,
 		}
 	# inference
@@ -500,29 +613,28 @@ def filtering(sess,config):
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	
-	feed_dict={x_holder:data_test.x[0:batch_size,0,:],z_holder:z0}
+	feed_dict={x_holder:test_data.x[0:batch_size,0,:],z_holder:z0}
 	result=sess.run(outputs,feed_dict=feed_dict)
 
 	z=np.reshape(result["sampled_z"],[-1,dim])
-	zs=np.zeros((sample_size,data_test.num,n_steps,dim),dtype=np.float32)
+	zs=np.zeros((sample_size,test_data.num,n_steps,dim),dtype=np.float32)
 	
 	# max: proposal_sample_size*sample_size
-	save_sample_num=10
 	sample_idx=list(range(proposal_sample_size*sample_size))
 	np.random.shuffle(sample_idx)
 	sample_idx=sample_idx[:save_sample_num]
-	mus=np.zeros((save_sample_num,data_test.num,n_steps,dim_emit),dtype=np.float32)
-	errors=np.zeros((save_sample_num,data_test.num,n_steps,dim_emit),dtype=np.float32)
+	mus=np.zeros((save_sample_num,test_data.num,n_steps,dim_emit),dtype=np.float32)
+	errors=np.zeros((save_sample_num,test_data.num,n_steps,dim_emit),dtype=np.float32)
 	for j in range(n_batch):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			if idx+batch_size>data_test.num: # for last
+			if idx+batch_size>test_data.num: # for last
 				x=np.zeros((batch_size,dim),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-data_test.num)
-				x[:bs,:]=data_test.x[idx:idx+batch_size,step,:]
+				bs=batch_size-(idx+batch_size-test_data.num)
+				x[:bs,:]=test_data.x[idx:idx+batch_size,step,:]
 			else:
-				x=data_test.x[idx:idx+batch_size,step,:]
+				x=test_data.x[idx:idx+batch_size,step,:]
 				bs=batch_size
 			feed_dict={x_holder:x,z_holder:z}
 			result=sess.run(outputs,feed_dict=feed_dict)
@@ -608,6 +720,8 @@ if __name__ == '__main__':
 					if args.model is not None:
 						config["load_model"]=args.model
 					filtering(sess,config)
+				elif mode=="filter2":
+					filter_discrete_forward(sess,config)
 				elif mode=="field":
 					field(sess,config)
 				elif mode=="potential":

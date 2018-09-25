@@ -1,6 +1,7 @@
 {
     "alpha": 0.01,
     "batch_size": 100,
+    "curriculum_alpha": false,
     "data_info_json": "sample_synth/info.json",
     "data_test_npy": "sample_synth/data_test.npy",
     "data_train_npy": "sample_synth/data_train.npy",
@@ -18,6 +19,8 @@
     ],
     "emission_type": "normal",
     "epoch": 2000,
+    "epoch_interval_print": 10,
+    "epoch_interval_save": 10,
     "evaluation": {
         "training_all_costs": [
             149.4718017578125,
@@ -41,7 +44,12 @@
     "mask_test_npy": null,
     "mask_train_npy": null,
     "n_steps": 100,
+    "normal_max_var": 5.0,
+    "normal_min_var": 1e-05,
     "patience": 0,
+    "pfilter_proposal_sample_size": 1000,
+    "pfilter_sample_size": 10,
+    "pfilter_save_sample_num": 100,
     "pfilter_type": "trained_dynamics",
     "plot_path": "sample_synth/model/plot",
     "potential_enabled": true,
@@ -53,6 +61,7 @@
         }
     ],
     "potential_nn_enabled": false,
+    "sampling_tau": 10,
     "sampling_type": "normal",
     "save_model": "sample_synth/model/model/model.last.ckpt",
     "save_model_path": "sample_synth/model/model",
@@ -77,5 +86,6 @@
         {
             "name": "fc"
         }
-    ]
+    ],
+    "zero_dynamics_var": 1.0
 }
