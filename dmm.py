@@ -283,7 +283,7 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 	for k,v in results.items():
 		if k in ["z_s"]:
 			print(k,v.shape)
-		elif k in ["obs_params","obs_pred", "z_params","z_pred"]:
+		elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params"]:
 			if len(v)==1:
 				print(k,v[0].shape)
 			else:
