@@ -277,7 +277,7 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 				layer_out=tf.reshape(layer_out,[-1,n_steps,dim_emit])
 				params.append(layer_out)
 			else:
-				raise Exception('[Error] unknown emmition type')
+				raise Exception('[Error] unknown emission type:'+etype)
 
 
 	return params
@@ -326,7 +326,7 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					layer_z=tf.nn.softmax(layer_logit)
 					layer_z=tf.reshape(layer_z,[-1,n_steps,dim])
 					params.append(layer_z)
-			if sttype=="discrete_tr":
+			elif sttype=="discrete_tr":
 				# layer -> layer_mean
 				with tf.variable_scope('tr_fc_logits') as scope:
 					layer_logit=layers.discrete_tr_layer("tr_fc_logits",
@@ -358,7 +358,7 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 					layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim])
 					params.append(layer_cov)
 			else:
-				raise Exception('[Error] unknown emmition type')
+				raise Exception('[Error] unknown emission type:'+sttype)
 	return params
 
 

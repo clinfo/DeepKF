@@ -1,4 +1,8 @@
 cd `dirname $0`
+
+# data generator
+python make.py
+
 cd ..
 
 export  CUDA_VISIBLE_DEVICES=3

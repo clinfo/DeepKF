@@ -1,5 +1,9 @@
-mkdir -p sample_synth/experiments
+cd `dirname $0`
+cd ..
+
 mkdir -p sample_synth/experiments/configs/
+sh sample_synth/experiments/gen_configs.sh
+
 
 export  CUDA_VISIBLE_DEVICES=3
 cfg=sample_synth/config.json
