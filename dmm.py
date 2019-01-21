@@ -19,6 +19,7 @@ import argparse
 import dmm_input
 #from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
 from dmm_model import inference, loss, p_filter, sampleVariationalDist
+from dmm_model import fivo
 from dmm_model import construct_placeholder, computeEmission, computeVariationalDist
 import hyopt as hy
 from attractor import field,potential,make_griddata_discrete,compute_discrete_transition_mat
@@ -656,6 +657,179 @@ def filtering(sess,config):
 		joblib.dump(results,config["save_result_filter"])
 
 
+def train_fivo(sess,config):
+	hy_param=hy.get_hyperparameter()
+	#_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
+	n_steps=train_data.n_steps
+	hy_param["n_steps"]=n_steps
+	dim,dim_emit=get_dim(config,hy_param,train_data)
+	batch_size,n_batch=get_batch_size(config,hy_param,train_data)
+
+	print("data_size",train_data.num,
+		"batch_size",batch_size,
+		", n_step",train_data.n_steps,
+		", dim_emit",train_data.dim)
+	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
+	m_holder=tf.placeholder(tf.float32,shape=(None))
+	z0_holder=tf.placeholder(tf.float32,shape=(None,dim))
+
+	sample_size=config["pfilter_sample_size"]
+	proposal_sample_size=config["pfilter_proposal_sample_size"]
+	save_sample_num=config["pfilter_save_sample_num"]
+	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
+	control_params={
+		"config":config,
+		"dropout_rate":0.0,
+		}
+	# inference
+	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
+	output_cost=fivo(x_holder,z0_holder,None,n_steps,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	##========##
+	# train_step
+	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+	with tf.control_dependencies(update_ops):
+		train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(output_cost["cost"])
+	print_variables()
+	saver = tf.train.Saver()
+	# initialize
+	init = tf.global_variables_initializer()
+	sess.run(init)
+
+	train_idx=list(range(train_data.num))
+	valid_idx=list(range(valid_data.num))
+	## training
+	validation_count=0
+	prev_validation_cost=0
+	alpha=None
+	early_stopping=EarlyStopping(config)
+	print("[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
+	for i in range(config["epoch"]):
+		np.random.shuffle(train_idx)
+		alpha=compute_alpha(config,i)
+		
+		# save
+		save_path=None
+		if i%config["epoch_interval_save"] == 0:
+			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
+		# early stopping
+		"""
+		training_info["epoch"]=i
+		training_info["alpha"]=alpha
+		training_info["save_path"]=save_path
+		if i%config["epoch_interval_print"] == 0:
+			early_stopping.print_info(training_info)
+		if i%100:
+			if early_stopping.evaluate_validation(training_info["validation_cost"],training_info):
+				break
+		"""
+		# update
+		n_batch=int(np.ceil(train_data.num*1.0/batch_size))
+		cost=0
+		for j in range(n_batch):
+			print(j,"/",n_batch)
+			idx=train_idx[j*batch_size:(j+1)*batch_size]
+			if len(idx)<batch_size:
+				x=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
+				x[:len(idx),:,:]=train_data.x[idx,:,:]
+			else:
+				x=train_data.x[idx,:,:]
+				bs=batch_size
+			feed_dict={x_holder:x,z0_holder:z0}
+			#feed_dict=construct_feed(idx,train_data,placeholders,alpha,is_train=True)
+			train_step.run(feed_dict=feed_dict)
+		
+			c=sess.run(output_cost["cost"],feed_dict=feed_dict)
+			print(c)
+		print(cost)
+		###
+		###
+		#result=sess.run(outputs,feed_dict=feed_dict)
+	# save hyperparameter
+	if config["save_model"] is not None and config["save_model"]!="":
+		save_model_path=config["save_model"]
+		save_path = saver.save(sess, save_model_path)
+		print("[SAVE] %s"%(save_path))
+	hy.save_hyperparameter()
+	## save results
+	if config["save_result_train"]!="":
+		results=compute_result(sess,placeholders,train_data,train_idx,outputs,batch_size,alpha)
+		results["config"]=config
+		print("[SAVE] result : ",config["save_result_train"])
+		base_path = os.path.dirname(config["save_result_train"])
+		os.makedirs(base_path,exist_ok=True)
+		joblib.dump(results,config["save_result_train"])
+		
+		#
+		e=(train_data.x-results["obs_params"][0])**2
+		#
+
+	return	
+
+	##========##
+	# loding model
+	print_variables()
+	saver = tf.train.Saver()
+	print("[LOAD]",config["load_model"])
+	saver.restore(sess,config["load_model"])
+	
+	feed_dict={x_holder:test_data.x[0:batch_size,:,:],z0_holder:z0}
+	result=sess.run(outputs,feed_dict=feed_dict)
+
+	z=np.reshape(result["sampled_z"],[-1,dim])
+	zs=np.zeros((sample_size,test_data.num,n_steps,dim),dtype=np.float32)
+	
+	# max: proposal_sample_size*sample_size
+	sample_idx=list(range(proposal_sample_size*sample_size))
+	np.random.shuffle(sample_idx)
+	sample_idx=sample_idx[:save_sample_num]
+	mus=np.zeros((sample_size,test_data.num,n_steps,dim_emit),dtype=np.float32)
+	errors=np.zeros((sample_size,test_data.num,n_steps,dim_emit),dtype=np.float32)
+	for j in range(n_batch):
+		idx=j*batch_size
+		print(j,"/",n_batch)
+		if idx+batch_size>test_data.num: # for last
+			x=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
+			bs=batch_size-(idx+batch_size-test_data.num)
+			x[:bs,:,:]=test_data.x[idx:idx+batch_size,:,:]
+		else:
+			x=test_data.x[idx:idx+batch_size,:,:]
+			bs=batch_size
+		feed_dict={x_holder:x,z0_holder:z}
+		
+		###
+		###
+		result=sess.run(outputs,feed_dict=feed_dict)
+		z=result["sampled_z"]
+		obs_list=result["sampled_pred_params"]
+		###
+		###
+		for step in range(n_steps):
+			mu=obs_list[step][0]
+			zs[:,idx:idx+batch_size,step,:]=z[step][:,:bs,:]
+			print("======")
+			#mus:save_sample_num,test_data.num,n_steps,dim_emit
+			print(mus.shape)
+			print(mu.shape)
+			print("======")
+			mus[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]
+			errors[:,idx:idx+batch_size,step,:]=mu[:,:bs,:]-x[:bs,step,:]
+		z=np.reshape(z,[-1,dim])
+		print("*", end="")
+		print("")
+		##
+	
+	## save results
+	if config["save_result_filter"]!="":
+		results={}
+		results["z"]=zs
+		results["mu"]=mus
+		results["error"]=errors
+		print("[SAVE] result : ",config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"])
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('mode', type=str,
@@ -722,6 +896,8 @@ if __name__ == '__main__':
 					filtering(sess,config)
 				elif mode=="filter2":
 					filter_discrete_forward(sess,config)
+				elif mode=="fivo":
+					train_fivo(sess,config)
 				elif mode=="field":
 					field(sess,config)
 				elif mode=="potential":

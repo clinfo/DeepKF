@@ -157,10 +157,12 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
 	qs=sampleState(qz,control_params)
 	return qs,qz
+
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
 def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	"""
 	x: bs x T x dim_emit
+	or (bs x T) x dim_emit
 	return:
 		layer_z:bs x T x dim
 		layer_mu:bs x T x dim
@@ -189,14 +191,6 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 							wd_w,wd_bias,
 							activate=tf.tanh,init_params_flag=init_params_flag)
 				layer_logit=tf.reshape(layer_logit,[-1,n_steps,dim])
-				#
-				"""
-				with tf.variable_scope('vd_cnn_logits') as scope:
-					layer=tf.reshape(layer,[-1,n_steps,dim_out])
-					#layer=tf.layers.conv1d(layer, dim, 3, padding='SAME', reuse=(not init_params_flag),name='conv1',activation=tf.nn.relu)
-					layer_logit=tf.layers.conv1d(layer, dim, 3, padding='SAME', reuse=(not init_params_flag),name='conv2',kernel_initializer=tf.truncated_normal_initializer(0.0,1.0e-3))
-				"""
-				#
 				layer_z=tf.nn.softmax(layer_logit)
 				params.append(layer_z)
 			elif sttype=="normal":
@@ -226,7 +220,8 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 # return parameters for p(x|z): list of tensors: batch_size x n_steps x dim
 def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 	"""
-	z: (bs x T) x dim
+	z: bs x T x dim
+	or (bs x T) x dim
 	"""
 
 	hy_param=hy.get_hyperparameter()
@@ -282,13 +277,20 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 
 	return params
 
-# return parameters for p(z_t|z_t-1): list of tensors: batch_size x n_steps x dim
-def computeTransitionFunc(in_points,n_steps,init_params_flag=True,control_params=None):
+def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
+	"""
+	mu: bs x T x dim
+	cov: bs x T x dim
+	prior0: bs x 1 x dim
+	"""
 	hy_param=hy.get_hyperparameter()
-	if hy_param["potential_grad_transition_enabled"]:
-		return computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag,control_params)
-	else:
-		return computeTransitionFuncFromNN(in_points,n_steps,init_params_flag,control_params)
+	dim=hy_param["dim"]
+	# add initial state and remove last state
+	in_z=tf.reshape(z,[-1,n_steps,dim])
+	in_z=tf.concat([init_state,in_z[:,:-1,:]],axis=1)
+
+	out_param=computeTransitionDistWithNN(in_z,n_steps,init_params_flag,control_params=control_params)
+	return out_param
 	
 # p(z_t|z_t+1)
 def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_params=None):
@@ -361,8 +363,44 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 				raise Exception('[Error] unknown emission type:'+sttype)
 	return params
 
-
+"""
 # x_t+1 = f (x_t)
+in_points: points x dim
+return:
+points x dim
+# return parameters for p(z_t|z_t-1): list of tensors: batch_size x n_steps x dim
+"""
+def computeTransitionFunc(in_points,n_steps,init_params_flag=True,control_params=None):
+	hy_param=hy.get_hyperparameter()
+	if hy_param["potential_grad_transition_enabled"]:
+		return computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag,control_params)
+	else:
+		return computeTransitionFuncFromNN(in_points,n_steps,init_params_flag,control_params)
+
+
+"""
+in_points: points x dim
+return:
+points x dim
+"""
+def computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag=True,control_params=None):
+	with tf.name_scope('transition') as scope_parent:
+		#z  : (bs x T) x dim
+		#pot: (bs x T)
+		pot=computePotential(in_points,n_steps,init_params_flag=init_params_flag,control_params=control_params)
+		sum_pot=tf.reduce_sum(pot)
+		g_z = tf.gradients(sum_pot, [in_points])
+		#print(g_z)
+		layer_mean=in_points+g_z
+	return layer_mean
+		
+
+"""
+# x_t+1 = f (x_t)
+in_points: points x dim
+return:
+points x dim
+"""
 def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_params=None):
 	"""
 	mu: points x dim
@@ -425,21 +463,6 @@ def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=N
 		raise Exception('[Error] unknown state type')
 	return z_s,q_zz
 
-def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
-	"""
-	mu: bs x T x dim
-	cov: bs x T x dim
-	prior0: bs x 1 x dim
-	"""
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	# add initial state and remove last state
-	in_z=tf.reshape(z,[-1,n_steps,dim])
-	in_z=tf.concat([init_state,in_z[:,:-1,:]],axis=1)
-
-	out_param=computeTransitionDistWithNN(in_z,n_steps,init_params_flag,control_params=control_params)
-	return out_param
-	
 def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -451,7 +474,6 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 	sttype=control_params["config"]["state_type"]
 	if ptype=="trained_dynamics":
 		if dytype=="function":
-			#  x: (sample_size x batch_size) x dim_emit
 			#  z: (sample_size x batch_size) x dim
 			mu_trans=computeTransitionFunc(z,1,control_params=control_params)
 			#  m: sample_size x batch_size x dim
@@ -721,13 +743,22 @@ def _add_loss_summaries(total_loss):
 
 	return loss_averages_op
 
-
+"""
+mu: bs x T x dim
+  or (bs x T) x dim
+cov: bs x T x dim
+  or (bs x T) x dim
+prior0: bs x 1 x dim
+return:
+output_mu: bs x T x dim
+output_cov: bs x T x dim
+###
+if prior0==None
+  z[1:T+1]
+else
+  z[0:T]
+"""
 def computeTransitionUKF(mu,cov,n_steps,mean_prior0=None,cov_prior0=None,init_params_flag=True,control_params=None):
-	"""
-	mu: bs x T x dim
-	cov: bs x T x dim
-	prior0: bs x 1 x dim
-	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	#in_mu=tf.reshape(mu,[1,-1,dim])
@@ -738,8 +769,6 @@ def computeTransitionUKF(mu,cov,n_steps,mean_prior0=None,cov_prior0=None,init_pa
 	for i in range(dim):
 		in_points.append(in_mu+in_sigma)
 		in_points.append(in_mu-in_sigma)
-		#in_points[i*2+0+1,:,:]+=in_sigma
-		#in_points[i*2+1+1,:,:]-=in_sigma
 	in_points=tf.stack(in_points)
 
 	out_points=computeTransitionFunc(in_points,n_steps,init_params_flag=init_params_flag,control_params=control_params)
@@ -785,6 +814,12 @@ def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
 					pot_loss=tf.reshape(pot,[-1,1])
 	return pot_loss
 
+"""
+z: (bs x T) x dim
+  or bs x T x dim
+return:	
+pot: (bs x T)
+"""
 def computePotential(z_input,n_steps,init_params_flag=True,control_params=None):
 	hy_param=hy.get_hyperparameter()
 	if hy_param["potential_nn_enabled"]:
@@ -792,11 +827,13 @@ def computePotential(z_input,n_steps,init_params_flag=True,control_params=None):
 	else:
 		return computePotentialWithBinaryPot(z_input,n_steps,init_params_flag,control_params)
 
+"""
+z: (bs x T) x dim
+  or bs x T x dim
+return:
+pot: (bs x T)
+"""
 def computePotentialWithBinaryPot(z_input,n_steps,dim,init_params_flag=True,control_params=None):
-	"""
-	z: (bs x T) x dim
-	pot: (bs x T)
-	"""
 	pot_pole=[]
 
 	hy_param=hy.get_hyperparameter()
@@ -818,17 +855,15 @@ def computePotentialWithBinaryPot(z_input,n_steps,dim,init_params_flag=True,cont
 	pot_pole=tf.stack(pot_pole)
 	#pot_pole: (2xdim) x (bs x T)
 	pot=tf.reduce_min(pot_pole,axis=0)
-	#z1=z+tf.constant([-1,0],dtype=np.float32)
-	#z2=z+tf.constant([ 1,0],dtype=np.float32)
-	#pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
 	return pot
 
-
+"""
+z: (bs x T) x dim
+  or bs x T x dim
+return:
+pot: (bs x T)
+"""
 def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=None):
-	"""
-	z: (bs x T) x dim
-	pot: (bs x T)
-	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	
@@ -860,45 +895,129 @@ def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=
 	layer_mean=tf.reshape(layer_mean,[-1])
 	return layer_mean
 
-	wd_bias=None
-	wd_w=0.1
+
+#  z0: sample_size x dim
+#  x: batch_size x n_steps x emit_dim
+def fivo(x,z0,epsilon,n_steps,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
-	pot_pole=[]
-
-	z=tf.reshape(z_input,[-1,dim])
-	for d in range(dim):
-		z1=np.zeros((dim,),dtype=np.float32)
-		z2=np.zeros((dim,),dtype=np.float32)
-		z1[d]=1.0
-		z2[d]=-1.0
-		
-		z1=z-tf.constant(z1,dtype=np.float32)
-		z2=z-tf.constant(z2,dtype=np.float32)
-		p1=tf.reduce_sum(z1*z1,axis=1)
-		p2=tf.reduce_sum(z2*z2,axis=1)
-		pot_pole.append(p1)
-		pot_pole.append(p2)
-		
-	#pot_pole: (2xdim) x (bs x T)
-	pot=tf.reduce_min(pot_pole,axis=0)
-	#z1=z+tf.constant([-1,0],dtype=np.float32)
-	#z2=z+tf.constant([ 1,0],dtype=np.float32)
-	#pot=tf.minimum(tf.reduce_sum(z1*z1,axis=2),tf.reduce_sum(z2*z2,axis=2))
-	return pot
-
-def computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag=True,control_params=None):
-	"""
-	in_points: points x dim
-	"""
-	with tf.name_scope('transition') as scope_parent:
-		#z  : (bs x T) x dim
-		#pot: (bs x T)
-		pot=computePotential(in_points,n_steps,init_params_flag=init_params_flag,control_params=control_params)
-		sum_pot=tf.reduce_sum(pot)
-		g_z = tf.gradients(sum_pot, [in_points])
-		#print(g_z)
-		layer_mean=in_points+g_z
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
 	
-	return layer_mean
-		
+	resample_size=sample_size
+	ptype=control_params["config"]["pfilter_type"]
+	dytype=control_params["config"]["dynamics_type"]
+	sttype=control_params["config"]["state_type"]
+	z=z0
+	zs=[]
+	obs_list=[[],[]]
+	print(z.shape)
+	init_params_flag=True
+	for s in range(n_steps):
+		if ptype=="trained_dynamics":
+			if dytype=="function":
+				#  x: (batch_size x T) x dim_emit
+				#  z: (sample_size x batch_size) x dim
+				mu_trans=computeTransitionFunc(z,1,init_params_flag=init_params_flag,control_params=control_params)
+				#  m: sample_size x batch_size x dim
+				m=tf.reshape(mu_trans,[sample_size,-1,dim])
+				d=m - tf.reduce_mean(m,axis=0)
+				cov=tf.reduce_mean(d**2,axis=0)
+				cov_trans=tf.tile(cov,[sample_size,1])
+				#  mu_trans : (sample_size x batch_size) x dim
+				#  cov_trans: (sample_size x batch_size) x dim
+				mu_trans=tf.reshape(mu_trans,[-1,dim])
+				cov_trans=tf.reshape(cov_trans,[-1,dim])+0.01
+				#
+				proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
+				particles=proposal_dist.sample(proposal_sample_size)
+			elif dytype=="distribution":
+				out_params=computeTransitionDistWithNN(z,1,init_params_flag=init_params_flag,control_params=control_params)
+				if sttype=="discrete":
+					logpi=tf.log(out_params[0]+1.0e-10)
+					proposal_dist=tf.contrib.distributions.OneHotCategorical(logits=logpi)
+					particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
+				elif sttype=="discrete_tr":
+					proposal_dist=tf.contrib.distributions.OneHotCategorical(probs=out_params[0])
+					particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
+				elif sttype=="normal":
+					mu_trans=out_params[0]
+					cov_trans=out_params[1]+0.01
+					proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
+					particles=proposal_dist.sample(proposal_sample_size)
+				else:
+					raise Exception('[Error] unknown state type')
+			else:
+				raise Exception('[Error] unknown dynamics type')
+		elif ptype=="zero_dynamics":
+			var=control_params["config"]["zero_dynamics_var"]
+			proposal_dist=tf.contrib.distributions.Normal(z,var)
+			particles=proposal_dist.sample(proposal_sample_size)
+		else:
+			raise Exception('[Error] unknown pfilter type')
+			
+		#  particles: proposal_sample_size x (sample_size x batch_size) x dim
+		#  particles: (proposal_sample_size x sample_size x batch_size) x dim
+		particles =tf.reshape(particles,[-1,dim])
+		obs_params=computeEmission(particles,1,init_params_flag=init_params_flag,control_params=control_params)
+		#  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
+		#  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
+		mu=obs_params[0]
+		cov=obs_params[1]
+		mu =tf.reshape(mu,[-1,batch_size,dim_emit])
+		cov = tf.clip_by_value(tf.reshape(cov,[-1,batch_size,dim_emit]),1.0e-10,2)
+		#  x: batch_size x n_steps x emit_dim
+		d=mu-x[:,s,:]
+		w=-tf.reduce_sum(d**2/cov,axis=2)
+		# w:(proposal_sample_size x sample_size) x batch__size 
+		#  probs=w/tf.reduce_sum(w,axis=0)
+
+		resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+		# ids: resample x batch_size
+		#  particles: (proposal_sample_size x sample_size) x batch_size x dim
+		particle_ids=resample_dist.sample([resample_size])
+		particles =tf.reshape(particles,[-1,batch_size,dim])
+		#
+		dummy=np.zeros((resample_size,batch_size,1),dtype=np.int32)
+		particle_ids=tf.reshape(particle_ids,[resample_size,batch_size,1])
+		for i in range(batch_size):
+			dummy[:,i,0]=i
+		temp=tf.constant(dummy)
+		particle_ids=tf.concat([particle_ids, temp], 2)
+		# out_z: (resample) x batch_size x dim
+		# out_mu: (resample)  x batch_size x emit_dim
+		out_z=tf.gather_nd(particles,particle_ids)
+		out_mu=tf.gather_nd(mu,particle_ids)
+		print("mu",mu.shape)
+		print("out_mu",out_mu.shape)
+		out_cov=tf.gather_nd(cov,particle_ids)
+		obs_list[0].append(out_mu)
+		obs_list[1].append(out_cov)
+		print("out_z",out_z.shape)
+		zs.append(out_z)
+		##
+		init_params_flag=False
+		z=out_z
+	# mu: T x (resample)  x batch_size x emit_dim
+	# mu_p: (resample)  x batch_size x T x emit_dim
+	# zs: (resample)  x batch_size x T x dim
+	mu_p=tf.transpose(tf.stack(obs_list[0]),perm=[1,2,0,3])
+	cov_p=tf.transpose(tf.stack(obs_list[1]),perm=[1,2,0,3])
+	#zz=tf.transpose(tf.stack(zs),perm=[1,2,0,3])
+	#  x: batch_size x n_steps x emit_dim
+	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
+	negCLL=negCLL*0.5
+	negCLL = tf.reduce_mean(negCLL,axis=0) # sample
+	negCLL = tf.reduce_sum(negCLL,axis=2)  # dim
+	negCLL = tf.reduce_sum(negCLL,axis=1)  # T
+
+	output_cost={
+		"cost":tf.reduce_mean(negCLL),
+		"error":tf.reduce_mean(negCLL),
+		"all_costs":tf.reduce_mean(negCLL),
+		}
+	# loss
+	#outputs={
+	#	"sampled_pred_params":obs_list,
+	#	"sampled_z":zs}
+	return output_cost
 

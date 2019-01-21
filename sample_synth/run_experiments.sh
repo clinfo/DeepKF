@@ -6,7 +6,6 @@ sh sample_synth/experiments/gen_configs.sh
 
 
 export  CUDA_VISIBLE_DEVICES=3
-cfg=sample_synth/config.json
 for f in `ls sample_synth/experiments/configs/config.*.json`
 do
 b=`basename ${f} .json`
