@@ -31,31 +31,18 @@ hyperparameter=None
 def initialize_hyperparameter(load_filename):
 	global hyperparameter
 	hyperparameter={}
+	"""
 	hyperparameter["evaluation"]=None
 	hyperparameter["evaluation_output"]=None
 	hyperparameter["hyperparameter_input"]=load_filename
-	hyperparameter["emission_internal_layers"]=[
-			{"name":"fc"}
-			]
-	hyperparameter["transition_internal_layers"]=[
-			{"name":"fc"},
-			{"name":"fc"}
-			]
-	hyperparameter["variational_internal_layers"]=[
-			{"name":"fc"},
-			{"name":"lstm"}
-			]
-	hyperparameter["potential_internal_layers"]=[
-			{"name":"fc"},
-			{"name":"do"},
-			{"name":"fc"},
-			{"name":"do"},
-			{"name":"fc"}
-			]
-
+	hyperparameter["emission_internal_layers"]=None
+	hyperparameter["transition_internal_layers"]=None
+	hyperparameter["variational_internal_layers"]=None
+	hyperparameter["potential_internal_layers"]=None
 	hyperparameter["potential_enabled"]=True
 	hyperparameter["potential_grad_transition_enabled"]=True
 	hyperparameter["potential_nn_enabled"]=True
+	"""
 	if load_filename is not None:
 		fp = open(load_filename, 'r')
 		hyperparameter.update(json.load(fp))

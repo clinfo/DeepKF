@@ -45,33 +45,67 @@ def get_dim_emit(config):
 def make_griddata_discrete(dim):
 	return np.identity(dim, dtype=float)
 	
+def construct_default_placeholder(config):
+	dropout_rate=tf.placeholder(tf.float32)
+	is_train=tf.placeholder(tf.bool)
+	#
+	placeholders={
+		"dropout_rate": dropout_rate,
+		"is_train": is_train,
+		}
+	return placeholders
+def construct_default_feed(placeholders,is_train=False):
+	hy_param=hy.get_hyperparameter()
+	feed_dict={}
+	dropout_rate=0.0
+	if is_train:
+		if "dropout_rate" in hy_param:
+			dropout_rate=hy_param["dropout_rate"]
+		else:
+			dropout_rate=0.5
+	# 
+	for key,ph in placeholders.items():
+		if key == "dropout_rate":
+			feed_dict[ph]=dropout_rate
+		elif key == "is_train":
+			feed_dict[ph]=is_train
+	return feed_dict
 
-def compute_discrete_transition_mat(sess,config):
-	batch_size=config["batch_size"]
+
+def get_dim(config,hy_param):
 	dim_emit=get_dim_emit(config)
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
 	else:
 		dim=config["dim"]
+	hy_param["dim"]=dim
+	hy_param["dim_emit"]=dim_emit
+	return dim,dim_emit
+
+
+
+def compute_discrete_transition_mat(sess,config):
+	hy_param=hy.get_hyperparameter()
+	batch_size=config["batch_size"]
+	dim,dim_emit=get_dim(config,hy_param)
+	
 	n_steps=1
+	placeholders=construct_default_placeholder(config)
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	placeholders["z"]=z_holder
 	z0=make_griddata_discrete(dim)
 	batch_size=z0.shape[0]
 	control_params={
-		"dropout_rate":0.0,
 		"config":config,
-		"state_type":config["state_type"],
-		"sampling_type":config["sampling_type"],
-		"emission_type":config["emission_type"],
-		"dynamics_type":config["dynamics_type"],
+		"placeholders":placeholders,
 		}
 	# inference
 	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
-	if control_params["dynamics_type"]=="distribution" :
+	if config["dynamics_type"]=="distribution" :
 		params=computeTransitionDistWithNN(z_holder,n_steps,control_params=control_params)
 		z_m=params[0]
-	elif control_params["dynamics_type"]=="function" :
+	elif config["dynamics_type"]=="function" :
 		z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
 	else:
 		raise Exception('[Error] unknown dynamics type')
@@ -83,7 +117,8 @@ def compute_discrete_transition_mat(sess,config):
 	except:
 		print("[SKIP] Load parameters")
 	#
-	feed_dict={z_holder:z0}
+	feed_dict=construct_default_feed(placeholders,is_train=False)
+	feed_dict[z_holder]=z0
 	z_next=sess.run(z_m,feed_dict=feed_dict)
 	z_next=z_next.reshape((dim,dim))
 	return z_next
@@ -109,31 +144,27 @@ def field(sess,config):
 		return field_continuous(sess,config)
 
 def field_continuous(sess,config):
+	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
-	dim_emit=get_dim_emit(config)
-	if config["dim"] is None:
-		dim=dim_emit
-		config["dim"]=dim
-	else:
-		dim=config["dim"]
+	dim,dim_emit=get_dim(config,hy_param)
+	
 	n_steps=1
+	placeholders=construct_default_placeholder(config)
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	placeholders["z"]=z_holder
+	
 	z0=make_griddata(2,max_dim=dim,nx=30,rx=2.0)
 	batch_size=z0.shape[0]
 	control_params={
-		"dropout_rate":0.0,
 		"config":config,
-		"state_type":config["state_type"],
-		"sampling_type":config["sampling_type"],
-		"emission_type":config["emission_type"],
-		"dynamics_type":config["dynamics_type"],
+		"placeholders":placeholders,
 		}
 	# inference
 	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
-	if control_params["dynamics_type"]=="distribution" :
+	if config["dynamics_type"]=="distribution" :
 		params=computeTransitionDistWithNN(z_holder,n_steps,control_params=control_params)
 		z_m=params[0]
-	elif control_params["dynamics_type"]=="function" :
+	elif config["dynamics_type"]=="function" :
 		z_m = computeTransitionFunc(z_holder,n_steps,control_params=control_params)
 	else:
 		raise Exception('[Error] unknown dynamics type')
@@ -149,7 +180,8 @@ def field_continuous(sess,config):
 	except:
 		print("[SKIP] Load parameters")
 	#
-	feed_dict={z_holder:z0}
+	feed_dict=construct_default_feed(placeholders,is_train=False)
+	feed_dict[z_holder]=z0
 	g=sess.run(g_z,feed_dict=feed_dict)
 	#
 	## save results
@@ -162,18 +194,21 @@ def field_continuous(sess,config):
 		joblib.dump(results,sim_filename)
 
 def potential(sess,config):
+	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
-	dim_emit=get_dim_emit(config)
-	if config["dim"] is None:
-		dim=dim_emit
-		config["dim"]=dim
-	else:
-		dim=config["dim"]
+	dim,dim_emit=get_dim(config,hy_param)
+	
 	n_steps=1
+	placeholders=construct_default_placeholder(config)
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	placeholders["z"]=z_holder
+	
 	z0=make_griddata(2,max_dim=dim,nx=30,rx=2.0)
 	batch_size=z0.shape[0]
-	control_params={"dropout_rate":0.0}
+	control_params={
+		"config":config,
+		"placeholders":placeholders,
+		}
 	# inference
 	#z_m,_,_=computeTransition(z_holder,n_steps,dim,mean_prior0=None,cov_prior0=None,params=None,without_cov=True)
 	z_m,_=computePotential(z_holder,n_steps,dim,params=None,control_params=control_params)
@@ -183,7 +218,8 @@ def potential(sess,config):
 	print("[LOAD] ",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	#
-	feed_dict={z_holder:z0}
+	feed_dict=construct_default_feed(placeholders,is_train=False)
+	feed_dict[z_holder]=z0
 	g=sess.run(z_m,feed_dict=feed_dict)
 	print(g)
 	#
@@ -201,16 +237,17 @@ def potential(sess,config):
 
 
 def infer(sess,config):
+	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
-	dim_emit=get_dim_emit(config)
-	if config["dim"] is None:
-		dim=dim_emit
-		config["dim"]=dim
-	else:
-		dim=config["dim"]
+	dim,dim_emit=get_dim(config,hy_param)
+	
 	n_steps=1
-	control_params={"dropout_rate":0.0}
+	control_params={
+		"config":config,
+		"placeholders":placeholders,
+		}
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	placeholders["z"]=z_holder
 	# inference
 	z_m,_=computeTransitionFunc(z_holder,n_steps,dim,params=None,control_params=control_params)
 	z_m =tf.reshape(z_m,[-1,dim])
@@ -230,13 +267,15 @@ def infer(sess,config):
 	z0=(np.random.random((batch_size*n_steps,dim))-0.5)*2
 	#
 	data[:,0,:]=z0[:,:]
-	feed_dict={z_holder:z0}
+	feed_dict=construct_default_feed(placeholders,is_train=False)
+	feed_dict[z_holder]=z0
 	obs=sess.run(obs_params,feed_dict=feed_dict)
 	o=obs[0].reshape((-1,dim_emit))
 	obs_data[:,0,:]=o[:,:]
 	#
 	for i in range(sim_nsteps-1):
-		feed_dict={z_holder:z0}
+		feed_dict=construct_default_feed(placeholders,is_train=False)
+		feed_dict[z_holder]=z0
 		m=sess.run(z_m,feed_dict=feed_dict)
 		obs=sess.run(obs_params2,feed_dict=feed_dict)
 
@@ -300,8 +339,11 @@ if __name__ == '__main__':
 		fp = open(args.config, 'r')
 		config.update(json.load(fp))
 	#if args.hyperparam is not None:
+	config.update(hy.get_hyperparameter())
 	hy.initialize_hyperparameter(args.hyperparam)
 	config.update(hy.get_hyperparameter())
+	hy.get_hyperparameter().update(config)
+	
 	# setup
 	#with tf.Graph().as_default():
 	with tf.Graph().as_default(), tf.device('/cpu:0'):

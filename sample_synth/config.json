@@ -3,7 +3,7 @@
     "data_test_npy": "sample_synth/data_test.npy",
     "data_train_npy": "sample_synth/data_train.npy",
     "data_info_json": "sample_synth/info.json",
-    "epoch": 2000,
+    "epoch": 500,
     "load_model": "",
     "save_model_path":"dummy",
     "patience": 0,

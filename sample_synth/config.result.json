@@ -6,44 +6,40 @@
     "data_test_npy": "sample_synth/data_test.npy",
     "data_train_npy": "sample_synth/data_train.npy",
     "dim": 2,
-    "dim_emit": 1,
     "dynamics_type": "distribution",
     "emission_internal_layers": [
         {
             "dim_output": 2,
-            "name": "fc"
+            "name": "fc_bn"
         },
         {
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "emission_type": "normal",
-    "epoch": 2000,
+    "epoch": 500,
     "epoch_interval_print": 10,
     "epoch_interval_save": 10,
     "evaluation": {
-        "training_all_costs": [
-            149.4718017578125,
-            53.98661422729492,
+        "all_costs": [
+            0.0,
+            0.0,
             0.0
         ],
-        "training_cost": 221.07992553710938,
-        "training_error": 1.1638116836547852,
+        "cost": 0.0,
+        "error": 0.0,
         "validation_all_costs": [
-            147.89918518066406,
-            55.47919845581055,
+            0.0,
+            0.0,
             0.0
         ],
-        "validation_cost": 220.99990844726562,
-        "validation_error": 1.126707911491394
+        "validation_cost": 0.0
     },
     "evaluation_output": "sample_synth/model/hyparam.result.json",
-    "hyperparameter_input": "sample_synth/hyparam.json",
     "learning_rate": 0.03,
     "load_model": "sample_synth/model/model/model.last.ckpt",
     "mask_test_npy": null,
     "mask_train_npy": null,
-    "n_steps": 100,
     "normal_max_var": 5.0,
     "normal_min_var": 1e-05,
     "patience": 0,
@@ -53,11 +49,11 @@
     "pfilter_type": "trained_dynamics",
     "plot_path": "sample_synth/model/plot",
     "potential_enabled": true,
-    "potential_grad_transition_enabled": false,
+    "potential_grad_transition_enabled": true,
     "potential_internal_layers": [
         {
             "dim_output": 2,
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "potential_nn_enabled": false,
@@ -79,12 +75,12 @@
     ],
     "transition_internal_layers": [
         {
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "variational_internal_layers": [
         {
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "zero_dynamics_var": 1.0

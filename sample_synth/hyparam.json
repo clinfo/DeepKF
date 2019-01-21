@@ -12,27 +12,27 @@
     "potential_nn_enabled": false,
     "emission_internal_layers": [
         {
-            "name": "fc",
+            "name": "fc_bn",
             "dim_output": 2
         },
 		{
-            "name": "fc"
+            "name": "fc_bn"
         }
 
     ],
 	"transition_internal_layers": [
         {
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "variational_internal_layers": [
         {
-            "name": "fc"
+            "name": "fc_bn"
         }
     ],
     "potential_internal_layers": [
         {
-            "name": "fc",
+            "name": "fc_bn",
             "dim_output": 2
         }
     ],
