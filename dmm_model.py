@@ -115,7 +115,7 @@ def sample_normal(params,eps):
 	else:
 		return mu
 
-def sampleState(qz,control_params):
+def sampleState(qz,control_params,sample_shape=()):
 	sttype=control_params["config"]["state_type"]
 	stype=control_params["config"]["sampling_type"]
 	if sttype=="discrete" or sttype=="discrete_tr":
@@ -127,7 +127,7 @@ def sampleState(qz,control_params):
 			#g=-tf.log(-tf.log(eps))
 			logpi=tf.log(qz[0]+1.0e-10)
 			dist=tf.contrib.distributions.OneHotCategorical(logits=(logpi+g))
-			z_s=tf.cast(dist.sample(),tf.float32)
+			z_s=tf.cast(dist.sample(sample_shape),tf.float32)
 		elif stype=="gambel-softmax" or stype=="gumbel-softmax":
 			tau=control_params["config"]["sampling_tau"]
 			eps=control_params["placeholders"]["vd_eps"]
@@ -137,15 +137,18 @@ def sampleState(qz,control_params):
 			z_s=tf.nn.softmax((logpi+g)/tau)
 		elif stype=="naive":
 			dist=tf.contrib.distributions.OneHotCategorical(probs=qz[0])
-			z_s=tf.cast(dist.sample(),tf.float32)
+			z_s=tf.cast(dist.sample(sample_shape),tf.float32)
 		else:
 			raise Exception('[Error] unknown sampling type')
 	elif sttype=="normal":
 		if stype=="none":
 			z_s=qz[0]
-		elif stype=="normal":
+		elif stype=="normal" and "vd_eps" in control_params["placeholders"]:
 			eps=control_params["placeholders"]["vd_eps"]
 			z_s=sample_normal(qz,eps)
+		elif stype=="normal":
+			dist=tf.contrib.distributions.Normal(qz[0],qz[1])
+			z_s=tf.cast(dist.sample(sample_shape),tf.float32)
 		else:
 			raise Exception('[Error] unknown sampling type')
 	else:
@@ -161,8 +164,8 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
 def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	"""
-	x: bs x T x dim_emit
-	or (bs x T) x dim_emit
+	x: bs x t x dim_emit
+	or (bs x t) x dim_emit
 	return:
 		layer_z:bs x T x dim
 		layer_mu:bs x T x dim
@@ -896,9 +899,108 @@ def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=
 	return layer_mean
 
 
+#  x0: batch_size x sample_size x emit_dim
+#  x: batch_size x n_steps x emit_dim
+def fivo(x,x0,epsilon,n_steps,sample_size,proposal_sample_size,batch_size,control_params):
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	
+	resample_size=sample_size
+	ptype=control_params["config"]["pfilter_type"]
+	dytype=control_params["config"]["dynamics_type"]
+	sttype=control_params["config"]["state_type"]
+	zs=[]
+	x1=x0
+	obs_list=[[],[]]
+	init_params_flag=True
+	for s in range(n_steps):
+		if dytype=="distribution":
+			# return parameters for q(z): list of tensors: batch_size x n_steps x dim
+			if s==0:
+				qz=computeVariationalDist(x1,1,init_params_flag,control_params)
+			else:
+				x1=x[:,:s,:]
+				qz=computeVariationalDist(x1,s,init_params_flag,control_params)
+				print(qz[0].shape)
+				qz[0]=qz[0][:,s-1,:]
+				qz[1]=qz[1][:,s-1,:]
+			qs=sampleState(qz,control_params,(sample_size))
+			particles=tf.cast(qs,tf.float32)
+			print(">>",particles.shape)
+		else:
+			raise Exception('[Error] unsupported dynamics type')
+		
+		#  particles: proposal_sample_size x (sample_size x batch_size) x dim
+		#  particles: (proposal_sample_size x sample_size x batch_size) x dim
+		particles =tf.reshape(particles,[-1,dim])
+		obs_params=computeEmission(particles,1,init_params_flag=init_params_flag,control_params=control_params)
+		#  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
+		#  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
+		mu=obs_params[0]
+		cov=obs_params[1]
+		mu =tf.reshape(mu,[-1,batch_size,dim_emit])
+		cov = tf.clip_by_value(tf.reshape(cov,[-1,batch_size,dim_emit]),1.0e-10,2)
+		#  x: batch_size x n_steps x emit_dim
+		d=mu-x[:,s,:]
+		w=-tf.reduce_sum(d**2/cov,axis=2)
+		# w:(proposal_sample_size x sample_size) x batch__size 
+		#  probs=w/tf.reduce_sum(w,axis=0)
+
+		resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+		# ids: resample x batch_size
+		#  particles: (proposal_sample_size x sample_size) x batch_size x dim
+		particle_ids=resample_dist.sample([resample_size])
+		particles =tf.reshape(particles,[-1,batch_size,dim])
+		#
+		dummy=np.zeros((resample_size,batch_size,1),dtype=np.int32)
+		particle_ids=tf.reshape(particle_ids,[resample_size,batch_size,1])
+		for i in range(batch_size):
+			dummy[:,i,0]=i
+		temp=tf.constant(dummy)
+		particle_ids=tf.concat([particle_ids, temp], 2)
+		# out_z: (resample) x batch_size x dim
+		# out_mu: (resample)  x batch_size x emit_dim
+		out_z=tf.gather_nd(particles,particle_ids)
+		out_mu=tf.gather_nd(mu,particle_ids)
+		print("mu",mu.shape)
+		print("out_mu",out_mu.shape)
+		out_cov=tf.gather_nd(cov,particle_ids)
+		obs_list[0].append(out_mu)
+		obs_list[1].append(out_cov)
+		print("out_z",out_z.shape)
+		zs.append(out_z)
+		##
+		init_params_flag=False
+		z=out_z
+	# mu: T x (resample)  x batch_size x emit_dim
+	# mu_p: (resample)  x batch_size x T x emit_dim
+	# zs: (resample)  x batch_size x T x dim
+	mu_p=tf.transpose(tf.stack(obs_list[0]),perm=[1,2,0,3])
+	cov_p=tf.transpose(tf.stack(obs_list[1]),perm=[1,2,0,3])
+	#zz=tf.transpose(tf.stack(zs),perm=[1,2,0,3])
+	#  x: batch_size x n_steps x emit_dim
+	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
+	negCLL=negCLL*0.5
+	negCLL = tf.reduce_mean(negCLL,axis=0) # sample
+	negCLL = tf.reduce_sum(negCLL,axis=2)  # dim
+	negCLL = tf.reduce_sum(negCLL,axis=1)  # T
+
+	output_cost={
+		"cost":tf.reduce_mean(negCLL),
+		"error":tf.reduce_mean(negCLL),
+		"all_costs":tf.reduce_mean(negCLL),
+		}
+	# loss
+	#outputs={
+	#	"sampled_pred_params":obs_list,
+	#	"sampled_z":zs}
+	return output_cost
+
+
 #  z0: sample_size x dim
 #  x: batch_size x n_steps x emit_dim
-def fivo(x,z0,epsilon,n_steps,sample_size,proposal_sample_size,batch_size,control_params):
+def fivo2(x,z0,epsilon,n_steps,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]

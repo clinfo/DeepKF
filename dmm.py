@@ -24,6 +24,9 @@ from dmm_model import construct_placeholder, computeEmission, computeVariational
 import hyopt as hy
 from attractor import field,potential,make_griddata_discrete,compute_discrete_transition_mat
 
+# for profiler
+from tensorflow.python.client import timeline
+
 #FLAGS = tf.app.flags.FLAGS
 
 # Basic model parameters.
@@ -280,7 +283,10 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 						for i in range(len(res)):
 							results[k][i]=np.concatenate([results[k][i],res[i]],axis=0)
 					else:
-						results[k]=res
+						if type(res)==tuple:
+							results[k]=list(res)
+						else:
+							results[k]=res
 	for k,v in results.items():
 		if k in ["z_s"]:
 			print(k,v.shape)
@@ -701,6 +707,59 @@ def filtering(sess,config):
 		print("[SAVE] result : ",config["save_result_filter"])
 		joblib.dump(results,config["save_result_filter"])
 
+def construct_fivo_placeholder(config):
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	n_steps=hy_param["n_steps"]
+	# 
+	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
+	z0_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
+	dropout_rate=tf.placeholder(tf.float32)
+	is_train=tf.placeholder(tf.bool)
+	#
+	placeholders={"x":x_holder,
+			"z":z0_holder,
+			"dropout_rate": dropout_rate,
+			"is_train": is_train,
+			}
+	return placeholders
+
+
+def construct_fivo_feed(data_idx,batch_size,step,data,placeholders,is_train=False):
+	feed_dict={}
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	n_steps=hy_param["n_steps"]
+	sample_size=hy_param["pfilter_sample_size"]
+
+	dropout_rate=0.0
+	if is_train:
+		if "dropout_rate" in hy_param:
+			dropout_rate=hy_param["dropout_rate"]
+		else:
+			dropout_rate=0.5
+	# 
+	for key,ph in placeholders.items():
+		if key == "x":
+			idx=data_idx[step*batch_size:(step+1)*batch_size]
+			if len(idx)<batch_size:
+				x=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
+				x[:len(idx),:,:]=data.x[idx,:,:]
+			else:
+				x=data.x[idx,:,:]
+			feed_dict[ph]=x
+		elif key == "z":
+			z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim_emit))
+			feed_dict[ph]=z0
+		elif key == "dropout_rate":
+			feed_dict[ph]=dropout_rate
+		elif key == "is_train":
+			feed_dict[ph]=is_train
+	return feed_dict
+
+
 
 def train_fivo(sess,config):
 	hy_param=hy.get_hyperparameter()
@@ -715,8 +774,7 @@ def train_fivo(sess,config):
 		"batch_size",batch_size,
 		", n_step",train_data.n_steps,
 		", dim_emit",train_data.dim)
-	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	z0_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	placeholders=construct_fivo_placeholder(config)
 
 	sample_size=config["pfilter_sample_size"]
 	proposal_sample_size=config["pfilter_proposal_sample_size"]
@@ -725,11 +783,11 @@ def train_fivo(sess,config):
 	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
 	control_params={
 		"config":config,
-		"dropout_rate":0.0,
+		"placeholders":placeholders,
 		}
 	# inference
 	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
-	output_cost=fivo(x_holder,z0_holder,None,n_steps,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	output_cost=fivo(placeholders["x"],placeholders["z"],None,n_steps,sample_size,proposal_sample_size,batch_size,control_params=control_params)
 	##========##
 	# train_step
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -737,6 +795,10 @@ def train_fivo(sess,config):
 		train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(output_cost["cost"])
 	print_variables()
 	saver = tf.train.Saver()
+	if config["profile"]:
+		vars_to_train = tf.trainable_variables()
+		print(vars_to_train)
+		writer = tf.summary.FileWriter('logs', sess.graph)
 	# initialize
 	init = tf.global_variables_initializer()
 	sess.run(init)
@@ -758,35 +820,36 @@ def train_fivo(sess,config):
 		if i%config["epoch_interval_save"] == 0:
 			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
 		# early stopping
-		"""
-		training_info["epoch"]=i
-		training_info["alpha"]=alpha
-		training_info["save_path"]=save_path
-		if i%config["epoch_interval_print"] == 0:
-			early_stopping.print_info(training_info)
-		if i%100:
-			if early_stopping.evaluate_validation(training_info["validation_cost"],training_info):
-				break
-		"""
+		
 		# update
 		n_batch=int(np.ceil(train_data.num*1.0/batch_size))
+		profiler_start=False
 		cost=0
 		for j in range(n_batch):
 			print(j,"/",n_batch)
-			idx=train_idx[j*batch_size:(j+1)*batch_size]
-			if len(idx)<batch_size:
-				x=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
-				x[:len(idx),:,:]=train_data.x[idx,:,:]
-			else:
-				x=train_data.x[idx,:,:]
-				bs=batch_size
-			feed_dict={x_holder:x,z0_holder:z0}
-			#feed_dict=construct_feed(idx,train_data,placeholders,alpha,is_train=True)
+			run_metadata=None
+			run_options=None
+			if config["profile"] and j==1 and i==2:
+				profiler_start=True
+				run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+				run_metadata = tf.RunMetadata()
+			feed_dict=construct_fivo_feed(train_idx,batch_size,j,train_data,placeholders,is_train=True)
 			train_step.run(feed_dict=feed_dict)
-		
 			c=sess.run(output_cost["cost"],feed_dict=feed_dict)
-			print(c)
-		print(cost)
+			cost+=c
+			if profiler_start:
+				step_stats = run_metadata.step_stats
+				tl = timeline.Timeline(step_stats)
+				ctf = tl.generate_chrome_trace_format(
+					show_memory=False,
+					show_dataflow=True)
+				with open("logs/timeline.json", "w") as f:
+					f.write(ctf)
+				print("[SAVE] logs/timeline.json")
+				profiler_start=False
+
+
+		print(cost/n_batch)
 		###
 		###
 		#result=sess.run(outputs,feed_dict=feed_dict)
@@ -797,6 +860,7 @@ def train_fivo(sess,config):
 		print("[SAVE] %s"%(save_path))
 	hy.save_hyperparameter()
 	## save results
+	"""
 	if config["save_result_train"]!="":
 		results=compute_result(sess,placeholders,train_data,train_idx,outputs,batch_size,alpha)
 		results["config"]=config
@@ -808,7 +872,7 @@ def train_fivo(sess,config):
 		#
 		e=(train_data.x-results["obs_params"][0])**2
 		#
-
+	"""
 	return	
 
 	##========##
@@ -902,6 +966,9 @@ if __name__ == '__main__':
 	parser.add_argument('--gpu', type=str,
 			default=None,
 			help='constraint gpus (default: all) (e.g. --gpu 0,2)')
+	parser.add_argument('--profile',
+			action='store_true',
+			help='')
 	args=parser.parse_args()
 	# config
 	config=get_default_config()
@@ -921,6 +988,8 @@ if __name__ == '__main__':
 		os.environ['CUDA_VISIBLE_DEVICES'] = ""
 	elif args.gpu is not None:
 		os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
+	# profile
+	config["profile"]=args.profile
 	# setup
 	mode_list=args.mode.split(",")
 	#with tf.Graph().as_default(), tf.device('/cpu:0'):
@@ -940,7 +1009,7 @@ if __name__ == '__main__':
 					filtering(sess,config)
 				elif mode=="filter2":
 					filter_discrete_forward(sess,config)
-				elif mode=="fivo":
+				elif mode=="train_fivo":
 					train_fivo(sess,config)
 				elif mode=="field":
 					field(sess,config)

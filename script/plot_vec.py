@@ -29,7 +29,8 @@ if len(sys.argv)>1:
 print("[LOAD] ",filename_result)
 obj=joblib.load(filename_result)
 data_z=obj["z"]
-data_gz=-obj["gz"][0]
+#data_gz=-obj["gz"][0]
+data_gz=obj["gz"]
 print("shape z:",data_z.shape)
 print("shape grad. z",data_gz.shape)
 #

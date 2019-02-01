@@ -171,7 +171,8 @@ def field_continuous(sess,config):
 	
 	z_m =tf.reshape(z_m,[-1,dim])
 	# grad
-	g_z = tf.gradients(z_m, [z_holder])
+	#g_z = tf.gradients(z_m, [z_holder])
+	g_z = (z_m-z_holder)
 	# load
 	try:
 		saver = tf.train.Saver()

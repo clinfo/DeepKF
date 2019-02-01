@@ -11,13 +11,10 @@
         {
             "dim_output": 2,
             "name": "fc_bn"
-        },
-        {
-            "name": "fc_bn"
         }
     ],
     "emission_type": "normal",
-    "epoch": 500,
+    "epoch": 10,
     "epoch_interval_print": 10,
     "epoch_interval_save": 10,
     "evaluation": {
@@ -48,7 +45,7 @@
     "pfilter_save_sample_num": 100,
     "pfilter_type": "trained_dynamics",
     "plot_path": "sample_synth/model/plot",
-    "potential_enabled": true,
+    "potential_enabled": false,
     "potential_grad_transition_enabled": true,
     "potential_internal_layers": [
         {
@@ -57,6 +54,7 @@
         }
     ],
     "potential_nn_enabled": false,
+    "profile": false,
     "sampling_tau": 10,
     "sampling_type": "normal",
     "save_model": "sample_synth/model/model/model.last.ckpt",
@@ -73,14 +71,10 @@
         0.8,
         0.2
     ],
-    "transition_internal_layers": [
-        {
-            "name": "fc_bn"
-        }
-    ],
+    "transition_internal_layers": [],
     "variational_internal_layers": [
         {
-            "name": "fc_bn"
+            "name": "lstm"
         }
     ],
     "zero_dynamics_var": 1.0

@@ -7,27 +7,20 @@
     "dynamics_type":"distribution",
     "pfilter_type":"trained_dynamics",
     "dim": 2,
-    "potential_enabled": true,
+    "potential_enabled": false,
     "potential_grad_transition_enabled": true,
     "potential_nn_enabled": false,
     "emission_internal_layers": [
         {
             "name": "fc_bn",
             "dim_output": 2
-        },
-		{
-            "name": "fc_bn"
         }
-
     ],
-	"transition_internal_layers": [
-        {
-            "name": "fc_bn"
-        }
+    "transition_internal_layers": [
     ],
     "variational_internal_layers": [
         {
-            "name": "fc_bn"
+            "name": "lstm"
         }
     ],
     "potential_internal_layers": [
