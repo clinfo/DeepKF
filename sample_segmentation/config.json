@@ -1,0 +1,27 @@
+{
+    "batch_size": 100,
+    "data_test_npy": "sample_segmentation/data_test.npy",
+    "data_train_npy": "sample_segmentation/data_train.npy",
+    "data_info_json": "sample_segmentation/info.json",
+    "epoch": 5000,
+    "load_model": "",
+    "save_model_path":"dummy",
+    "patience": 0,
+    "save_result_test": "dummy",
+    "save_result_train": "dummy",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+    "evaluation_output": "sample_segmentation/model/hyparam.result.json",
+    "load_model": "sample_segmentation/model/model/model.last.ckpt",
+    "save_model": "sample_segmentation/model/model/model.last.ckpt",
+    "plot_path": "sample_segmentation/model/plot",
+    "save_model_path": "sample_segmentation/model/model",
+    "save_result_filter": "sample_segmentation/model/result/filter.jbl",
+    "save_result_test": "sample_segmentation/model/result/test.jbl",
+    "save_result_train": "sample_segmentation/model/result/train.jbl",
+    "simulation_path": "sample_segmentation/model/sim"
+    
+}
+

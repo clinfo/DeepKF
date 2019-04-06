@@ -5,12 +5,13 @@ import os
 fp=open("../hyparam.json")
 org=json.load(fp)
 settings=[
-    {"state_type":"discrete","sampling_type":"gambel-softmax"},
+    {"state_type":"discrete","sampling_type":"gumbel-softmax"},
+    {"state_type":"discrete","sampling_type":"gumbel-max"},
     {"state_type":"discrete","sampling_type":"none"},
+    {"state_type":"normal","sampling_type":"normal"},
     {"state_type":"normal","sampling_type":"none"},
- #   {"state_type":"normal","sampling_type":"normal"},
     {"dynamics_type":"function"},
-  #  {"potential_enabled": True,"potential_grad_transition_enabled": False,"potential_nn_enabled": False}
+    {"potential_enabled": True,"potential_grad_transition_enabled": False,"potential_nn_enabled": False},
     {"potential_enabled": False,"potential_grad_transition_enabled": False,"potential_nn_enabled": False},
     {"dynamics_type":"function","potential_enabled": True,"potential_grad_transition_enabled": True,"potential_nn_enabled": False},
     {"dynamics_type":"function","potential_enabled": True,"potential_grad_transition_enabled": True,"potential_nn_enabled": True}

@@ -100,7 +100,9 @@ def get_default_config():
 	config["potential_enabled"]=True,
 	config["potential_grad_transition_enabled"]=True,
 	config["potential_nn_enabled"]=False,
- 
+	#
+	config["field_grid_num"]=30
+	config["field_grid_dim"]=None
 	# generate json
 	#fp = open("config.json", "w")
 	#json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '))
@@ -459,16 +461,16 @@ def filter_discrete_forward(sess,config):
 	dim,dim_emit=get_dim(config,hy_param,test_data)
 	
 	n_steps=1
+	n_steps=test_data.n_steps
 	hy_param["n_steps"]=n_steps
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	z0=make_griddata_discrete(dim)
-	batch_size=z0.shape[0]
 	control_params={
 		"dropout_rate":0.0,
 		"config":config,
 		}
 	# inference
-	params=computeEmission(z_holder,n_steps,
+	params=computeEmission(z_holder,n_steps=1,
 		init_params_flag=True,control_params=control_params)
 	
 	x_holder=tf.placeholder(tf.float32,shape=(None,100,dim_emit))
@@ -480,26 +482,25 @@ def filter_discrete_forward(sess,config):
 		saver.restore(sess,config["load_model"])
 	except:
 		print("[SKIP] Load parameters")
-	#
+	# computing grid data(state => emission)
 	feed_dict={z_holder:z0}
 	x_params=sess.run(params,feed_dict=feed_dict)
-	
+	# computing qz (test_x => qz)
 	x=test_data.x
 	feed_dict={x_holder:x}
 	out_qz=sess.run(qz,feed_dict=feed_dict)
-	print(out_qz[0].shape)
-	print(len(out_qz))
-	# data:
-	# data_num x n_steps x emit_dim
+
+	# showing mean and variance at each state 
+	# usually,  num_d == dim 
 	num_d=x_params[0].shape[0]
 	dist_x=[]
-	
 	for d in range(num_d):
 		m=x_params[0][d,0,:]
-		print("##,",d,",".join(map(str,m)))
+		print("##,mean of state=",d,",".join(map(str,m)))
 	for d in range(num_d):
 		cov=x_params[1][d,0,:]
-		print("##,",d,",".join(map(str,cov)))
+		print("##,var. of state=",d,",".join(map(str,cov)))
+	# compute dist_x
 	for d in range(num_d):
 		m=x_params[0][d,0,:]
 		cov=x_params[1][d,0,:]
@@ -510,7 +511,7 @@ def filter_discrete_forward(sess,config):
 		dist_x.append(prob)
 	dist_x=np.array(dist_x)
 	dist_x=np.transpose(dist_x,[1,2,0])
-	# dist: data_num x n_steps x dim
+	# dist: data_num x n_steps x dim(#state)
 	dist_x_max=np.zeros_like(dist_x)
 	for i in range(dist_x.shape[0]):
 		for j in range(dist_x.shape[1]):
@@ -523,9 +524,11 @@ def filter_discrete_forward(sess,config):
 	dist_pxz=dist_qz*np.exp(dist_x)
 	##
 	tr_mat=compute_discrete_transition_mat(sess,config)
+	print("original transition matrix")
 	print(tr_mat)
 	beta=5.0e-2
 	tr_mat=beta*tr_mat+(1.0-beta)*np.identity(dim)
+	print("modified transition matrix")
 	print(tr_mat)
 	## viterbi
 	prob_viterbi=np.zeros_like(dist_x)
@@ -544,16 +547,10 @@ def filter_discrete_forward(sess,config):
 					p+=np.log(dist_pxz[d,t+1,j])
 					#p+=np.log(dist_qz[d,t+1,j])
 					p+=np.log(tr_mat[i,j])
-					"""
-					if i==j:
-						p+=np.log(tr_mat[i,j]*0.9)
-					else:
-						p+=np.log(tr_mat[i,j]*0.1)
-					"""
 					if prob_viterbi[d,t+1,j]<p:
 						prob_viterbi[d,t+1,j]=p
 						index_viterbi[d,t+1,j]=i
-			##
+		##
 		i=np.argmax(prob_viterbi[d,step,:])
 		path_viterbi[d,step,i]=1.0
 		for t in range(step):
@@ -1007,7 +1004,7 @@ if __name__ == '__main__':
 					if args.model is not None:
 						config["load_model"]=args.model
 					filtering(sess,config)
-				elif mode=="filter2":
+				elif mode=="filter_discrete":
 					filter_discrete_forward(sess,config)
 				elif mode=="train_fivo":
 					train_fivo(sess,config)

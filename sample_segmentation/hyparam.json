@@ -1,0 +1,37 @@
+{
+    "alpha": 1.0,
+    "learning_rate": 0.1,
+    "epoch_interval_save":1000,
+    "epoch_interval_print":100,
+    "sampling_tau":0.1,
+    "normal_max_var":1.0,
+    "sampling_type":"gumbel-softmax",
+    "emission_type":"normal",
+    "state_type":"discrete_tr",
+    "dynamics_type":"distribution",
+    "pfilter_type":"trained_dynamics",
+    "dim": 3,
+    "potential_enabled": false,
+    "potential_grad_transition_enabled": false,
+    "potential_nn_enabled": false,
+    "emission_internal_layers": [],
+	"transition_internal_layers": [],
+    "variational_internal_layers": [
+	],
+    "potential_internal_layers": [],
+    "evaluation": {
+        "all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "validation_cost": 0.0
+    }
+}
