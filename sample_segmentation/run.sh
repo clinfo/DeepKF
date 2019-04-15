@@ -1,6 +1,11 @@
 cd `dirname $0`
 cd ..
 
+rm -r model
+mkdir -p model
+mkdir -p model/result/
+mkdir -p model/sim/
+
 export  CUDA_VISIBLE_DEVICES=2
 
 python dmm.py --config sample_segmentation/config.json --hyperparam sample_segmentation/hyparam.json --save-config ./sample_segmentation/config.result.json \

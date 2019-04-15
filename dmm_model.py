@@ -466,7 +466,7 @@ def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=N
 		raise Exception('[Error] unknown state type')
 	return z_s,q_zz
 
-def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
+def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
@@ -529,7 +529,7 @@ def p_filter(x,z,epsilon,sample_size,proposal_sample_size,batch_size,control_par
 	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
 	cov = tf.clip_by_value(tf.reshape(cov,[-1,batch_size,dim_emit]),1.0e-10,2)
 	#  x: batch_size x emit_dim
-	d=mu-x[:,:]
+	d=(mu-x[:,:])*m
 	w=-tf.reduce_sum(d**2/cov,axis=2)
 	# w:(proposal_sample_size x sample_size) x batch__size 
 	#  probs=w/tf.reduce_sum(w,axis=0)

@@ -1,5 +1,10 @@
 cd `dirname $0`
 
+rm -r model
+mkdir -p model
+mkdir -p model/result/
+mkdir -p model/sim/
+
 # data generator
 python make.py
 

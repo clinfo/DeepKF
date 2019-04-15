@@ -45,7 +45,6 @@ if not args.show:
 else:
 	from matplotlib import pylab as plt
 data=load_plot_data(args,result_key="save_result_test")
-
 #d=data_info["attr_emit_list"].index("206010")
 #print("206010:",d)
 d=0
@@ -61,9 +60,11 @@ else:
 print("z_q.shape=",z_q.shape)
 # obs
 obs_mu=data.result["obs_params"][0]
+print("obs:",obs_mu.shape)
+print("obs:",data.obs.shape)
 #pred_mu=data.result["pred_params"][0]
 pred_mu=data.result["obs_pred_params"][0]
-if data.mask is not None:
+if data.mask is not None and np.any(data.mask<0.1):
 	data.obs[data.mask<0.1]=np.nan
 	obs_mu[data.mask<0.1]=np.nan
 	pred_mu[data.mask<0.1]=np.nan

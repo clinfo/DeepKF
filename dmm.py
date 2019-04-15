@@ -460,7 +460,6 @@ def filter_discrete_forward(sess,config):
 	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
 	dim,dim_emit=get_dim(config,hy_param,test_data)
 	
-	n_steps=1
 	n_steps=test_data.n_steps
 	hy_param["n_steps"]=n_steps
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
@@ -473,7 +472,7 @@ def filter_discrete_forward(sess,config):
 	params=computeEmission(z_holder,n_steps=1,
 		init_params_flag=True,control_params=control_params)
 	
-	x_holder=tf.placeholder(tf.float32,shape=(None,100,dim_emit))
+	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
 	qz=computeVariationalDist(x_holder,n_steps,init_params_flag=True,control_params=control_params)
 	# load
 	try:
@@ -487,6 +486,7 @@ def filter_discrete_forward(sess,config):
 	x_params=sess.run(params,feed_dict=feed_dict)
 	# computing qz (test_x => qz)
 	x=test_data.x
+	mask=test_data.m
 	feed_dict={x_holder:x}
 	out_qz=sess.run(qz,feed_dict=feed_dict)
 
@@ -507,7 +507,7 @@ def filter_discrete_forward(sess,config):
 		diff_x=-(x-m)**2/(2*cov)
 		prob=-1.0/2.0*np.log(2*np.pi*cov)+diff_x
 		# prob: data_num x n_steps x emit_dim
-		prob=np.mean(prob,axis=2)
+		prob=np.mean(prob*mask,axis=2)
 		dist_x.append(prob)
 	dist_x=np.array(dist_x)
 	dist_x=np.transpose(dist_x,[1,2,0])
@@ -591,12 +591,14 @@ def construct_filter_placeholder(config):
 	n_steps=hy_param["n_steps"]
 	# 
 	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
+	m_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	dropout_rate=tf.placeholder(tf.float32)
 	is_train=tf.placeholder(tf.bool)
 	#
 	placeholders={"x":x_holder,
 			"z":z_holder,
+			"m":m_holder,
 			"dropout_rate": dropout_rate,
 			"is_train": is_train,
 			}
@@ -628,6 +630,15 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 			feed_dict[ph]=x
 		elif key == "z":
 			feed_dict[ph]=z
+		elif key == "m":
+			if idx+batch_size>data.num: # for last
+				m=np.zeros((batch_size,dim),dtype=np.float32)
+				bs=batch_size-(idx+batch_size-data.num)
+				m[:bs,:]=data.m[idx:idx+batch_size,step,:]
+			else:
+				m=data.m[idx:idx+batch_size,step,:]
+				bs=batch_size
+			feed_dict[ph]=m
 		elif key == "dropout_rate":
 			feed_dict[ph]=dropout_rate
 		elif key == "is_train":
@@ -662,7 +673,7 @@ def filtering(sess,config):
 		}
 	# inference
 	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
-	outputs=p_filter(placeholders["x"],placeholders["z"],None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	outputs=p_filter(placeholders["x"],placeholders["z"],placeholders["m"],None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
 	# loding model
 	print_variables()
 	saver = tf.train.Saver()

@@ -152,7 +152,9 @@ def field_continuous(sess,config):
 	placeholders=construct_default_placeholder(config)
 	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
 	placeholders["z"]=z_holder
-	
+
+	if config["field_grid_dim"] is None:
+		config["field_grid_dim"] = dim
 	z0=make_griddata(config["field_grid_dim"],max_dim=dim,nx=config["field_grid_num"],rx=2.0)
 	batch_size=z0.shape[0]
 	control_params={
