@@ -18,7 +18,7 @@ import argparse
 
 import dmm_input
 #from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
-from dmm_model import inference, loss, p_filter, sampleVariationalDist
+from dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
 from dmm_model import fivo
 from dmm_model import construct_placeholder, computeEmission, computeVariationalDist
 import hyopt as hy
@@ -78,8 +78,12 @@ def get_default_config():
 	config["train_test_ratio"]=[0.8,0.2]
 	config["data_train_npy"] = None
 	config["mask_train_npy"] = None
+	config["label_train_npy"] = None
 	config["data_test_npy"] = None
 	config["mask_test_npy"] = None
+	config["label_test_npy"] = None
+	config["label_type"] = "multinominal"
+	config["task"] = "generative"
 	# save/load model
 	config["save_model_path"] = None
 	config["load_model"] = None
@@ -90,7 +94,7 @@ def get_default_config():
 	config["state_type"]="normal"
 	config["sampling_type"]="none"
 	config["time_major"]=True
-	config["steps_npy"]=None
+	config["steps_train_npy"]=None
 	config["steps_test_npy"]=None
 	config["sampling_type"]="normal"
 	config["emission_type"]="normal"
@@ -132,6 +136,8 @@ def construct_feed(idx,data,placeholders,alpha,is_train=False):
 			feed_dict[ph]=data.m[idx,:,:]
 		elif key == "s":
 			feed_dict[ph]=data.s[idx]
+		elif key == "l":
+			feed_dict[ph]=data.l[idx,:]
 		elif key == "alpha":
 			feed_dict[ph]=alpha
 		elif key == "vd_eps":
@@ -173,6 +179,10 @@ def print_variables():
 	print('## potential variables')
 	vars_pot = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="potential_var")
 	for v in vars_pot:
+		print(v.name)
+	print('## label variables')
+	vars_label = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope="label_var")
+	for v in vars_label:
 		print(v.name)
 	return
 
@@ -240,14 +250,17 @@ def compute_cost(sess,placeholders,data,data_idx,output_cost,batch_size,alpha,is
 	# initialize costs
 	cost=0.0
 	error=0.0
-	all_costs=np.zeros((3,),np.float32)
+	all_costs=None
 	# compute cost in data
 	n_batch=int(np.ceil(data.num*1.0/batch_size))
 	for j in range(n_batch):
 		idx=data_idx[j*batch_size:(j+1)*batch_size]
 		feed_dict=construct_feed(idx,data,placeholders,alpha,is_train=is_train)
 		cost     +=np.array(sess.run(output_cost["cost"],feed_dict=feed_dict))
-		all_costs+=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
+		if all_costs is None:
+			all_costs=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
+		else:
+			all_costs+=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
 		error    +=np.array(sess.run(output_cost["error"],feed_dict=feed_dict))/n_batch
 	data_info={
 			"cost":cost,
@@ -280,7 +293,7 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 						results[k]=np.concatenate([results[k],res],axis=0)
 					else:
 						results[k]=res
-				elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params"]:
+				elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params","label_params"]:
 					if k in results:
 						for i in range(len(res)):
 							results[k][i]=np.concatenate([results[k][i],res[i]],axis=0)
@@ -292,7 +305,7 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 	for k,v in results.items():
 		if k in ["z_s"]:
 			print(k,v.shape)
-		elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params"]:
+		elif k in ["obs_params","obs_pred_params", "z_params","z_pred_params","label_params"]:
 			if len(v)==1:
 				print(k,v[0].shape)
 			else:
@@ -332,6 +345,9 @@ def train(sess,config):
 	# inference
 	#outputs=inference_by_sample(n_steps,control_params=control_params)
 	outputs=inference(n_steps,control_params=control_params)
+	if config["task"]=="label_prediction":
+		outputs=inference_label(outputs,n_steps,control_params=control_params)
+
 	# cost
 	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
 	# train_step
@@ -430,6 +446,8 @@ def infer(sess,config):
 			}
 	# inference
 	outputs=inference(n_steps,control_params)
+	if config["task"]=="label_prediction":
+		outputs=inference_label(outputs,n_steps,control_params=control_params)
 	# cost
 	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
 	# train_step

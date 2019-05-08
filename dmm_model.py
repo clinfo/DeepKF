@@ -44,6 +44,8 @@ def construct_placeholder(config):
 			"dropout_rate": dropout_rate,
 			"is_train": is_train,
 			}
+	if config["task"]=="label_prediction":
+		placeholders["l"]=tf.placeholder(tf.int32,shape=(None,n_steps))
 	return placeholders
 
 
@@ -276,9 +278,78 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 				params.append(layer_out)
 			else:
 				raise Exception('[Error] unknown emission type:'+etype)
-
-
 	return params
+
+# return parameters for p(l|z): list of tensors: batch_size x n_steps x dim
+def computeLabel(z,n_steps,init_params_flag=True,control_params=None):
+	"""
+	z: bs x T x dim
+	or (bs x T) x dim
+	"""
+
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_label=2#hy_param["dim_label"]
+	wd_bias=None
+	wd_w=0.1
+	hy_param=hy.get_hyperparameter()
+	z=tf.reshape(z,[-1,dim])
+	params=[]
+	with tf.name_scope('label') as scope_parent:
+		with tf.variable_scope('label_var') as v_scope_parent:
+			# z -> layer
+			layer,dim_out=build_nn(z,dim_input=dim,n_steps=n_steps,
+					hyparam_name="label_internal_layers",name="label",
+					init_params_flag=init_params_flag,
+					control_params=control_params
+					)
+			
+			ltype=control_params["config"]["label_type"]
+			if ltype=="normal":
+				# layer -> layer_mean
+				with tf.variable_scope('label_fc_mean') as scope:
+					layer_mu=layers.fc_layer("label/label_fc_mean",layer,
+							dim_out, dim_label,
+							wd_w,wd_bias,activate=None,init_params_flag=init_params_flag)
+				layer_mu=tf.reshape(layer_mu,[-1,n_steps,dim_label])
+				params.append(layer_mu)
+				# layer -> layer_cov
+				with tf.variable_scope('label_fc_cov') as scope:
+					pre_activate=layers.fc_layer("label/em_fc_cov",layer,
+							dim_out, dim_label,
+							wd_w,wd_bias,activate=None,init_params_flag=init_params_flag)
+					layer_cov = tf.nn.softplus(pre_activate, name=scope.name)
+					max_var=control_params["config"]["normal_max_var"]
+					min_var=control_params["config"]["normal_min_var"]
+					layer_cov = tf.clip_by_value(layer_cov,min_var,max_var)
+				layer_cov=tf.reshape(layer_cov,[-1,n_steps,dim_label])
+				params.append(layer_cov)
+			elif ltype=="binary":
+				# layer -> sigmoid
+				with tf.variable_scope('label_fc_out') as scope:
+					layer_logit=layers.fc_layer("label/em_fc_out",layer,
+							dim_out, dim,
+							wd_w,wd_bias,
+							activate=None,init_params_flag=init_params_flag)
+					layer_out=tf.nn.sigmoid(layer_logit)
+				layer_out=tf.reshape(layer_out,[-1,n_steps,dim_label])
+				params.append(layer_out)
+			elif ltype=="multinominal":
+				# layer -> sigmoid
+				with tf.variable_scope('label_fc_out') as scope:
+					layer_logit=layers.fc_layer("label/em_fc_out",layer,
+							dim_out, dim,
+							wd_w,wd_bias,
+							activate=None,init_params_flag=init_params_flag)
+					layer_out=layer_logit
+				layer_out=tf.reshape(layer_out,[-1,n_steps,dim_label])
+				params.append(layer_out)
+			else:
+				raise Exception('[Error] unknown label type:'+ltype)
+	return params
+
+
+
 
 def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
 	"""
@@ -527,7 +598,7 @@ def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_p
 	mu=obs_params[0]
 	cov=obs_params[1]
 	mu =tf.reshape(mu,[-1,batch_size,dim_emit])
-	cov = tf.clip_by_value(tf.reshape(cov,[-1,batch_size,dim_emit]),1.0e-10,2)
+	cov = tf.reshape(cov,[-1,batch_size,dim_emit])
 	#  x: batch_size x emit_dim
 	d=(mu-x[:,:])*m
 	w=-tf.reduce_sum(d**2/cov,axis=2)
@@ -643,10 +714,15 @@ def inference_by_sample(n_steps,control_params):
 	return outputs
 
 
-
-def computeNegCLL(x,outputs,mask,control_params):
-	mu_p=outputs["obs_params"][0]
-	cov_p=outputs["obs_params"][1]
+def inference_label(outputs,n_steps,control_params):
+	assert "z_s" in outputs, "outputs does not contain z_s"
+	z_s=outputs["z_s"]
+	params=computeLabel(z_s,n_steps,init_params_flag=True,control_params=control_params)
+	outputs["label_params"]=params
+	return outputs
+def computeNegCLL(x,params,mask,control_params):
+	mu_p=params[0]
+	cov_p=params[1]
 
 	negCLL=tf.log(2*np.pi)+tf.log(cov_p)+(x-mu_p)**2/cov_p
 	negCLL=negCLL*0.5
@@ -698,7 +774,7 @@ def loss(outputs,alpha=1,control_params=None):
 	mask=placeholders["m"]
 	length=placeholders["s"]
 	# loss
-	negCLL=computeNegCLL(x,outputs,mask,control_params)
+	negCLL=computeNegCLL(x,outputs["obs_params"],mask,control_params)
 	temporalKL=computeTemporalKL(x,outputs,length,control_params)
 	cost_pot=tf.constant(0.0,dtype=np.float32)
 	if outputs["potential_loss"] is not None:
@@ -706,14 +782,30 @@ def loss(outputs,alpha=1,control_params=None):
 		#sum_pot=tf.reduce_sum(pot*mask,axis=1)
 		sum_pot=tf.reduce_sum(pot,axis=1)
 		cost_pot=tf.reduce_mean(pot)
-	mean_cost = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
+	cost_label=tf.constant(0.0,dtype=np.float32)
+	if "label_params" in outputs and outputs["label_params"] is not None:
+		ltype=control_params["config"]["label_type"]
+		assert ltype=="multinominal", "not supported label type"
+		label=placeholders["l"]
+		logit=outputs["label_params"][0]
+		print(logit.shape)
+		print(label.shape)
+		#label=tf.reshape(label,[-1])
+		#logit=tf.reshape(logit,[-1,2])
+		#print(logit.shape)
+		#print(label.shape)
+		cost_label=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label,logits=logit)
+		cost_label=tf.reduce_sum(cost_label,axis=1)
+
+
+	mean_cost = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot+cost_label, name='train_cost')
 	#cost_mean = tf.reduce_mean((1-alpha)*negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
 	tf.add_to_collection('losses', mean_cost)
 
 	# The total loss is defined as the cross entropy loss plus all of the weight
 	# decay terms (L2 loss).
 	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
-	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL),cost_pot]
+	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL),cost_pot,cost_label]
 	diff=None
 	if "obs_params" in outputs:
 		#diff=tf.reduce_mean((x-outputs["obs_pred"][0])**2/outputs["obs_pred"][1])
