@@ -537,7 +537,7 @@ def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=N
 		raise Exception('[Error] unknown state type')
 	return z_s,q_zz
 
-def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
+def p_filter(x,z,m,step,n_steps,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
@@ -548,10 +548,11 @@ def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_p
 	sttype=control_params["config"]["state_type"]
 	if ptype=="trained_dynamics":
 		if dytype=="function":
-			#  z: (sample_size x batch_size) x dim
-			mu_trans=computeTransitionFunc(z,1,control_params=control_params)
+			#  z: (sample_size x batch_size) x n_step x  dim
+			mu_trans=computeTransitionFunc(z,n_steps,control_params=control_params)
 			#  m: sample_size x batch_size x dim
-			m=tf.reshape(mu_trans,[sample_size,-1,dim])
+			m=tf.reshape(mu_trans,[sample_size,-1,n_step,dim])
+			m=m[:,:,step,:]
 			d=m - tf.reduce_mean(m,axis=0)
 			cov=tf.reduce_mean(d**2,axis=0)
 			cov_trans=tf.tile(cov,[sample_size,1])
@@ -563,18 +564,20 @@ def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_p
 			proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,:],cov_trans[:,:])
 			particles=proposal_dist.sample(proposal_sample_size)
 		elif dytype=="distribution":
-			out_params=computeTransitionDistWithNN(z,1,init_params_flag=True,control_params=control_params)
+			out_params=computeTransitionDistWithNN(z,n_steps,init_params_flag=True,control_params=control_params)
 			if sttype=="discrete":
-				logpi=tf.log(out_params[0]+1.0e-10)
+				logit=out_params[0][:,step,:]
+				logpi=tf.log(logit+1.0e-10)
 				proposal_dist=tf.contrib.distributions.OneHotCategorical(logits=logpi)
 				particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
 			elif sttype=="discrete_tr":
-				proposal_dist=tf.contrib.distributions.OneHotCategorical(probs=out_params[0])
+				probs=out_params[0][:,step,:]
+				proposal_dist=tf.contrib.distributions.OneHotCategorical(probs=probs)
 				particles=tf.cast(proposal_dist.sample(proposal_sample_size),tf.float32)
 			elif sttype=="normal":
-				mu_trans=out_params[0]
-				cov_trans=out_params[1]+0.01
-				proposal_dist=tf.contrib.distributions.Normal(mu_trans[:,0,:],cov_trans[:,0,:])
+				mu_trans=out_params[0][:,step,:]
+				cov_trans=out_params[1][:,step,:]+0.01
+				proposal_dist=tf.contrib.distributions.Normal(mu_trans,cov_trans)
 				particles=proposal_dist.sample(proposal_sample_size)
 			else:
 				raise Exception('[Error] unknown state type')
@@ -584,6 +587,8 @@ def p_filter(x,z,m,epsilon,sample_size,proposal_sample_size,batch_size,control_p
 		var=control_params["config"]["zero_dynamics_var"]
 		proposal_dist=tf.contrib.distributions.Normal(z,var)
 		particles=proposal_dist.sample(proposal_sample_size)
+		#1000, ?, n_steps, dim
+		particles=particles[:,:,step,:]
 	else:
 		raise Exception('[Error] unknown pfilter type')
 		

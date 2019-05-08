@@ -610,13 +610,15 @@ def construct_filter_placeholder(config):
 	# 
 	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
 	m_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
-	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
+	z_holder=tf.placeholder(tf.float32,shape=(None,n_steps+1,dim))
+	step=tf.placeholder(tf.int32)
 	dropout_rate=tf.placeholder(tf.float32)
 	is_train=tf.placeholder(tf.bool)
 	#
 	placeholders={"x":x_holder,
 			"z":z_holder,
 			"m":m_holder,
+			"step": step,
 			"dropout_rate": dropout_rate,
 			"is_train": is_train,
 			}
@@ -647,6 +649,15 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 				bs=batch_size
 			feed_dict[ph]=x
 		elif key == "z":
+			"""
+			if idx+batch_size>data.num: # for last
+				z_temp=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
+				bs=batch_size-(idx+batch_size-data.num)
+				z_temp[:bs,:,:]=z[idx:idx+batch_size,:,:]
+			else:
+				z_temp=z[idx:idx+batch_size,:,:]
+				bs=batch_size
+			"""
 			feed_dict[ph]=z
 		elif key == "m":
 			if idx+batch_size>data.num: # for last
@@ -661,6 +672,8 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 			feed_dict[ph]=dropout_rate
 		elif key == "is_train":
 			feed_dict[ph]=is_train
+		elif key == "step":
+			feed_dict[ph]=step
 	return feed_dict,bs
 
 
@@ -682,27 +695,21 @@ def filtering(sess,config):
 	sample_size=config["pfilter_sample_size"]
 	proposal_sample_size=config["pfilter_proposal_sample_size"]
 	save_sample_num=config["pfilter_save_sample_num"]
-	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
-	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
 	
 	control_params={
 		"config":config,
 		"placeholders":placeholders,
 		}
 	# inference
-	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
-	outputs=p_filter(placeholders["x"],placeholders["z"],placeholders["m"],None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	# z: (batch_size x sample_size) x n_steps x dim
+	outputs=p_filter(placeholders["x"],placeholders["z"],placeholders["m"],placeholders["step"],n_steps+1,None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
 	# loding model
 	print_variables()
 	saver = tf.train.Saver()
 	print("[LOAD]",config["load_model"])
 	saver.restore(sess,config["load_model"])
 	
-	feed_dict,_=construct_filter_feed(0,batch_size,0,test_data,z0,placeholders)
-	result=sess.run(outputs,feed_dict=feed_dict)
-	z=np.reshape(result["sampled_z"],[-1,dim])
-	zs=np.zeros((sample_size,test_data.num,n_steps,dim),dtype=np.float32)
-	
+	zs=np.zeros((sample_size,test_data.num,n_steps+1,dim),dtype=np.float32)
 	# max: proposal_sample_size*sample_size
 	sample_idx=list(range(proposal_sample_size*sample_size))
 	np.random.shuffle(sample_idx)
@@ -713,15 +720,16 @@ def filtering(sess,config):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			feed_dict,bs=construct_filter_feed(idx,batch_size,step,test_data,z,placeholders)
+			zs_input=np.reshape(zs[:,idx:idx+batch_size,:,:],[-1,n_steps+1,dim])
+			feed_dict,bs=construct_filter_feed(idx,batch_size,step,test_data,zs_input,placeholders)
 			result=sess.run(outputs,feed_dict=feed_dict)
 			z=result["sampled_z"]
+			# z: sample_size x batch_size x dim
 			mu=result["sampled_pred_params"][0]
-			zs[:,idx:idx+batch_size,step,:]=z[:,:bs,:]
+			zs[:,idx:idx+batch_size,step+1,:]=z[:,:bs,:]
 			mus[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]
 			x=feed_dict[placeholders["x"]]
 			errors[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]-x[:bs,:]
-			z=np.reshape(z,[-1,dim])
 			print("*", end="")
 		print("")
 	## save results
