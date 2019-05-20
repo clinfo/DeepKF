@@ -1,0 +1,96 @@
+{
+    "alpha": 0.01,
+    "batch_size": 100,
+    "curriculum_alpha": false,
+    "data_info_json": "sample_cycle/info.json",
+    "data_test_npy": "sample_cycle/data_test.npy",
+    "data_train_npy": "sample_cycle/data_train.npy",
+    "dim": 2,
+    "dynamics_type": "distribution",
+    "emission_internal_layers": [
+        {
+            "dim_output": 2,
+            "name": "fc_bn"
+        }
+    ],
+    "emission_type": "normal",
+    "epoch": 1000,
+    "epoch_interval_print": 10,
+    "epoch_interval_save": 10,
+    "evaluation": {
+        "all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "validation_cost": 0.0
+    },
+    "evaluation_output": "sample_cycle/model/hyparam.result.json",
+    "field_grid_dim": 2,
+    "field_grid_num": 30,
+    "label_internal_layers": [
+        {
+            "name": "fc_bn"
+        }
+    ],
+    "label_test_npy": "sample_cycle/label_test.npy",
+    "label_train_npy": "sample_cycle/label_train.npy",
+    "label_type": "multinominal",
+    "learning_rate": 0.03,
+    "load_model": "sample_cycle/model/model/model.last.ckpt",
+    "mask_test_npy": "sample_cycle/mask_test.npy",
+    "mask_train_npy": "sample_cycle/mask_train.npy",
+    "normal_max_var": 5.0,
+    "normal_min_var": 1e-05,
+    "patience": 0,
+    "pfilter_proposal_sample_size": 1000,
+    "pfilter_sample_size": 10,
+    "pfilter_save_sample_num": 100,
+    "pfilter_type": "trained_dynamics",
+    "plot_path": "sample_cycle/model/plot",
+    "potential_enabled": false,
+    "potential_grad_transition_enabled": true,
+    "potential_internal_layers": [
+        {
+            "dim_output": 2,
+            "name": "fc_bn"
+        }
+    ],
+    "potential_nn_enabled": false,
+    "profile": false,
+    "sampling_tau": 10,
+    "sampling_type": "normal",
+    "save_model": "sample_cycle/model/model/model.last.ckpt",
+    "save_model_path": "sample_cycle/model/model",
+    "save_result_filter": "sample_cycle/model/result/filter.jbl",
+    "save_result_test": "sample_cycle/model/result/test.jbl",
+    "save_result_train": "sample_cycle/model/result/train.jbl",
+    "simulation_path": "sample_cycle/model/sim",
+    "state_type": "normal",
+    "steps_test_npy": null,
+    "steps_train_npy": null,
+    "task": "label_prediction",
+    "time_major": true,
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+    "transition_internal_layers": [
+        {
+            "name": "lstm"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "lstm"
+        }
+    ],
+    "zero_dynamics_var": 1.0
+}

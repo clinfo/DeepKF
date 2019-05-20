@@ -1,0 +1,32 @@
+{
+    "batch_size": 100,
+    "data_test_npy": "sample_cycle/data_test.npy",
+    "data_train_npy": "sample_cycle/data_train.npy",
+    "label_test_npy": "sample_cycle/label_test.npy",
+    "label_train_npy": "sample_cycle/label_train.npy",
+    "data_info_json": "sample_cycle/info.json",
+    "mask_test_npy": "sample_cycle/mask_test.npy",
+    "mask_train_npy": "sample_cycle/mask_train.npy",
+    "epoch": 1000,
+    "task": "label_prediction",
+    "load_model": "",
+    "save_model_path":"dummy",
+    "patience": 0,
+    "save_result_test": "dummy",
+    "save_result_train": "dummy",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+    "evaluation_output": "sample_cycle/model/hyparam.result.json",
+    "load_model": "sample_cycle/model/model/model.last.ckpt",
+    "save_model": "sample_cycle/model/model/model.last.ckpt",
+    "plot_path": "sample_cycle/model/plot",
+    "save_model_path": "sample_cycle/model/model",
+    "save_result_filter": "sample_cycle/model/result/filter.jbl",
+    "save_result_test": "sample_cycle/model/result/test.jbl",
+    "save_result_train": "sample_cycle/model/result/train.jbl",
+    "simulation_path": "sample_cycle/model/sim"
+    
+}
+
