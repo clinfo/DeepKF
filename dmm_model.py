@@ -801,6 +801,7 @@ def loss(outputs,alpha=1,control_params=None):
 		#print(label.shape)
 		cost_label=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label,logits=logit)
 		cost_label=tf.reduce_sum(cost_label,axis=1)
+		cost_label=tf.reduce_mean(cost_label)
 
 
 	mean_cost = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot+cost_label, name='train_cost')
