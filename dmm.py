@@ -206,6 +206,7 @@ class EarlyStopping:
 		self.prev_validation_cost=None
 		self.validation_count=0
 		self.config=config
+		self.first=True
 	def evaluate_validation(self,validation_cost,info):
 		config=self.config
 		if self.prev_validation_cost is not None and self.prev_validation_cost<validation_cost:
@@ -221,51 +222,91 @@ class EarlyStopping:
 	def print_info(self,info):
 		config=self.config
 		epoch=info["epoch"]
+		
+		costs_name=info["training_all_costs_name"]
+		errors_name=info["training_errors_name"]
+		metrics_name=info["training_metrics_name"]
+
 		training_cost=info["training_cost"]
 		validation_cost=info["validation_cost"]
-		training_error=info["training_error"]
-		validation_error=info["validation_error"]
+		training_errors=info["training_errors"]
+		validation_errors=info["validation_errors"]
+		training_metrics=info["training_metrics"]
+		validation_metrics=info["validation_metrics"]
 		training_all_costs=info["training_all_costs"]
 		validation_all_costs=info["validation_all_costs"]
 		alpha=info["alpha"]
 		save_path=info["save_path"]
+		if self.first:
+			log="[LOG] epoch, train cost, valid. cost, alpha"
+			for name in errors_name:
+				log+=", train error("+name+")"
+			for name in errors_name:
+				log+=", valid. error("+name+")"
+			for name in metrics_name:
+				log+=", train ("+name+")"
+			for name in metrics_name:
+				log+=", valid. ("+name+")"
+			for name in costs_name:
+				log+=", train cost("+name+")"
+			for name in costs_name:
+				log+=", valid. cost("+name+")"
+			print(log)
+			self.first=False
+		log="epoch %d, training cost %g (error=%g), validation cost %g (error=%g)"%(epoch, training_cost, training_errors[0],validation_cost,validation_errors[0])
+		if config["patience"] >0:
+			log+="(EarlyStopping counter=%d/%d)"%(self.validation_count,self.config["patience"])
 		if save_path is None:
-			format_tuple=(epoch, training_cost, training_error,
-				validation_cost,validation_error, self.validation_count)
-			print("epoch %d, training cost %g (error=%g), validation cost %g (error=%g) (count=%d) "%format_tuple)
-			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(epoch, 
-				training_cost,validation_cost,training_error,validation_error,alpha,
-				training_all_costs[0],training_all_costs[1],training_all_costs[2],
-				validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
-		else:
-			format_tuple=(epoch, training_cost,training_error,
-				validation_cost,validation_error,self.validation_count,save_path)
-			print("epoch %d, training cost %g (error=%g), validation cost %g (error=%g) (count=%d) ([SAVE] %s) "%format_tuple)
-			print("[LOG] %d, %g,%g,%g,%g, %g, %g,%g,%g, %g,%g,%g"%(epoch, 
-				training_cost,validation_cost,training_error,validation_error,alpha,
-				training_all_costs[0],training_all_costs[1],training_all_costs[2],
-				validation_all_costs[0],validation_all_costs[1],validation_all_costs[2]))
+			log+="([SAVE] %s) "%(save_path,)
+		print(log)
+		log="[LOG] %d, %g, %g, %g"%(epoch,training_cost,validation_cost,alpha)
+		for el in training_errors:
+			log+=", "+str(el)
+		for el in validation_errors:
+			log+=", "+str(el)
+		for el in training_metrics:
+			log+=", "+str(el)
+		for el in validation_metrics:
+			log+=", "+str(el)
+		for el in training_all_costs:
+			log+=", "+str(el)
+		for el in validation_all_costs:
+			log+=", "+str(el)
+		print(log)
 
 def compute_cost(sess,placeholders,data,data_idx,output_cost,batch_size,alpha,is_train):
 	# initialize costs
 	cost=0.0
-	error=0.0
 	all_costs=None
+	all_errors=None
 	# compute cost in data
 	n_batch=int(np.ceil(data.num*1.0/batch_size))
+	met=None
+	sess.run(tf.local_variables_initializer())
 	for j in range(n_batch):
 		idx=data_idx[j*batch_size:(j+1)*batch_size]
 		feed_dict=construct_feed(idx,data,placeholders,alpha,is_train=is_train)
-		cost     +=np.array(sess.run(output_cost["cost"],feed_dict=feed_dict))
+		## computing error/cost
+		c, ac, e,met,_=sess.run([output_cost["cost"],output_cost["all_costs"],output_cost["errors"],output_cost["metrics"],output_cost["updates"]],feed_dict=feed_dict)
+		cost+=c
 		if all_costs is None:
-			all_costs=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
+			all_costs=np.array(ac)
 		else:
-			all_costs+=np.array(sess.run(output_cost["all_costs"],feed_dict=feed_dict))
-		error    +=np.array(sess.run(output_cost["error"],feed_dict=feed_dict))/n_batch
+			all_costs+=np.array(ac)
+		if all_errors is None:
+			all_errors=np.array(e)
+		else:
+			all_errors+=np.array(e)
+	all_errors=all_errors/data.num
+	all_costs=all_costs/data.num
 	data_info={
 			"cost":cost,
-			"error":error,
+			"errors":all_errors,
+			"errors_name":output_cost["errors_name"],
+			"metrics":met,
+			"metrics_name":output_cost["metrics_name"],
 			"all_costs":all_costs,
+			"all_costs_name":output_cost["all_costs_name"],
 			}
 	return data_info
 
@@ -367,7 +408,6 @@ def train(sess,config):
 	prev_validation_cost=0
 	alpha=None
 	early_stopping=EarlyStopping(config)
-	print("[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
 	for i in range(config["epoch"]):
 		np.random.shuffle(train_idx)
 		alpha=compute_alpha(config,i)
@@ -401,8 +441,8 @@ def train(sess,config):
 	print("[RESULT] training cost %g, validation cost %g, training error %g, validation error %g"%(
 		training_info["training_cost"],
 		training_info["validation_cost"],
-		training_info["training_error"],
-		training_info["validation_error"]))
+		training_info["training_errors"],
+		training_info["validation_errors"]))
 	hy_param["evaluation"]=training_info
 	# save hyperparameter
 	if config["save_model"] is not None and config["save_model"]!="":
@@ -630,6 +670,8 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
 	n_steps=hy_param["n_steps"]
+	sample_size=config["pfilter_sample_size"]
+	proposal_sample_size=config["pfilter_proposal_sample_size"]
 
 	dropout_rate=0.0
 	if is_train:
@@ -641,7 +683,7 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 	for key,ph in placeholders.items():
 		if key == "x":
 			if idx+batch_size>data.num: # for last
-				x=np.zeros((batch_size,dim),dtype=np.float32)
+				x=np.zeros((batch_size,dim_emit),dtype=np.float32)
 				bs=batch_size-(idx+batch_size-data.num)
 				x[:bs,:]=data.x[idx:idx+batch_size,step,:]
 			else:
@@ -661,7 +703,7 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 			feed_dict[ph]=z
 		elif key == "m":
 			if idx+batch_size>data.num: # for last
-				m=np.zeros((batch_size,dim),dtype=np.float32)
+				m=np.zeros((batch_size,dim_emit),dtype=np.float32)
 				bs=batch_size-(idx+batch_size-data.num)
 				m[:bs,:]=data.m[idx:idx+batch_size,step,:]
 			else:
@@ -676,7 +718,21 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 			feed_dict[ph]=step
 	return feed_dict,bs
 
-
+def construct_batch_z(idx,batch_size,zs,is_train=False):
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	#zs: sample_size x test_data.num x n_steps+1 x dim
+	zz = zs[:,idx:idx+batch_size,:,:]
+	sample_size=zz.shape[0]
+	s=zz.shape[2]
+	bs=zz.shape[1]
+	if bs<batch_size: # for last
+		z_temp=np.zeros((sample_size,batch_size,s,dim),dtype=np.float32)
+		z_temp[:,:bs,:,:]=zz
+	else:
+		z_temp=zz
+	#zs: (sample_size x batch_size) x n_steps+1 x dim
+	return np.reshape(z_temp,[-1,s,dim])
 
 def filtering(sess,config):
 	hy_param=hy.get_hyperparameter()
@@ -720,7 +776,7 @@ def filtering(sess,config):
 		idx=j*batch_size
 		print(j,"/",n_batch)
 		for step in range(n_steps):
-			zs_input=np.reshape(zs[:,idx:idx+batch_size,:,:],[-1,n_steps+1,dim])
+			zs_input=construct_batch_z(idx,batch_size,zs)
 			feed_dict,bs=construct_filter_feed(idx,batch_size,step,test_data,zs_input,placeholders)
 			result=sess.run(outputs,feed_dict=feed_dict)
 			z=result["sampled_z"]

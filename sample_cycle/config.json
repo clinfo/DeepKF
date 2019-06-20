@@ -1,5 +1,5 @@
 {
-    "batch_size": 100,
+    "batch_size": 10,
     "data_test_npy": "sample_cycle/data_test.npy",
     "data_train_npy": "sample_cycle/data_train.npy",
     "label_test_npy": "sample_cycle/label_test.npy",

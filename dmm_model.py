@@ -546,6 +546,7 @@ def p_filter(x,z,m,step,n_steps,epsilon,sample_size,proposal_sample_size,batch_s
 	ptype=control_params["config"]["pfilter_type"]
 	dytype=control_params["config"]["dynamics_type"]
 	sttype=control_params["config"]["state_type"]
+	print(z.shape)
 	if ptype=="trained_dynamics":
 		if dytype=="function":
 			#  z: (sample_size x batch_size) x n_step x  dim
@@ -596,8 +597,12 @@ def p_filter(x,z,m,step,n_steps,epsilon,sample_size,proposal_sample_size,batch_s
 	#particles_d=particles-mu_trans[:,:]
 	#particles_w=particles_d**2/cov_trans[:,:]
 	#  particles: (proposal_sample_size x sample_size x batch_size) x dim
+	print("@@@@",particles.shape)
 	particles =tf.reshape(particles,[-1,dim])
+	print("@@@@",particles.shape)
 	obs_params=computeEmission(particles,1,control_params=control_params)
+	print("@@@@",batch_size)
+	print("@@@@",proposal_sample_size,sample_size)
 	#  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
 	#  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
 	mu=obs_params[0]
@@ -614,7 +619,7 @@ def p_filter(x,z,m,step,n_steps,epsilon,sample_size,proposal_sample_size,batch_s
 	# ids: resample x batch_size
 	#  particles: (proposal_sample_size x sample_size) x batch_size x dim
 	particle_ids=resample_dist.sample([resample_size])
-	particles =tf.reshape(particles,[-1,batch_size,dim])
+	particles =tf.reshape(particles,[proposal_sample_size*sample_size,batch_size,dim])
 	#
 	dummy=np.zeros((resample_size,batch_size,1),dtype=np.int32)
 	particle_ids=tf.reshape(particle_ids,[resample_size,batch_size,1])
@@ -782,41 +787,56 @@ def loss(outputs,alpha=1,control_params=None):
 	negCLL=computeNegCLL(x,outputs["obs_params"],mask,control_params)
 	temporalKL=computeTemporalKL(x,outputs,length,control_params)
 	cost_pot=tf.constant(0.0,dtype=np.float32)
+
+	costs_name=["recons","temporal"]
+	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL)]
+	errors_name=[]
+	errors=[]
+	updates=[]
+	metrics_name=[]
+	metrics=[]
 	if outputs["potential_loss"] is not None:
 		pot=outputs["potential_loss"]
 		#sum_pot=tf.reduce_sum(pot*mask,axis=1)
 		sum_pot=tf.reduce_sum(pot,axis=1)
 		cost_pot=tf.reduce_mean(pot)
+		##
+		costs_name.append("potential")
+		costs.append(cost_pot)
+	
 	cost_label=tf.constant(0.0,dtype=np.float32)
 	if "label_params" in outputs and outputs["label_params"] is not None:
 		ltype=control_params["config"]["label_type"]
 		assert ltype=="multinominal", "not supported label type"
 		label=placeholders["l"]
 		logit=outputs["label_params"][0]
-		print(logit.shape)
-		print(label.shape)
-		#label=tf.reshape(label,[-1])
-		#logit=tf.reshape(logit,[-1,2])
-		#print(logit.shape)
-		#print(label.shape)
 		cost_label=tf.nn.sparse_softmax_cross_entropy_with_logits(labels=label,logits=logit)
+
+		label_accuracy, update_op = tf.metrics.accuracy(label, tf.argmax(logit,axis=2))
 		cost_label=tf.reduce_sum(cost_label,axis=1)
-		cost_label=tf.reduce_mean(cost_label)
-
-
-	mean_cost = tf.reduce_mean(negCLL+alpha*temporalKL+alpha*1.0*cost_pot+cost_label, name='train_cost')
-	#cost_mean = tf.reduce_mean((1-alpha)*negCLL+alpha*temporalKL+alpha*1.0*cost_pot, name='train_cost')
-	tf.add_to_collection('losses', mean_cost)
-
-	# The total loss is defined as the cross entropy loss plus all of the weight
-	# decay terms (L2 loss).
-	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
-	costs=[tf.reduce_mean(negCLL),tf.reduce_mean(temporalKL),cost_pot,cost_label]
-	diff=None
+		##
+		costs_name.append("label")
+		costs.append(tf.reduce_mean(cost_label))
+		##
+		metrics_name.append("label_acc")
+		metrics.append(label_accuracy)
+		updates.append(update_op)
+	
 	if "obs_params" in outputs:
-		#diff=tf.reduce_mean((x-outputs["obs_pred"][0])**2/outputs["obs_pred"][1])
 		diff=tf.reduce_mean((x-outputs["obs_params"][0])**2)
-	return {"cost":total_cost,"mean_cost":mean_cost,"all_costs":costs,"error":diff}
+		##
+		errors_name.append("recons_mse")
+		errors.append(diff)
+	
+	mean_cost = tf.reduce_mean(0*(negCLL+alpha*temporalKL+alpha*1.0*cost_pot)+cost_label, name='train_cost')
+	tf.add_to_collection('losses', mean_cost)
+	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
+	
+	return {"cost":total_cost,"mean_cost":mean_cost,"all_costs":costs, "all_costs_name":costs_name,
+			"errors":errors,"errors_name":errors_name,
+			"metrics":metrics,"metrics_name":metrics_name,
+			"updates":updates}
+
 
 
 def _add_loss_summaries(total_loss):
