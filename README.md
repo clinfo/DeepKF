@@ -5,6 +5,50 @@ Deep kalman filter の Tensor flow による実装です
 - Krishnan, Rahul G., Uri Shalit, and David Sontag. "Deep kalman filters." arXiv preprint arXiv:1511.05121 (2015).
 - Krishnan, Rahul G., Uri Shalit, and David Sontag. "Structured Inference Networks for Nonlinear State Space Models", In AAAI 2017
 
+
+### Requirements
+* python3 (> 3.3)
+  * tensorflow (>0.12)
+  * joblib
+
+### Anaconda install
+First, please install anaconda by the official anaconda instruction [https://conda.io/docs/user-guide/install/linux.html].
+#### Reference
+
+- Installing pyenv
+```
+git clone https://github.com/yyuu/pyenv.git ~/.pyenv
+echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.bashrc
+echo 'export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.bashrc
+echo 'eval "$(pyenv init -)"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+- Found latest version of anaconda
+```
+pyenv install -l | grep ana
+```
+
+- Installing anaconda
+```
+pyenv install anaconda3-4.3.1
+pyenv rehash
+pyenv global anaconda3-4.3.1
+echo 'export PATH="$PYENV_ROOT/versions/anaconda3-4.3.1/bin/:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+conda update conda
+```
+
+Next, please install following libraries if you have GPU:
+```
+pip install --ignore-installed --upgrade tensorflow_gpu==1.10.0
+pip install joblib
+```
+if you use only CPUs:
+```
+pip install --ignore-installed --upgrade tensorflow==1.10.0
+pip install joblib
+```
 ## サンプルの動かし方
 
 以下のコマンドで動かすことが可能です．
