@@ -828,7 +828,7 @@ def loss(outputs,alpha=1,control_params=None):
 		errors_name.append("recons_mse")
 		errors.append(diff)
 	
-	mean_cost = tf.reduce_mean(0*(negCLL+alpha*temporalKL+alpha*1.0*cost_pot)+cost_label, name='train_cost')
+	mean_cost = tf.reduce_mean((negCLL+alpha*temporalKL+alpha*1.0*cost_pot)+cost_label, name='train_cost')
 	tf.add_to_collection('losses', mean_cost)
 	total_cost=tf.add_n(tf.get_collection('losses'), name='total_loss')
 	

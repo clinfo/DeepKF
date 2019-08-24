@@ -355,7 +355,15 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 
 
 def get_dim(config,hy_param,data):
-	dim_emit=data.dim
+	dim_emit=None
+	if data is not None:
+		dim_emit=data.dim
+	elif "dim_emit" in config:
+		dim_emit=config["dim_emit"]
+	elif "dim_emit" in hy_param:
+		dim_emit=hy_param["dim_emit"]
+	else:
+		dim_emit=1
 	if config["dim"] is None:
 		dim=dim_emit
 		config["dim"]=dim
@@ -691,15 +699,6 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 				bs=batch_size
 			feed_dict[ph]=x
 		elif key == "z":
-			"""
-			if idx+batch_size>data.num: # for last
-				z_temp=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-data.num)
-				z_temp[:bs,:,:]=z[idx:idx+batch_size,:,:]
-			else:
-				z_temp=z[idx:idx+batch_size,:,:]
-				bs=batch_size
-			"""
 			feed_dict[ph]=z
 		elif key == "m":
 			if idx+batch_size>data.num: # for last
@@ -717,6 +716,40 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 		elif key == "step":
 			feed_dict[ph]=step
 	return feed_dict,bs
+
+def construct_server_filter_feed(step,x,m,z,placeholders,is_train=False):
+	feed_dict={}
+	hy_param=hy.get_hyperparameter()
+	dim=hy_param["dim"]
+	dim_emit=hy_param["dim_emit"]
+	n_steps=hy_param["n_steps"]
+	sample_size=config["pfilter_sample_size"]
+	proposal_sample_size=config["pfilter_proposal_sample_size"]
+
+	dropout_rate=0.0
+	if is_train:
+		if "dropout_rate" in hy_param:
+			dropout_rate=hy_param["dropout_rate"]
+		else:
+			dropout_rate=0.5
+	# 
+	for key,ph in placeholders.items():
+		if key == "x":
+			#x=np.zeros((batch_size,dim_emit),dtype=np.float32)
+			feed_dict[ph]=x
+		elif key == "z":
+			feed_dict[ph]=z
+		elif key == "m":
+			feed_dict[ph]=m
+		elif key == "dropout_rate":
+			feed_dict[ph]=dropout_rate
+		elif key == "is_train":
+			feed_dict[ph]=is_train
+		elif key == "step":
+			feed_dict[ph]=step
+	bs=1
+	return feed_dict,bs
+
 
 def construct_batch_z(idx,batch_size,zs,is_train=False):
 	hy_param=hy.get_hyperparameter()
@@ -1027,7 +1060,140 @@ def train_fivo(sess,config):
 		print("[SAVE] result : ",config["save_result_filter"])
 		joblib.dump(results,config["save_result_filter"])
 
+def filtering_server(sess,config):
+	## server
+	from socket import socket,gethostname,AF_INET, SOCK_DGRAM
+	import time
+	import datetime
 
+	HOST = gethostname()
+	IN_PORT = 34512
+	OUT_PORT = 1113
+	BUFSIZE = 1024
+	print(HOST)
+	#ADDR = (gethostbyname(HOST), PORT)
+	ADDR = ("127.0.0.1", IN_PORT)
+	OUT_ADDR = ("127.0.0.1", OUT_PORT)
+	USER = 'Server' 
+	udpServSock = socket(AF_INET, SOCK_DGRAM) #IPv4/UDP
+	udpServSock.bind(ADDR)
+	udpServSock.setblocking(0)
+	
+	hy_param=hy.get_hyperparameter()
+	#_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+	n_steps=30#test_data.n_steps
+	hy_param["n_steps"]=n_steps
+	dim,dim_emit=get_dim(config,hy_param,None)
+	#batch_size,n_batch=get_batch_size(config,hy_param,test_data)
+	batch_size=1
+	n_batch=1
+	n=1
+
+	print("data_size",1,
+		"batch_size",batch_size,
+		", n_step",n_steps,
+		", dim ",dim,
+		", dim_emit",dim_emit)
+	placeholders=construct_filter_placeholder(config)
+
+	sample_size=config["pfilter_sample_size"]
+	proposal_sample_size=config["pfilter_proposal_sample_size"]
+	save_sample_num=config["pfilter_save_sample_num"]
+	
+	control_params={
+		"config":config,
+		"placeholders":placeholders,
+		}
+	# inference
+	# z: (batch_size x sample_size) x n_steps x dim
+	outputs=p_filter(placeholders["x"],placeholders["z"],placeholders["m"],placeholders["step"],n_steps+1,None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	# loding model
+	print_variables()
+	saver = tf.train.Saver()
+	print("[LOAD]",config["load_model"])
+	saver.restore(sess,config["load_model"])
+	
+	zs=np.zeros((sample_size,n,n_steps+1,dim),dtype=np.float32)
+	# max: proposal_sample_size*sample_size
+	sample_idx=list(range(proposal_sample_size*sample_size))
+	np.random.shuffle(sample_idx)
+	sample_idx=sample_idx[:save_sample_num]
+	mus=np.zeros((save_sample_num,n,n_steps,dim_emit),dtype=np.float32)
+	errors=np.zeros((save_sample_num,n,n_steps,dim_emit),dtype=np.float32)
+	
+	send_cnt=0
+	for j in range(n_batch):
+		idx=j*batch_size
+		print(j,"/",n_batch)
+		#for step in range(n_steps):
+		k=0
+		while k<100000:
+			time.sleep(0.01)
+			if k<n_steps:
+				step=k
+			else:
+				zs=np.roll(zs, -1, axis=2)
+			###
+			print('Waiting for message...')
+			data=None
+			try:
+				data, addr = udpServSock.recvfrom(BUFSIZE)
+			except:
+				pass
+			if data is not None and len(data)>0:
+				print('...received from:', addr)
+				#
+				a=int.from_bytes(data[0:1],byteorder='little')
+				arr=np.frombuffer(data[1:],dtype=np.float32)
+				print(a)
+				print(arr)
+				#label=arr[0]
+				x_vec=np.zeros((1,dim_emit),dtype=np.float32)
+				x_vec[0,:]=arr[1:]
+				m_vec=np.ones((1,dim_emit),dtype=np.float32)
+				###
+			else:
+				x_vec=np.zeros((1,dim_emit),dtype=np.float32)
+				m_vec=np.zeros((1,dim_emit),dtype=np.float32)
+			zs_input=construct_batch_z(idx,batch_size,zs)
+			feed_dict,bs=construct_server_filter_feed(step,x_vec,m_vec,zs_input,placeholders)
+			result=sess.run(outputs,feed_dict=feed_dict)
+			z=result["sampled_z"]
+			# z: sample_size x batch_size x dim
+			mu=result["sampled_pred_params"][0]
+			zs[:,idx:idx+batch_size,step+1,:]=z[:,:bs,:]
+			mus[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]
+			x=feed_dict[placeholders["x"]]
+			errors[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]-x[:bs,:]
+			print("*", end="")
+			###
+			if data is not None and len(data)>0:
+				data_v=x_vec[0,:]*10+200
+				print(">>",data_v)
+				data=memoryview(data_v)
+				cnt=(send_cnt%0x100).to_bytes(1,byteorder='little')
+				data_type=(0).to_bytes(1,byteorder='little')
+				udpServSock.sendto(cnt+data_type+data, OUT_ADDR)
+				send_cnt+=1
+			#
+			data_v=np.mean(z[:,0,:],axis=0)*10+200
+			print(">>",data_v)
+			data=memoryview(data_v)
+			cnt=(send_cnt%0x100).to_bytes(1,byteorder='little')
+			data_type=(1).to_bytes(1,byteorder='little')
+			udpServSock.sendto(cnt+data_type+data, OUT_ADDR)
+			send_cnt+=1
+			#
+			data_v=np.mean(mu[:,0,:],axis=0)*10+200
+			print(">>",data_v)
+			data=memoryview(data_v)
+			cnt=(send_cnt%0x100).to_bytes(1,byteorder='little')
+			data_type=(2).to_bytes(1,byteorder='little')
+			udpServSock.sendto(cnt+data_type+data, OUT_ADDR)
+			send_cnt+=1
+			#
+			k+=1
+	
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('mode', type=str,
@@ -1105,6 +1271,9 @@ if __name__ == '__main__':
 					field(sess,config)
 				elif mode=="potential":
 					potential(sess,config)
+				elif args.mode=="filter_server":
+					filtering_server(sess,config=config)
+
 	if args.save_config is not None:
 		print("[SAVE] config: ",args.save_config)
 		fp = open(args.save_config, "w")
