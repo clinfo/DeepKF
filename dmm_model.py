@@ -53,6 +53,23 @@ def build_nn(x,dim_input,n_steps,hyparam_name,name,
 		init_params_flag,
 		control_params
 		):
+	"""
+	Retruns the layer of the neural networks. 
+	Parameters
+	----------
+		x :
+
+		dim_input :
+
+		hyparm_name :
+
+	Returns
+	-------
+		layer :
+
+		layer_dim :
+
+	"""
 	wd_bias=None
 	wd_w=0.1
 	layer=x
@@ -110,6 +127,20 @@ def build_nn(x,dim_input,n_steps,hyparam_name,name,
 	return layer,layer_dim
 
 def sample_normal(params,eps):
+	"""
+	Parameters
+	----------
+		params : list
+			mu : 
+				mean
+			cov : 
+				covariance
+		eps : 
+			tiny value
+	Returns
+	-------
+
+	"""
 	mu=params[0]
 	cov=params[1]
 	if eps is not None:
@@ -118,6 +149,17 @@ def sample_normal(params,eps):
 		return mu
 
 def sampleState(qz,control_params,sample_shape=()):
+	"""
+	Sampling z_s from the distribution q(z)
+	Parameters
+	----------
+		qz :  
+
+	Returns
+	-------
+		z_s :
+
+	"""
 	sttype=control_params["config"]["state_type"]
 	stype=control_params["config"]["sampling_type"]
 	if sttype=="discrete" or sttype=="discrete_tr":
@@ -159,6 +201,18 @@ def sampleState(qz,control_params,sample_shape=()):
 
 
 def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
+	"""
+	Parameters
+	----------
+		x :
+			the observed value x_{1:t}.
+	Returns
+	-------
+		qz :
+			the parameters of the variational distribution q(z|x)
+		qs :
+			the state z_s which is sampled from the variational distribution q(z|x)
+	"""
 	qz=computeVariationalDist(x,n_steps,init_params_flag,control_params)
 	qs=sampleState(qz,control_params)
 	return qs,qz
@@ -166,12 +220,22 @@ def sampleVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 # return parameters for q(z): list of tensors: batch_size x n_steps x dim
 def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 	"""
-	x: bs x t x dim_emit
-	or (bs x t) x dim_emit
-	return:
-		layer_z:bs x T x dim
-		layer_mu:bs x T x dim
-		layer_cov:bs x T x dim
+	Return parameters for q(z|x_{1:t}).
+	Parameters
+	----------
+	x : 
+		bs x t x dim_emit
+		or (bs x t) x dim_emit
+
+	Returns
+	-------
+	params : list
+		layer_z : 
+			bs x T x dim
+		layer_mu : 
+			bs x T x dim
+		layer_cov : 
+			bs x T x dim
 	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -225,8 +289,16 @@ def computeVariationalDist(x,n_steps,init_params_flag=True,control_params=None):
 # return parameters for p(x|z): list of tensors: batch_size x n_steps x dim
 def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 	"""
-	z: bs x T x dim
-	or (bs x T) x dim
+	Return parameter for the conditional distribution p(x|z).
+	Parmeters
+	---------
+	z: 
+		bs x T x dim
+		or (bs x T) x dim
+	Returns
+	-------
+	output : list of tensors: batch_size x n_steps x dim
+		parameters for p(x|z)
 	"""
 
 	hy_param=hy.get_hyperparameter()
@@ -283,8 +355,16 @@ def computeEmission(z,n_steps,init_params_flag=True,control_params=None):
 # return parameters for p(l|z): list of tensors: batch_size x n_steps x dim
 def computeLabel(z,n_steps,init_params_flag=True,control_params=None):
 	"""
-	z: bs x T x dim
-	or (bs x T) x dim
+	Return parameters for the conditonal distribution p(l|z).
+	Parameters
+	----------
+		z: three dimension list # bs x T x dim or (bs x T) x dim
+			z_{1:t}
+
+	Returns
+	-------
+		params : ist of tensors: batch_size x n_steps x dim
+			parameters for p(l|z)
 	"""
 
 	hy_param=hy.get_hyperparameter()
@@ -353,6 +433,16 @@ def computeLabel(z,n_steps,init_params_flag=True,control_params=None):
 
 def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
 	"""
+
+	Parameters
+	----------
+		z :
+		init_state : 
+			the initional state.
+	Returns
+	-------
+		out_param : 
+
 	mu: bs x T x dim
 	cov: bs x T x dim
 	prior0: bs x 1 x dim
@@ -369,7 +459,17 @@ def computeTransition(z,n_steps,init_state,init_params_flag=True,control_params=
 # p(z_t|z_t+1)
 def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_params=None):
 	"""
-	mu: points x dim
+	Return parameters for the transition distribution p(z_t|z_{t-1})
+	Parameters
+	----------
+		in_points : 
+	Returns
+	-------
+		params : list
+			layer_z : 
+			layer_mu :
+			layer_cov :
+
 	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -437,14 +537,18 @@ def computeTransitionDistWithNN(in_points,n_steps,init_params_flag=True,control_
 				raise Exception('[Error] unknown emission type:'+sttype)
 	return params
 
-"""
-# x_t+1 = f (x_t)
-in_points: points x dim
-return:
-points x dim
-# return parameters for p(z_t|z_t-1): list of tensors: batch_size x n_steps x dim
-"""
+
 def computeTransitionFunc(in_points,n_steps,init_params_flag=True,control_params=None):
+	"""
+	# x_{t+1} = f (x_t)
+	Parameters
+	----------
+		in_points: points x dim
+
+	Returns
+	-------
+		parameters for p(z_t|z_t-1): list of tensors: batch_size x n_steps x dim
+	"""
 	hy_param=hy.get_hyperparameter()
 	if hy_param["potential_grad_transition_enabled"]:
 		return computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag,control_params)
@@ -452,12 +556,17 @@ def computeTransitionFunc(in_points,n_steps,init_params_flag=True,control_params
 		return computeTransitionFuncFromNN(in_points,n_steps,init_params_flag,control_params)
 
 
-"""
-in_points: points x dim
-return:
-points x dim
-"""
+
 def computeTransitionFuncFromPotential(in_points,n_steps,init_params_flag=True,control_params=None):
+	"""
+	Parmeters
+	---------
+		in_points: points x dim
+	
+	Returns
+	-------
+		laeyer_mean : 
+	"""
 	with tf.name_scope('transition') as scope_parent:
 		#z  : (bs x T) x dim
 		#pot: (bs x T)
@@ -477,7 +586,13 @@ points x dim
 """
 def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_params=None):
 	"""
-	mu: points x dim
+	Parameters
+	----------
+		in_points :
+
+	Returns
+	-------
+		layer_z :
 	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -513,6 +628,19 @@ def computeTransitionFuncFromNN(in_points,n_steps,init_params_flag=True,control_
 
 
 def sampleTransitionFromDist(z_param,n_steps,init_state,init_params_flag=True,control_params=None):
+	"""
+		Parameters
+		----------
+		z_param :
+
+		Returns
+		-------
+		q_zz :
+
+		z_s  :
+			sampled points from Normal distribution whose parameters are q_zz.
+
+	"""
 	sttype=control_params["config"]["state_type"]
 	if sttype=="normal" :
 		eps=control_params["placeholders"]["tr_eps"]
@@ -523,6 +651,17 @@ def sampleTransitionFromDist(z_param,n_steps,init_state,init_params_flag=True,co
 	return z_s,q_zz
 
 def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=None):
+	"""
+		Parameters
+		----------
+			z :
+
+		Returns
+		-------
+			z_s :
+
+			q_zz:
+	"""
 	sttype=control_params["config"]["state_type"]
 	if sttype=="discrete" or sttype=="discrete_tr":
 		q_zz=computeTransition(z,n_steps,init_state,init_params_flag=init_params_flag,control_params=control_params)
@@ -538,6 +677,13 @@ def sampleTransition(z,n_steps,init_state,init_params_flag=True,control_params=N
 	return z_s,q_zz
 
 def p_filter(x,z,m,step,n_steps,epsilon,sample_size,proposal_sample_size,batch_size,control_params):
+	"""
+	Parameters
+	----------
+		x :
+		z :
+		m :
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
@@ -641,6 +787,20 @@ def get_init_state(batch_size,dim):
 	return init_state
 
 def get_init_dist(batch_size,dim):
+	"""
+	Get inital distribution whose the mean parameter is 0 (vector) and the variance parameter is 1 (vector).
+	Parameters
+	----------
+		batch_size : 
+		dim :
+	Returns
+	-------
+		[init_mu,init_var] : list
+			init_mu :
+				the mean parameter of the distribution
+			init_var :
+				the variance parameter of the distribution
+	"""
 	init_m=np.zeros((1,1,dim),dtype=np.float32)
 	init_mu=tf.tile(tf.constant(init_m,dtype=np.float32),(batch_size,1,1))
 	init_v=np.ones((1,1,dim),dtype=np.float32)
@@ -648,6 +808,11 @@ def get_init_dist(batch_size,dim):
 	return [init_mu,init_var]
 
 def inference(n_steps,control_params):
+	"""
+	Returns
+	-------
+	inference results by sampling or function.
+	"""
 	dytype=control_params["config"]["dynamics_type"]
 	if dytype=="distribution" :
 		return inference_by_sample(n_steps,control_params)
@@ -658,8 +823,10 @@ def inference(n_steps,control_params):
 	
 def inference_by_dist(n_steps,control_params):
 	"""
-	Returns:
-		indference results
+	Returns
+	-------
+		outputs :
+			indference results
 	"""
 	# get input data
 	placeholders=control_params["placeholders"]
@@ -692,7 +859,9 @@ def inference_by_dist(n_steps,control_params):
 
 def inference_by_sample(n_steps,control_params):
 	"""
-	Returns:
+	Returns
+	-------
+	output :
 		indference results
 	"""
 	# get input data
@@ -725,12 +894,31 @@ def inference_by_sample(n_steps,control_params):
 
 
 def inference_label(outputs,n_steps,control_params):
+	"""
+	Parameters
+	----------
+		outputs :
+	Returns
+	-------
+		outputs :
+	"""
 	assert "z_s" in outputs, "outputs does not contain z_s"
 	z_s=outputs["z_s"]
 	params=computeLabel(z_s,n_steps,init_params_flag=True,control_params=control_params)
 	outputs["label_params"]=params
 	return outputs
+
 def computeNegCLL(x,params,mask,control_params):
+	"""
+	Prameters
+	---------
+		x : 
+		params : list
+		mask :
+	Retunrs
+	-------
+		negCLL
+	"""
 	mu_p=params[0]
 	cov_p=params[1]
 
@@ -742,11 +930,21 @@ def computeNegCLL(x,params,mask,control_params):
 	return negCLL
 
 def kl_normal(mu1,var1,mu2,var2):
+	"""
+	KL(N() ||  N())
+	"""
 	return tf.log(var2)/2.0-tf.log(var1)/2.0+var1/(2.0*var2)+(mu1-mu2)**2/(2.0*var2)-1/2
+
 def computeTemporalKL(x,outputs,length,control_params):
 	"""
-	z: bs x T x dim
-	prior0: bs x 1 x dim
+	Parameters
+	----------
+		x :
+		outputs :
+		length :
+	Retunrs
+	-------
+		kl_t :
 	"""
 	sttype=control_params["config"]["state_type"]
 	if sttype=="discrete" or sttype=="discrete_tr":
@@ -774,9 +972,14 @@ def computeTemporalKL(x,outputs,length,control_params):
 
 
 def loss(outputs,alpha=1,control_params=None):
-	"""Add 
-	Returns:
-		Loss tensor of type float.
+	"""
+	Parameters
+	----------
+		outputs :
+		alpha :
+	Returns
+	-------
+		Loss : tensor of type float.
 	"""
 	# get input data
 	placeholders=control_params["placeholders"]
@@ -864,22 +1067,32 @@ def _add_loss_summaries(total_loss):
 
 	return loss_averages_op
 
-"""
-mu: bs x T x dim
-  or (bs x T) x dim
-cov: bs x T x dim
-  or (bs x T) x dim
-prior0: bs x 1 x dim
-return:
-output_mu: bs x T x dim
-output_cov: bs x T x dim
-###
-if prior0==None
-  z[1:T+1]
-else
-  z[0:T]
-"""
+
 def computeTransitionUKF(mu,cov,n_steps,mean_prior0=None,cov_prior0=None,init_params_flag=True,control_params=None):
+	"""
+	Uncented Kalman Filter
+	Parameters
+	----------
+		mu: 
+			bs x T x dim or (bs x T) x dim
+		cov: 
+			bs x T x dim or (bs x T) x dim
+		mean_prior0 :
+			 bs x 1 x dim
+		cov_prior0 : 
+	Returns
+	-------
+		output_mu: 
+			bs x T x dim
+		output_cov: 
+			bs x T x dim
+		
+	###
+	if prior0==None
+		z[1:T+1]
+	else
+		z[0:T]
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	#in_mu=tf.reshape(mu,[1,-1,dim])
@@ -906,6 +1119,20 @@ def computeTransitionUKF(mu,cov,n_steps,mean_prior0=None,cov_prior0=None,init_pa
 		return layer_mean[0,:,:,:],layer_cov
 
 def computePotentialLoss(mu_q,cov_q,pot_points,n_steps,control_params=None):
+	"""
+	Parameters
+	----------
+		mu_q :
+			bs x T x dim
+		cov_q :
+
+		pot_points :
+
+	Returns
+	-------
+		pot_loss :
+
+	"""
 	pot_loss=None
 	if hy_param["potential_enabled"]:
 			if hy_param["potential_grad_transition_enabled"]==False:
@@ -942,6 +1169,15 @@ return:
 pot: (bs x T)
 """
 def computePotential(z_input,n_steps,init_params_flag=True,control_params=None):
+	"""
+		Parameters
+		----------
+			z_input :
+
+		Returns
+		-------
+
+	"""
 	hy_param=hy.get_hyperparameter()
 	if hy_param["potential_nn_enabled"]:
 		return computePotentialFromNN(z_input,n_steps,init_params_flag,control_params)
@@ -955,6 +1191,16 @@ return:
 pot: (bs x T)
 """
 def computePotentialWithBinaryPot(z_input,n_steps,dim,init_params_flag=True,control_params=None):
+	"""
+	Parameters
+	----------
+		z_input :
+
+	Returns
+	-------
+		pot :
+
+	"""
 	pot_pole=[]
 
 	hy_param=hy.get_hyperparameter()
@@ -985,6 +1231,17 @@ return:
 pot: (bs x T)
 """
 def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=None):
+	"""
+	Compute the value of the potential V(z_t).
+	Parameters
+	----------
+		z_input :
+
+	Returns
+	-------
+		layer_mean : 
+
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	
@@ -1020,6 +1277,22 @@ def computePotentialFromNN(z_input,n_steps,init_params_flag=True,control_params=
 #  x0: batch_size x sample_size x emit_dim
 #  x: batch_size x n_steps x emit_dim
 def fivo(x,x0,epsilon,n_steps,sample_size,proposal_sample_size,batch_size,control_params):
+	"""
+
+	Parameters
+	----------
+		x0: 
+			batch_size x sample_size x emit_dim
+		x: 
+			batch_size x n_steps x emit_dim
+		sample_size :
+		prposal_sample_size :
+
+	Returns
+	-------
+		output : dict
+
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
