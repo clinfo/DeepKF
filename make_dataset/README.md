@@ -10,6 +10,8 @@
 
 - **alanine**:アラニンジペプチドモデルのデータセットを作成します。
 
-   - make_data_ala.py：　dcd・xtcトラジェクトリデータを入力とし、mdtrajをを用いて二面角情報を抽出したデータを作成します。
+   - make_data_ala.py：　dcd・xtcトラジェクトリデータを入力とし、mdtrajを用いて二面角情報を抽出したデータを作成します。
    - phi_psi_sns_all.py：　構造数ヒートマップ(sns_all_out.png)を作成します。
+
+- **chignolin**:シニョリンのデータセットを作成します。
 
