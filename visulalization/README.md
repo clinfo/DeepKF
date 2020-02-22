@@ -2,7 +2,7 @@
 
 コマンド例
 ```
-plot_%%.py --config ./sample_md2/config.result.json --hyperparam sample_md2/model/hyparam.result.json --limit_all *** all
+plot_%%.py --config config.result.json --hyperparam hyparam.result.json --limit_all *** all
 ```
 
 - plot_brown2d_heatmap.py: 2次元ブラウン運動の座標を、潜在空間で色付けをして表示する。
