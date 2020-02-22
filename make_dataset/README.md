@@ -22,5 +22,5 @@ mdtrajとmsmbuilder(http://msmbuilder.org/3.8.0/) を使用します。
    - make_data_rmsd.py: xtcトラジェクトリ を入力とし、mdmbuilderのRMSD featurizerを用いて、参照構造(初期構造)に対するRMSDを抽出したデータを作成します。
    - make_shuffledata.py: 上記で出力したnpyファイルを入力とし、時系列情報をなくしたトラジェクトリを作成します。
    
-- maskdata.py: 生成filterigの際、使用するマスクデータを作成します。
+- maskdata.py: 生成filteringの際、使用するマスクデータ(npyファイル)を作成します。
 
