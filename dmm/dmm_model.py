@@ -12,9 +12,9 @@ import tarfile
 from six.moves import urllib
 import tensorflow as tf
 import numpy as np
-import hyopt as hy
 
-import layers
+import dmm.hyopt as hy
+import dmm.layers
 
 # FLAGS = tf.app.flags.FLAGS
 

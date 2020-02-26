@@ -16,10 +16,10 @@ import joblib
 import json
 import argparse
 
-import dmm_input
-from dmm_model import computeTransitionFunc, computeTransitionDistWithNN
-from dmm_model import computeEmission, computePotential
-import hyopt as hy
+import dmm.dmm_input
+from dmm.dmm_model import computeTransitionFunc, computeTransitionDistWithNN
+from dmm.dmm_model import computeEmission, computePotential
+import dmm.hyopt as hy
 
 # FLAGS = tf.app.flags.FLAGS
 # tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")

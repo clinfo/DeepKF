@@ -16,14 +16,14 @@ import joblib
 import json
 import argparse
 
-import dmm_input
+import dmm.dmm_input
 
 # from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
-from dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
-from dmm_model import fivo
-from dmm_model import construct_placeholder, computeEmission, computeVariationalDist
-import hyopt as hy
-from attractor import (
+from dmm.dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
+from dmm.dmm_model import fivo
+from dmm.dmm_model import construct_placeholder, computeEmission, computeVariationalDist
+import dmm.hyopt as hy
+from dmm.attractor import (
     field,
     potential,
     make_griddata_discrete,

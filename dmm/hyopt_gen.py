@@ -1,4 +1,4 @@
-import hyopt as hy
+import dmm.hyopt as hy
 import os
 import sys
 import itertools
