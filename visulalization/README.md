@@ -11,5 +11,5 @@ plot_%%.py --config config.result.json --hyperparam hyparam.result.json --limit_
 - plot_chinolin_withpot.py: 潜在空間の時間情報をもとに計算した擬似ポテンシャル入りの図を作成する。
 
  analysis/dim_table.py: アラニンジペプチド の構造遷移を解析するためのスクリプト  
- analysis/sumup.py & error_visualize.py 実測値と予測値の誤差を計算・表紙する。
+ analysis/sumup.py & error_visualize.py 実測値と予測値の誤差を計算・表示する。
 
