@@ -465,7 +465,7 @@ def train(sess,config):
 		print("[SAVE] result : ",config["save_result_train"])
 		base_path = os.path.dirname(config["save_result_train"])
 		os.makedirs(base_path,exist_ok=True)
-		joblib.dump(results,config["save_result_train"])
+		joblib.dump(results,config["save_result_train"],compress=3)
 		
 		#
 		e=(train_data.x-results["obs_params"][0])**2
@@ -517,7 +517,7 @@ def infer(sess,config):
 		print("[SAVE] result : ",config["save_result_test"])
 		base_path = os.path.dirname(config["save_result_test"])
 		os.makedirs(base_path,exist_ok=True)
-		joblib.dump(results,config["save_result_test"])
+		joblib.dump(results,config["save_result_test"],compress=3)
 	
 
 def filter_discrete_forward(sess,config):
@@ -637,7 +637,7 @@ def filter_discrete_forward(sess,config):
 		results["dist_viterbi"]=path_viterbi
 		results["tr_mat"]=tr_mat
 		print("[SAVE] result : ",config["save_result_filter"])
-		joblib.dump(results,config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"],compress=3)
 
 
 def get_batch_size(config,hy_param,data):
@@ -828,7 +828,7 @@ def filtering(sess,config):
 		results["mu"]=mus
 		results["error"]=errors
 		print("[SAVE] result : ",config["save_result_filter"])
-		joblib.dump(results,config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"],compress=3)
 
 def construct_fivo_placeholder(config):
 	hy_param=hy.get_hyperparameter()
@@ -1058,7 +1058,7 @@ def train_fivo(sess,config):
 		results["mu"]=mus
 		results["error"]=errors
 		print("[SAVE] result : ",config["save_result_filter"])
-		joblib.dump(results,config["save_result_filter"])
+		joblib.dump(results,config["save_result_filter"],compress=3)
 
 def filtering_server(sess,config):
 	## server
@@ -1194,7 +1194,7 @@ def filtering_server(sess,config):
 			#
 			k+=1
 	
-if __name__ == '__main__':
+def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('mode', type=str,
 			help='train/infer')
@@ -1280,3 +1280,5 @@ if __name__ == '__main__':
 		json.dump(config, fp, ensure_ascii=False, indent=4, sort_keys=True, separators=(',', ': '),cls=NumPyArangeEncoder)
 
 
+if __name__ == '__main__':
+	main()
