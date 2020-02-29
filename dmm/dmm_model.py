@@ -14,7 +14,7 @@ import tensorflow as tf
 import numpy as np
 
 import dmm.hyopt as hy
-import dmm.layers
+import dmm.layers as layers
 
 # FLAGS = tf.app.flags.FLAGS
 

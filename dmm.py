@@ -16,7 +16,7 @@ import joblib
 import json
 import argparse
 
-import dmm.dmm_input
+import dmm.dmm_input as dmm_input
 
 # from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
 from dmm.dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
@@ -61,6 +61,20 @@ class NumPyArangeEncoder(json.JSONEncoder):
             return obj.tolist()  # or map(int, obj)
         return json.JSONEncoder.default(self, obj)
 
+
+def build_config(config):
+    if "result_path" in config:
+        path=config["result_path"]
+        os.makedirs(path, exist_ok=True)
+        config["save_model"]        =path+"/model/model.last.ckpt"
+        config["save_model_path"]   =path+"/model"
+        config["save_result_filter"]=path+"/filter.jbl"
+        config["save_result_test"]  =path+"/test.jbl"
+        config["save_result_train"] =path+"/train.jbl"
+        config["simulation_path"]   =path+"/sim"
+        config["evaluation_output"] =path+"/hyparam.result.json"
+        config["load_model"]        =path+"/model/model.last.ckpt"
+        config["plot_path"]         =path+"/plot"
 
 def get_default_config():
     config = {}
@@ -343,6 +357,7 @@ def compute_cost(
             all_errors = np.array(e)
         else:
             all_errors += np.array(e)
+    cost = cost / data.num
     all_errors = all_errors / data.num
     all_costs = all_costs / data.num
     data_info = {
@@ -809,8 +824,8 @@ def construct_filter_feed(idx, batch_size, step, data, z, placeholders, is_train
     dim = hy_param["dim"]
     dim_emit = hy_param["dim_emit"]
     n_steps = hy_param["n_steps"]
-    sample_size = config["pfilter_sample_size"]
-    proposal_sample_size = config["pfilter_proposal_sample_size"]
+    #sample_size = config["pfilter_sample_size"]
+    #proposal_sample_size = config["pfilter_proposal_sample_size"]
 
     dropout_rate = 0.0
     if is_train:
@@ -855,8 +870,8 @@ def construct_server_filter_feed(step, x, m, z, placeholders, is_train=False):
     dim = hy_param["dim"]
     dim_emit = hy_param["dim_emit"]
     n_steps = hy_param["n_steps"]
-    sample_size = config["pfilter_sample_size"]
-    proposal_sample_size = config["pfilter_proposal_sample_size"]
+    #sample_size = config["pfilter_sample_size"]
+    #proposal_sample_size = config["pfilter_proposal_sample_size"]
 
     dropout_rate = 0.0
     if is_train:
@@ -1436,6 +1451,8 @@ def main():
     hy.initialize_hyperparameter(args.hyperparam)
     config.update(hy.get_hyperparameter())
     hy.get_hyperparameter().update(config)
+    # build config
+    build_config(config)
     # gpu/cpu
     if args.cpu:
         os.environ["CUDA_VISIBLE_DEVICES"] = ""

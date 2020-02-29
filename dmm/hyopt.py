@@ -61,7 +61,8 @@ def save_hyperparameter(save_filename=None):
     global hyperparameter
     if hyperparameter is not None:
         if save_filename is None:
-            save_filename = hyperparameter["evaluation_output"]
+            if "evaluation_output" in hyperparameter:
+                save_filename = hyperparameter["evaluation_output"]
         #
         if save_filename is not None:
             print("[SAVE] hyperparameter: ", save_filename)
