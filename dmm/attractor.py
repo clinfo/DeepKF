@@ -194,6 +194,7 @@ def field_continuous(sess, config):
     #
     ## save results
     if config["simulation_path"] != "":
+        os.makedirs(config["simulation_path"], exist_ok=True)
         sim_filename = config["simulation_path"] + "/field.jbl"
         results = {}
         results["z"] = z0
@@ -235,6 +236,7 @@ def potential(sess, config):
     print(z0.shape)
     print(g.shape)
     if config["simulation_path"] != "":
+        os.makedirs(config["simulation_path"], exist_ok=True)
         sim_filename = config["simulation_path"] + "/potential.jbl"
         results = {}
         results["z"] = z0

@@ -1,8 +1,8 @@
 {
     "batch_size": 100,
-    "data_test_npy": "sample_synth/data_test.npy",
-    "data_train_npy": "sample_synth/data_train.npy",
-    "data_info_json": "sample_synth/info.json",
+    "data_test_npy": "data_test.npy",
+    "data_train_npy": "data_train.npy",
+    "data_info_json": "info.json",
     "epoch": 500,
     "load_model": "",
     "save_model_path":"dummy",
@@ -13,15 +13,7 @@
         0.8,
         0.2
     ],
-    "evaluation_output": "sample_synth/model/hyparam.result.json",
-    "load_model": "sample_synth/model/model/model.last.ckpt",
-    "save_model": "sample_synth/model/model/model.last.ckpt",
-    "plot_path": "sample_synth/model/plot",
-    "save_model_path": "sample_synth/model/model",
-    "save_result_filter": "sample_synth/model/result/filter.jbl",
-    "save_result_test": "sample_synth/model/result/test.jbl",
-    "save_result_train": "sample_synth/model/result/train.jbl",
-    "simulation_path": "sample_synth/model/sim"
-    
+    "result_path":"result/",
+    "evaluation_output": "result/hyparam.result.json"
 }
 

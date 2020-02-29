@@ -7,6 +7,7 @@ from matplotlib.colors import LinearSegmentedColormap
 import argparse
 from dmm.plot_input import load_plot_data, get_default_argparser
 from matplotlib import pylab as plt
+from matplotlib import animation
 
 def generate_cmap(colors):
     values = range(len(colors))
@@ -17,7 +18,6 @@ def generate_cmap(colors):
     return LinearSegmentedColormap.from_list("custom_cmap", color_list)
 
 class PlotFig():
-
     def draw_heatmap(self,h1, cmap, vmin=-1, vmax=1, relative=True):
         if relative:
             im =plt.imshow(h1, aspect="auto", interpolation="none", cmap=cmap,origin='lower')
@@ -75,11 +75,11 @@ class PlotFig():
         self.sample_obs=None
         if "obs_params" in result_data:
             self.obs_mu = result_data["obs_params"][0]
-            print("reconstructed obs:", obs_mu.shape)
+            print("reconstructed obs:", self.obs_mu.shape)
         elif "mu" in result_data:
             # sampling
             self.obs_mu = np.mean(result_data["mu"],axis=0)
-            self.sample_obs=result_data["z"]
+            self.sample_obs=result_data["mu"]
             print("reconstructed obs:", self.obs_mu.shape)
         else:
             print("reconse: nothing")
@@ -101,12 +101,78 @@ class PlotFig():
         idx=np.random.randint(len(self.all_z), size=sample_num_z)
         self.all_z=self.all_z[idx,:]
 
+    def plot_z(self,args,idx,s,z):
+        colorlist_z=self.colorlist
+        z_plot_type=args.z_plot_type
+        if z_plot_type=="line":
+            plot_dim=min([len(colorlist_z),z.shape[1]])
+            for i in range(plot_dim):
+                plt.plot(z[:, i], label="dim-"+str(i)+"/"+str(z.shape[1]))
+
+        elif z_plot_type=="heatmap":
+            # h=mu_q[idx,:s,:]
+            print("upper plot:z_q:", z.shape)
+            self.draw_heatmap(np.transpose(z), cmap_z)
+        else: # scatter
+            self.draw_scatter_z(self.all_z[:,0],self.all_z[:,1],c="b",alpha=0.1)
+            if args.anim:
+                plt.plot(z[:,0],z[:,1],c="r",alpha=0.5)
+            else:
+                self.draw_scatter_z(z[:,0],z[:,1],c="r",alpha=0.8)
+
+        plt.legend()
+        plt.title("z: state space")
+            
+
+    def plot_filter_z(self,args,idx,s,z):
+        colorlist_z=self.colorlist
+        z_plot_type=args.z_plot_type
+        if z_plot_type=="line":
+            plot_dim=min([len(colorlist_z),z.shape[1]])
+            for i in range(plot_dim):
+                #plt.plot(z[:, i], label="dim-"+str(i)+"/"+str(z.shape[1]))
+                label="dim-"+str(i)+"/"+str(z.shape[1])
+                self.draw_line(self.sample_z[:,idx,:s,i],label=label,color=colorlist_z[i],num=args.num_particle)
+            plt.legend()
+            plt.title("z: state space")
+        else: # scatter
+            self.draw_scatter_z(self.all_z[:,0],self.all_z[:,1],c="b",alpha=0.1)
+            self.draw_scatter_z(z[:,0],z[:,1],c="r",alpha=0.8)
+            plt.legend()
+            plt.title("z: state space")
+
+    def plot_x(self,args,idx,s,data):
+        cmap_x=self.cmap_x
+        d = args.obs_dim
+        x_plot_type=args.x_plot_type
+        if x_plot_type=="line":
+            plt.plot(data.x[idx, :s, d], label="x")
+            plt.plot(self.obs_mu[idx, :s, d], label="recons")
+            plt.plot(self.pred_mu[idx, :s, d], label="pred")
+        else:
+            self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
+        plt.legend()
+        plt.title("x: observation")
+        
+
+    def plot_filter_x(self,args,idx,s,data):
+        cmap_x=self.cmap_x
+        d = args.obs_dim
+        x_plot_type=args.x_plot_type
+        if x_plot_type=="line":
+            plt.plot(data.x[idx,:s,d],label="x",color="b")
+            self.draw_line(self.sample_obs[:,idx,:s,d],label="pred",color="g",num=args.obs_num_particle)
+            plt.plot(self.obs_mu[idx,:s,d],label="pred_mean",color="r")
+        else:
+            self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
+        plt.legend()
+        plt.title("x: observation")
 
     def plot_fig(self, idx, args, data, result_data):
         colorlist=self.colorlist
         colorlist_z=self.colorlist
-        cmap_x=self.cmap_x
         cmap_z=self.cmap_z
+        cmap_x=self.cmap_x
         d = args.obs_dim
         if data.steps:
             s = data.steps[idx]
@@ -120,6 +186,7 @@ class PlotFig():
         print("dimension (observation):", d)
         print("steps:", s)
 
+        fig=plt.figure()
         if args.mode=="data":
             plt.subplot(1, 1, 1)
             self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
@@ -128,16 +195,11 @@ class PlotFig():
 
         elif args.mode=="filter":
             plt.subplot(3,1,1)
-            self.draw_line(self.sample_z[:,idx,:s,d],label="dim-"+str(d),color=colorlist[d],num=args.num_particle)
-            plt.legend()
-            plt.title("z: state space")
-            
+            z = self.z_q[idx, :s, :]
+            self.plot_filter_z(args,idx,s,z)
+
             plt.subplot(3,1,2)
-            plt.plot(data.x[idx,:s,d],label="x",color="b")
-            self.draw_line(self.sample_obs[:,idx,:s,d],label="pred",color="g",num=args.obs_num_particle)
-            plt.plot(self.obs_mu[idx,:s,d],label="pred_mean",color="r")
-            plt.legend()
-            plt.title("x: observation")
+            self.plot_filter_x(args,idx,s,data)
 
             plt.subplot(3,1,3)
             e=(self.sample_obs[:,idx,:s,d]-data.x[idx,:s,d])**2
@@ -148,32 +210,32 @@ class PlotFig():
 
             plt.subplot(2, 1, 1)
             z = self.z_q[idx, :s, :]
-            z_plot_type="line"
-            if z_plot_type=="line":
-                plot_dim=min([len(colorlist_z),z.shape[1]])
-                for i in range(plot_dim):
-                    plt.plot(z[:, i], label="dim-"+str(i)+"/"+str(z.shape[1]))
-            elif z_plot_type=="heatmap":
-                # h=mu_q[idx,:s,:]
-                print("upper plot:z_q:", z.shape)
-                self.draw_heatmap(np.transpose(z), cmap_z)
-            else:
-                self.draw_scatter_z(self.all_z[:,0],self.all_z[:,1],c="b",alpha=0.1)
-                self.draw_scatter_z(z[:,0],z[:,1],c="r",alpha=0.8)
-            plt.legend()
-            plt.title("z: state space")
+            self.plot_z(args,idx,s,z)
+            if args.anim:
+                im1=plt.plot([],[],c="r",marker='o')
             
-            x_plot_type="heatmap"
             plt.subplot(2, 1, 2)
-            if x_plot_type=="line":
-                plt.plot(data.x[idx, :s, d], label="x")
-                plt.plot(self.obs_mu[idx, :s, d], label="recons")
-                plt.plot(self.pred_mu[idx, :s, d], label="pred")
-                plt.legend()
-            else:
-                self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
-            plt.legend()
-            plt.title("x: observation")
+            self.plot_x(args,idx,s,data)
+            if args.anim:
+                h=data.x.shape[2]
+                if args.x_plot_type=="line":
+                    im2=plt.plot([0,0],[0,h],c="r",marker='o')
+                else:
+                    im2=plt.plot([0,0],[0,h],c="r")
+
+
+        if args.anim:
+            def animate(t,im1,im2):
+                im1[0].set_data([z[t,0]],[z[t,1]])
+                im2[0].set_data([t,t],[0,h])
+                return im1[0],im2[0]
+            anim = animation.FuncAnimation(fig, animate, fargs=(im1,im2),
+                    frames=s, interval=500, blit=True)
+            return anim
+        return None
+
+
+            
             
 
 
@@ -188,7 +250,21 @@ def plot_start():
     parser.add_argument('--obs_num_particle', type=int,
         default=10,
         help='the number of particles (observation)')
-
+    parser.add_argument('--x_plot_type',type=str,
+        default='line',
+        help='plot type for observation',
+        choices=['line', 'heatmap', 'scatter'])
+    parser.add_argument('--z_plot_type',type=str,
+        default='line',
+        help='plot type for state space',
+        choices=['line', 'heatmap', 'scatter'])
+    parser.add_argument(
+        "--anim",
+        action="store_true",
+        default=False,
+        help="Animation",
+    )
+ 
     args = parser.parse_args()
     # config
     if not args.show:
@@ -216,20 +292,30 @@ def plot_start():
         if args.limit_all is not None and l > args.limit_all:
             l = args.limit_all
         for idx in range(l):
-            plotter.plot_fig(idx,args,data,result_data)
+            anim=plotter.plot_fig(idx,args,data,result_data)
             name = result_data.info[result_data.pid_key][idx]
+            if args.anim:
+                out_filename = result_data.out_dir + "/" + str(idx) + "_" + name + "_"+args.mode+".mp4"
+                print("[SAVE] :", out_filename)
+                anim.save(out_filename, fps=10, extra_args=['-vcodec', 'libx264'])
+            else:
+                out_filename = result_data.out_dir + "/" + str(idx) + "_" + name + "_"+args.mode+".png"
+                print("[SAVE] :", out_filename)
+                plt.savefig(out_filename)
+                plt.clf()
+    else:
+        idx = args.index
+        anim=plotter.plot_fig(idx,args,data,result_data)
+        name = result_data.info[result_data.pid_key][idx]
+        if args.anim:
+            out_filename = result_data.out_dir + "/" + str(idx) + "_" + name + "_"+args.mode+".mp4"
+            print("[SAVE] :", out_filename)
+            anim.save(out_filename, fps=10, extra_args=['-vcodec', 'libx264'])
+        else:
             out_filename = result_data.out_dir + "/" + str(idx) + "_" + name + "_"+args.mode+".png"
             print("[SAVE] :", out_filename)
             plt.savefig(out_filename)
+            plt.show()
             plt.clf()
-    else:
-        idx = args.index
-        plotter.plot_fig(idx,args,data,result_data)
-        name = result_data.info[result_data.pid_key][idx]
-        out_filename = result_data.out_dir + "/" + str(idx) + "_" + name + "_"+args.mode+".png"
-        print("[SAVE] :", out_filename)
-        plt.savefig(out_filename)
-        plt.show()
-        plt.clf()
 def main():
     plot_start()
