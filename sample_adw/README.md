@@ -1,6 +1,8 @@
-***1D ブラウン運動トラジェクトリ を使ってDKFを行う***
+***下記のポテンシャル上（assymetry double well potential）を動く1D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
-**DeepKF/sample_adw/dataset** 下に解析するトラジェクトリデータ (今回は、adw_traj1.npy)を置きます  
+![adw_potential](https://user-images.githubusercontent.com/39581094/75623493-ce048180-5bed-11ea-87ce-79103efbc7cf.png)  
+
+DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今回は、adw_traj1.npy)を置きます  
   
 （adw_traj1.npyは 
 ```
