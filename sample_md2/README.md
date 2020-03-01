@@ -24,10 +24,11 @@ config_adw.json内の
 にトラジェクトリデータの場所を指定します  
 
 **実行コマンド**
+下記のコマンドでDKFを実行します   
+   
 ```
 cd DeepKF  
 mkdir -p sample_md2/model  
 sh sample_md2/run_sample.sh
 ```
-
-
+  
