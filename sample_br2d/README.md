@@ -1,7 +1,9 @@
 ***下記ポテンシャル（foldingモデル）上を動く2D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
+![folding_energy](https://user-images.githubusercontent.com/39581094/75623495-d2c93580-5bed-11ea-8e73-6e7b03f5b47b.png)  
 
-**DeepKF/sample_br2d/dataset** 下に解析するトラジェクトリデータ (今回は、folding_2d_traj.npy)を置きます  
+
+DeepKF/sample_br2d/dataset 下に解析するトラジェクトリデータ (今回は、folding_2d_traj.npy)を置きます  
   
 （folding_2d_traj.npyは 
 ```
@@ -25,7 +27,7 @@ config_adw.json内の
 にトラジェクトリデータの場所を指定します  
 
 **実行コマンド**   
-下記のコマンドでDKFを実行します   
+下記コマンドでDKFを実行します   
    
 ```
 cd DeepKF  
