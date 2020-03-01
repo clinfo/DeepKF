@@ -1,4 +1,4 @@
-***下記ポテンシャル（foldingモデル）上を動く2D ブラウン運動トラジェクトリ を使ってDKFを行う***
+***下記ポテンシャル（folding potential）上を動く2D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
 ![folding_energy](https://user-images.githubusercontent.com/39581094/75623495-d2c93580-5bed-11ea-8e73-6e7b03f5b47b.png)  
 
