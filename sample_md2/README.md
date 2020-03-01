@@ -8,7 +8,7 @@ DeepKF/make_dataset/brown_model/make_data_adw.py
 ``` 
 で作成されます。）　　
 
-sample_md2下に、config.josnとhyparam.jsonを置いています。  
+sample_md2下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
 ```
 DeepKF/setting_examples/config_adw.json   
