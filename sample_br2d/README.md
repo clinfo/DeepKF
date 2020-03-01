@@ -34,3 +34,6 @@ cd DeepKF
 mkdir -p sample_br2d/model  
 sh sample_adw/run_br2d.sh
 ```
+
+
+![br2d](https://user-images.githubusercontent.com/39581094/75623555-5be06c80-5bee-11ea-84e1-40f6c8a94aa3.png)
