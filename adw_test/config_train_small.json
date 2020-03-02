@@ -1,0 +1,25 @@
+{
+    "batch_size": 30,
+    "data_test_npy": "small_data/pack_selected_data_emit_test.npy",
+    "mask_test_npy": "small_data/pack_selected_mask_emit_test.npy",
+    "data_train_npy": "small_data/pack_selected_data_emit.npy",
+    "mask_train_npy": "small_data/pack_selected_mask_emit.npy",
+	"steps_npy": "small_data/pack_selected_steps.npy",
+	"steps_test_npy": "small_data/pack_selected_steps_test.npy",
+    "data_info_json": "small_data/pack_selected_info.json",
+    "dim": 10,
+    "epoch": 100,
+    "load_model": "example_model/small_model.last.ckpt",
+    "save_model": "example_model/small_model.last.ckpt",
+	"save_model_path":"example_model",
+	"patience": 0,
+	"plot_path": "plot",
+    "save_result_train": "example_result/small_train.jbl",
+    "save_result_test": "example_result/small_test.jbl",
+	"state_type": "discrete",
+	"sampling_type": "none",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}
