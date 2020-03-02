@@ -17,6 +17,15 @@ ala_traj_all.npyの形状は、(600, 300, 2)としています （# 変更可能
 
 DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今回は、ala_traj_all.npy)を置きます   
 
+sample_ala下に、config.josnとhyparam.jsonを置いています  
+（今回の設定例は、  
+```
+DeepKF/setting_examples/config_ala.json   
+DeepKF/setting_examples/hyparam_ala.json  
+```
+にあります    
+    
+
 **実行コマンド**   
 下記コマンドでDKFを実行します   
    
