@@ -1095,6 +1095,8 @@ def inference_by_dist(n_steps, control_params):
         obs_pred_params = computeEmission(
             z_pred_s, n_steps, init_params_flag=False, control_params=control_params
         )
+
+        pot_loss=computePotentialLoss(z_params, pot_points, n_steps, control_params=control_params)
     outputs = {
         "z_s": z_s,
         "z_params": z_params,
@@ -1144,6 +1146,7 @@ def inference_by_sample(n_steps, control_params):
         obs_pred_params = computeEmission(
             z_pred_s, n_steps, init_params_flag=False, control_params=control_params
         )
+        pot_loss=computePotentialLoss(z_params, pot_points, n_steps, control_params=control_params)
     outputs = {
         "z_s": z_s,
         "z_params": z_params,
@@ -1297,17 +1300,22 @@ def loss(outputs, alpha=1, control_params=None):
     length = placeholders["s"]
     # loss
     negCLL = computeNegCLL(x, outputs["obs_params"], mask, control_params)
-    negPredLL = computeNegPredLL(x, outputs["obs_pred_params"], mask, control_params)
     temporalKL = computeTemporalKL(x, outputs, length, control_params)
     cost_pot = tf.constant(0.0, dtype=np.float32)
 
-    costs_name = ["recons", "pred", "temporal"]
-    costs = [tf.reduce_mean(negCLL),tf.reduce_mean(negPredLL), tf.reduce_mean(temporalKL)]
+    costs_name = ["recons", "temporal"]
+    costs = [tf.reduce_mean(negCLL), tf.reduce_mean(temporalKL)]
     errors_name = []
     errors = []
     updates = []
     metrics_name = []
     metrics = []
+    if "obs_pred_params" in outputs:
+        negPredLL = computeNegPredLL(x, outputs["obs_pred_params"], mask, control_params)
+        cost_pred=tf.reduce_mean(negPredLL)
+        costs_name.append("pred")
+        costs.append(cost_pred)
+
     if outputs["potential_loss"] is not None:
         pot = outputs["potential_loss"]
         # sum_pot=tf.reduce_sum(pot*mask,axis=1)
@@ -1317,7 +1325,6 @@ def loss(outputs, alpha=1, control_params=None):
         costs_name.append("potential")
         costs.append(cost_pot)
 
-    cost_label = tf.constant(0.0, dtype=np.float32)
     if "label_params" in outputs and outputs["label_params"] is not None:
         ltype = control_params["config"]["label_type"]
         assert ltype == "multinominal", "not supported label type"
@@ -1343,10 +1350,14 @@ def loss(outputs, alpha=1, control_params=None):
         errors_name.append("recons_mse")
         errors.append(diff)
 
-    mean_cost = tf.reduce_mean(
-        (negCLL + negPredLL + alpha * temporalKL + alpha * 1.0 * cost_pot) + cost_label,
-        name="train_cost",
-    )
+    weighted_cost=[]
+    for name,c in zip(costs_name, costs):
+        if name=="temporal":
+            weighted_cost.append(c*alpha)
+        else:
+            weighted_cost.append(c)
+    print(weighted_cost)
+    mean_cost = tf.add_n(weighted_cost,name="train_cost")
     tf.add_to_collection("losses", mean_cost)
     total_cost = tf.add_n(tf.get_collection("losses"), name="total_loss")
 
@@ -1453,7 +1464,7 @@ def computeTransitionUKF(
         return layer_mean[0, :, :, :], layer_cov
 
 
-def computePotentialLoss(mu_q, cov_q, pot_points, n_steps, control_params=None):
+def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
     """
 	Parameters
 	----------
@@ -1468,13 +1479,16 @@ def computePotentialLoss(mu_q, cov_q, pot_points, n_steps, control_params=None):
 		pot_loss :
 
 	"""
+    hy_param = hy.get_hyperparameter()
     pot_loss = None
+    dytype = control_params["config"]["dynamics_type"]
     if hy_param["potential_enabled"]:
         if hy_param["potential_grad_transition_enabled"] == False:
             use_data_points = False
             if pot_points is None:
                 use_data_points = True
             if use_data_points:
+                mu_q, cov_q=z_params
                 ## compute V(x(t+1))-V(x(t)) < 0 for stability
                 mu_trans_1, cov_trans_1 = computeTransitionUKF(
                     mu_q,
@@ -1500,9 +1514,17 @@ def computePotentialLoss(mu_q, cov_q, pot_points, n_steps, control_params=None):
                 pot = tf.nn.relu(pot1 - pot0 + c)
                 pot_loss = tf.reshape(pot, [-1, n_steps])
             else:
-                mu_trans_1 = computeTransitionFunc(
-                    pot_points, 1, init_params_flag=False, control_params=control_params
-                )
+                print("=== potential loss: potential points")
+                if dytype=="function":
+                    mu_trans_1 = computeTransitionFunc(
+                        pot_points, 1, init_params_flag=False, control_params=control_params
+                    )
+                elif dytype=="distribution":
+                    out_params = computeTransitionDistWithNN(
+                        pot_points, 1, init_params_flag=False, control_params=control_params
+                    )
+                    mu_trans_1=out_params[0]
+
                 params_pot = None
                 pot0 = computePotential(pot_points, 1, control_params=control_params)
                 pot1 = computePotential(

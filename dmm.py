@@ -33,12 +33,6 @@ from dmm.attractor import (
 # for profiler
 from tensorflow.python.client import timeline
 
-# FLAGS = tf.app.flags.FLAGS
-
-# Basic model parameters.
-# tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
-
-
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
 
@@ -263,6 +257,7 @@ class EarlyStopping:
         config = self.config
         epoch = info["epoch"]
         logger = logging.getLogger("logger")
+        logger.setLevel(logging.INFO)
 
         costs_name = info["training_all_costs_name"]
         errors_name = info["training_errors_name"]

@@ -76,8 +76,7 @@ def get_param(config, key, default_value):
     return default_value
 
 
-def load_plot_data(args):
-
+def load_config(args):
     fp = open(args.config, "r")
     config = get_default_config()
     config.update(json.load(fp))
@@ -85,6 +84,11 @@ def load_plot_data(args):
     if args.hyperparam == "":
         fp = open(args.hyperparam, "r")
         config.update(json.load(fp))
+    return config
+
+def load_plot_data(args,config=None):
+    if config is None:
+        config = load_config(args)
 
     test_flag=False
     print("mode:", args.mode)
