@@ -8,7 +8,12 @@ DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今�
 ```
 DeepKF/make_dataset/brown_model/make_data_adw.py 
 ``` 
-で作成されます。）　　
+で作成されます。   
+このデータは100step分の1次元の座標データを500本分としています↓   
+```
+import numpy as np
+traj=np.load("adw_traj1.npy")
+traj.shape #(500, 100, 1)）　　
 
 sample_adw下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
