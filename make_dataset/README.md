@@ -3,7 +3,7 @@
 - **brown_model**:ブラン運動モデルのデータセットを作成     
 vampnetのコード(https://github.com/markovmodel/deeptime.git) を引用
 
-   - make_data_adw.py：　double well potentialのブラウン運動のデータを作成    
+   - make_data_adw.py：　assymetry double well potentialのブラウン運動のデータを作成    
      出力は、ポテンシャル図（adw_potential.png）とnpyファイル（adw_traj1.npy）  
   
    - make_data_brown.py：　folding potentialのブラウン運動のデータを作成    
