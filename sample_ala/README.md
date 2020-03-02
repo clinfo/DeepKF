@@ -8,7 +8,7 @@
 make_dataset/alanine/make_data_ala.py
 ```
 を参照ください   
-作成されたデータは、Google Driveの   
+作成されたデータは、小島Google Driveの   
 ```
 traj_data/input_files/ala_traj_all.npy
 ```
