@@ -25,10 +25,17 @@ cd DeepKF
 mkdir -p sample_ala/model  
 sh sample_adw/run_ala.sh
 ```
-さらに、下記コマンドで二面角の情報にq、dimの値で色付けしたプロットを作成します   
+さらに、下記コマンドで二面角情報上に、dimの値で色付けしたプロットを作成します   
 
 ```
 sh sample_adw/plot_ala.sh
 ```
+
+アラニンジペプチドには3つのメジャー領域が知られています（下図 αR、αL、β）   
+<img width="759" alt="ala_state" src="https://user-images.githubusercontent.com/39581094/75691429-82360300-5ce7-11ea-88bd-5257a1a8e174.png">   
+
+この3領域を区別できることを確認します   
+![alanine](https://user-images.githubusercontent.com/39581094/75691605-a2fe5880-5ce7-11ea-9aa6-f22137da55f2.png)
+
 
 
