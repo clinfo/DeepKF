@@ -415,6 +415,21 @@ def computeEmission(z, n_steps, init_params_flag=True, control_params=None):
                     layer_cov = tf.clip_by_value(layer_cov, min_var, max_var)
                 layer_cov = tf.reshape(layer_cov, [-1, n_steps, dim_emit])
                 params.append(layer_cov)
+            elif etype == "none":
+                # layer -> layer_mean
+                with tf.variable_scope("em_fc_mean") as scope:
+                    layer_mu = layers.fc_layer(
+                        "emission/em_fc_mean",
+                        layer,
+                        dim_out,
+                        dim_emit,
+                        wd_w,
+                        wd_bias,
+                        activate=None,
+                        init_params_flag=init_params_flag,
+                    )
+                layer_mu = tf.reshape(layer_mu, [-1, n_steps, dim_emit])
+                params.append(layer_mu)
             elif etype == "binary":
                 # layer -> sigmoid
                 with tf.variable_scope("em_fc_out") as scope:
@@ -1170,12 +1185,48 @@ def computeNegCLL(x, params, mask, control_params):
 	-------
 		negCLL
 	"""
-    mu_p = params[0]
-    cov_p = params[1]
+    etype = control_params["config"]["emission_type"]
+    if etype == "normal":
+        mu_p = params[0]
+        cov_p = params[1]
 
-    negCLL = tf.log(2 * np.pi) + tf.log(cov_p) + (x - mu_p) ** 2 / cov_p
-    negCLL = negCLL * 0.5
-    negCLL = negCLL * mask
+        negCLL = tf.log(2 * np.pi) + tf.log(cov_p) + (x - mu_p) ** 2 / cov_p
+        negCLL = negCLL * 0.5
+        negCLL = negCLL * mask
+    elif etype == "none":
+        negCLL = (params[0]-x)**2
+        negCLL = negCLL * mask
+    negCLL = tf.reduce_sum(negCLL, axis=2)
+    negCLL = tf.reduce_sum(negCLL, axis=1)
+    return negCLL
+
+def computeNegPredLL(x, params, mask, control_params):
+    """
+	Prameters
+	---------
+		x : 
+		params : list
+		mask :
+	Retunrs
+	-------
+		negCLL
+	"""
+    etype = control_params["config"]["emission_type"]
+    if etype == "normal":
+        mu_p = params[0][:,:-1,:]
+        cov_p = params[1][:,:-1,:]
+        v=x[:,1:,:]
+        m=mask[:,1:,:]
+
+        negCLL = tf.log(2 * np.pi) + tf.log(cov_p) + (v - mu_p) ** 2 / cov_p
+        negCLL = negCLL * 0.5
+        negCLL = negCLL * m
+    elif etype == "none":
+        pred=params[0][:,:-1,:]
+        v=x[:,1:,:]
+        m=mask[:,1:,:]
+        negCLL = (pred-v)**2
+        negCLL = negCLL * m
     negCLL = tf.reduce_sum(negCLL, axis=2)
     negCLL = tf.reduce_sum(negCLL, axis=1)
     return negCLL
@@ -1246,11 +1297,12 @@ def loss(outputs, alpha=1, control_params=None):
     length = placeholders["s"]
     # loss
     negCLL = computeNegCLL(x, outputs["obs_params"], mask, control_params)
+    negPredLL = computeNegPredLL(x, outputs["obs_pred_params"], mask, control_params)
     temporalKL = computeTemporalKL(x, outputs, length, control_params)
     cost_pot = tf.constant(0.0, dtype=np.float32)
 
-    costs_name = ["recons", "temporal"]
-    costs = [tf.reduce_mean(negCLL), tf.reduce_mean(temporalKL)]
+    costs_name = ["recons", "pred", "temporal"]
+    costs = [tf.reduce_mean(negCLL),tf.reduce_mean(negPredLL), tf.reduce_mean(temporalKL)]
     errors_name = []
     errors = []
     updates = []
@@ -1292,7 +1344,7 @@ def loss(outputs, alpha=1, control_params=None):
         errors.append(diff)
 
     mean_cost = tf.reduce_mean(
-        (negCLL + alpha * temporalKL + alpha * 1.0 * cost_pot) + cost_label,
+        (negCLL + negPredLL + alpha * temporalKL + alpha * 1.0 * cost_pot) + cost_label,
         name="train_cost",
     )
     tf.add_to_collection("losses", mean_cost)

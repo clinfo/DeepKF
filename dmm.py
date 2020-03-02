@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import tarfile
+import logging
 
 from six.moves import urllib
 import tensorflow as tf
@@ -29,7 +30,6 @@ from dmm.attractor import (
     make_griddata_discrete,
     compute_discrete_transition_mat,
 )
-
 # for profiler
 from tensorflow.python.client import timeline
 
@@ -75,6 +75,7 @@ def build_config(config):
         config["evaluation_output"] =path+"/hyparam.result.json"
         config["load_model"]        =path+"/model/model.last.ckpt"
         config["plot_path"]         =path+"/plot"
+        config["log"]         =path+"/log.txt"
 
 def get_default_config():
     config = {}
@@ -261,6 +262,7 @@ class EarlyStopping:
     def print_info(self, info):
         config = self.config
         epoch = info["epoch"]
+        logger = logging.getLogger("logger")
 
         costs_name = info["training_all_costs_name"]
         errors_name = info["training_errors_name"]
@@ -290,7 +292,7 @@ class EarlyStopping:
                 log += ", train cost(" + name + ")"
             for name in costs_name:
                 log += ", valid. cost(" + name + ")"
-            print(log)
+            logger.info(log)
             self.first = False
         log = "epoch %d, training cost %g (error=%g), validation cost %g (error=%g)" % (
             epoch,
@@ -320,7 +322,7 @@ class EarlyStopping:
             log += ", " + str(el)
         for el in validation_all_costs:
             log += ", " + str(el)
-        print(log)
+        logger.info(log)
 
 
 def compute_cost(
@@ -649,6 +651,7 @@ def infer(sess, config):
         is_train=False,
     )
     print("cost: %g" % (test_info["cost"]))
+    print("errors: %g" % (test_info["errors"]))
 
     ## save results
     if config["save_result_test"] != "":
@@ -1460,6 +1463,14 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     # profile
     config["profile"] = args.profile
+    #
+    logger = logging.getLogger("logger")
+    logger.setLevel(logging.WARN)
+    if "log" in config:
+        h = logging.FileHandler(filename=config["log"])
+        h.setLevel(logging.INFO)
+        logger.addHandler(h)
+
     # setup
     mode_list = args.mode.split(",")
     # with tf.Graph().as_default(), tf.device('/cpu:0'):

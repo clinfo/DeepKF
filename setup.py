@@ -21,7 +21,7 @@ setuptools.setup(
         'console_scripts': [
             'dmm = dmm.dmm:main',
             'dmm-plot = dmm.dmm_plot:main',
-            'dmm-anim = dmm.dmm_anim:main',
+            'dmm-field-plot = dmm.dmm_field_plot:main',
             'dmm-map = dmm.mapping:main',
         ],
     },
@@ -30,4 +30,4 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ]
-)
+    )
