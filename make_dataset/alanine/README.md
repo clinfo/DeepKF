@@ -1,8 +1,7 @@
 ***make_data_all.py***
 
 はじめにmdtrajをインストールします   
-mdtraj(http://mdtraj.org/1.9.3/installation.html)   
-（インストール）
+mdtraj (http://mdtraj.org/1.9.3/installation.html)   
 ```
 pip install mdtraj
 ```
