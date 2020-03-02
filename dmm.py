@@ -114,6 +114,16 @@ def get_default_config():
 	return config
 
 def construct_feed(idx,data,placeholders,alpha,is_train=False):
+	"""
+	Parameters
+	----------
+		idx :
+		data :
+		alpha :
+	Returns
+	-------
+		feed_dict : dict
+	"""
 	feed_dict={}
 	num_potential_points=100
 	hy_param=hy.get_hyperparameter()
@@ -187,6 +197,18 @@ def print_variables():
 	return
 
 def compute_alpha(config,i):
+	"""
+	Compute the value of the parameter alpha.
+	Small value -> -> -> alpha_max
+	Parameter
+	---------
+		i :	integer
+			the number of epoch
+	Returns
+	-------
+		alpha : float
+			the value of the parameter
+	"""
 	alpha_max=config["alpha"]
 	if config["curriculum_alpha"]:
 		begin_tau=config["epoch"]*0.1
@@ -275,6 +297,31 @@ class EarlyStopping:
 		print(log)
 
 def compute_cost(sess,placeholders,data,data_idx,output_cost,batch_size,alpha,is_train):
+	"""
+	Parameters
+	----------
+		sess :
+		placeholders :
+		data :
+		data_idx :
+			the index of the data
+		output_cost :
+
+		batch_size : integer
+		alpha : float
+		is_train : boolean
+
+	Returns
+	-------
+		data_info : list
+			"cost":
+			"errors":
+			"errors_name":
+			"metrics":
+			"metrics_name":
+			"all_costs":
+			"all_costs_name":
+	"""
 	# initialize costs
 	cost=0.0
 	all_costs=None
@@ -311,6 +358,22 @@ def compute_cost(sess,placeholders,data,data_idx,output_cost,batch_size,alpha,is
 	return data_info
 
 def compute_cost_train_valid(sess,placeholders,train_data,valid_data,train_idx,valid_idx,output_cost,batch_size,alpha):
+	"""
+	Parameters
+	----------
+		traind_data :
+		valid_data :
+		train_idx :
+		valid_idx :
+		output_cost :
+		batch_size :
+		alpha :
+	Returns
+	-------
+		all_info : list
+			"training_*"
+			"validation_*"
+	"""
 	train_data_info=compute_cost(sess,placeholders,train_data,train_idx,output_cost,batch_size,alpha,is_train=True)
 	valid_data_info=compute_cost(sess,placeholders,valid_data,valid_idx,output_cost,batch_size,alpha,is_train=False)
 	all_info={}
@@ -321,6 +384,18 @@ def compute_cost_train_valid(sess,placeholders,train_data,valid_data,train_idx,v
 	return all_info
 
 def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
+	"""
+	parameters
+	----------
+		data :
+		data_idx :
+		outputs :
+		batch_size :
+		alpha :
+	Returns
+	-------
+		results : dict
+	"""
 	results={}
 	n_batch=int(np.ceil(data.num*1.0/batch_size))
 	for j in range(n_batch):
@@ -355,6 +430,21 @@ def compute_result(sess,placeholders,data,data_idx,outputs,batch_size,alpha):
 
 
 def get_dim(config,hy_param,data):
+	"""
+	Get the dimension of the lantent variable and the observed variable.
+	Parameters
+	----------
+		config :
+		hy_param :
+		data :
+			only used checking the data is not None.
+	Returns
+	-------
+		dim :
+			The dimension of the latent variable
+		dim_emit :
+			The dimension of the observed variable
+	"""
 	dim_emit=None
 	if data is not None:
 		dim_emit=data.dim
@@ -397,7 +487,7 @@ def train(sess,config):
 	if config["task"]=="label_prediction":
 		outputs=inference_label(outputs,n_steps,control_params=control_params)
 
-	# cost
+	# Estimate conditional likelihood p_\theta(\overrightarrow{x}\mid\hat\overrightarrow{z}) & KL
 	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
 	# train_step
 	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
@@ -641,6 +731,12 @@ def filter_discrete_forward(sess,config):
 
 
 def get_batch_size(config,hy_param,data):
+	"""
+	Returns
+	-------
+		batch_size :
+		n_batch :
+	"""
 	batch_size=config["batch_size"]
 	n_batch=int(data.num/batch_size)
 	if n_batch==0:
@@ -673,6 +769,23 @@ def construct_filter_placeholder(config):
 	return placeholders
 
 def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False):
+	"""
+	Parameters
+	----------
+		idx :
+		batch_size :
+		step :
+		data :
+		z :
+		placeholders :
+		is_train :
+	Returns
+	-------
+		feed_dict : dict
+			ph :
+		bs :
+			batch_size 
+	"""
 	feed_dict={}
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -718,6 +831,20 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 	return feed_dict,bs
 
 def construct_server_filter_feed(step,x,m,z,placeholders,is_train=False):
+	"""
+	Prameters
+	---------
+		step :
+		x :
+		m :
+		z :
+		placeholders :
+		is_train :
+	Returns
+		feed_dict : dict
+		bs : 1
+	-------
+	"""
 	feed_dict={}
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -752,6 +879,17 @@ def construct_server_filter_feed(step,x,m,z,placeholders,is_train=False):
 
 
 def construct_batch_z(idx,batch_size,zs,is_train=False):
+	"""
+	Parameters
+	----------
+		idx :
+		batch_size :
+		zs : sample_size x test_data.num x n_steps+1 x dim or (sample_size x batch_size) x n_steps+1 x dim
+		is_train :
+	Returns
+	-------
+
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	#zs: sample_size x test_data.num x n_steps+1 x dim
@@ -768,6 +906,14 @@ def construct_batch_z(idx,batch_size,zs,is_train=False):
 	return np.reshape(z_temp,[-1,s,dim])
 
 def filtering(sess,config):
+	"""
+
+	Prameters
+	---------
+		sess :
+			tensorflow session
+		config :
+	"""
 	hy_param=hy.get_hyperparameter()
 	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	n_steps=test_data.n_steps
@@ -791,7 +937,16 @@ def filtering(sess,config):
 		}
 	# inference
 	# z: (batch_size x sample_size) x n_steps x dim
-	outputs=p_filter(placeholders["x"],placeholders["z"],placeholders["m"],placeholders["step"],n_steps+1,None,sample_size,proposal_sample_size,batch_size,control_params=control_params)
+	outputs=p_filter(placeholders["x"],
+		placeholders["z"],
+		placeholders["m"],
+		placeholders["step"],
+		n_steps+1,
+		None,
+		sample_size,
+		proposal_sample_size,
+		batch_size,
+		control_params=control_params)
 	# loding model
 	print_variables()
 	saver = tf.train.Saver()
@@ -831,6 +986,15 @@ def filtering(sess,config):
 		joblib.dump(results,config["save_result_filter"])
 
 def construct_fivo_placeholder(config):
+	"""
+	Returns
+	-------
+		placeholders :
+			"x": x_holder,
+			"z": z0_holder,
+			"dropout_rate": dropout_rate,
+			"is_train": is_train,
+	"""
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
 	dim_emit=hy_param["dim_emit"]
@@ -850,6 +1014,17 @@ def construct_fivo_placeholder(config):
 
 
 def construct_fivo_feed(data_idx,batch_size,step,data,placeholders,is_train=False):
+	"""
+	Parameters
+	----------
+		data_idx :
+		batch_size :
+		step :
+		data :
+	Returns
+	-------
+		feed_dict : dict
+	"""
 	feed_dict={}
 	hy_param=hy.get_hyperparameter()
 	dim=hy_param["dim"]
@@ -885,6 +1060,8 @@ def construct_fivo_feed(data_idx,batch_size,step,data,placeholders,is_train=Fals
 
 
 def train_fivo(sess,config):
+	"""
+	"""
 	hy_param=hy.get_hyperparameter()
 	#_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
 	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
