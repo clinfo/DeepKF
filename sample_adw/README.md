@@ -41,5 +41,21 @@ mkdir -p sample_adw/model
 sh sample_adw/run_adw.sh
 ```
 
+plot_adw_test下に実行結果のPNGファイルを置いています
+
+
 ![adw](https://user-images.githubusercontent.com/39581094/75623342-66016b80-5bec-11ea-87a6-cab205fefd56.png)
   
+
+***※上手くいかない場合***
+DeepKF/adw_testをご参照ください  
+sample_md2が実行済みフォルダです   
+下記コマンドで結果を確認してみてください
+```
+cd adw_test
+cp -r sample_md2 sample_md2_old        #実行済みの結果をsample_md2_oldに移す
+rm -r sample_md2/model                 #sample_md2下の実行結果を消す
+rm -r sample_md2/config.result.json　　 #sample_md2下の実行結果を消す
+mkdir -p sample_md2/model  
+sh sample_md2/run_sample.sh            #新たに実行
+```
