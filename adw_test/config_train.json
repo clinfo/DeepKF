@@ -1,0 +1,21 @@
+{
+    "batch_size": 100,
+    "data_test_npy": "data/pack_data_emit_test.npy",
+    "mask_test_npy": "data/pack_mask_emit_test.npy",
+    "data_train_npy": "data/pack_data_emit.npy",
+    "mask_train_npy": "data/pack_mask_emit.npy",
+	"steps_npy": "data/pack_steps.npy",
+	"steps_test_npy": "data/pack_steps_test.npy",
+    "data_info_json": "data/pack_info.json",
+    "dim": 0,
+    "epoch": 1000,
+    "load_model": "",
+	"save_model_path":"dummy",
+	"patience": 0,
+    "save_result_test": "dummy",
+    "save_result_train": "dummy",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}
