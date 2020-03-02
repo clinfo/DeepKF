@@ -10,7 +10,7 @@ DeepKF/sample_br2d/dataset 下に解析するトラジェクトリデータ (今
 DeepKF/make_dataset/brown_model/make_data_brown.py 
 ``` 
 で作成されます。   
-1000step分の2次元の座標データを1000本分としています↓   
+このデータは1000step分の2次元の座標データを1000本分としています↓   
 ```
 import numpy as np
 traj=np.load("folding_2d_traj.npy")
