@@ -917,6 +917,7 @@ def p_filter(
     ptype = control_params["config"]["pfilter_type"]
     dytype = control_params["config"]["dynamics_type"]
     sttype = control_params["config"]["state_type"]
+    etype = control_params["config"]["emission_type"]
     print(z.shape)
     if ptype == "trained_dynamics":
         if dytype == "function":
@@ -982,15 +983,26 @@ def p_filter(
     obs_params = computeEmission(particles, 1, control_params=control_params)
     print("@@@@", batch_size)
     print("@@@@", proposal_sample_size, sample_size)
-    #  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
-    #  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
-    mu = obs_params[0]
-    cov = obs_params[1]
-    mu = tf.reshape(mu, [-1, batch_size, dim_emit])
-    cov = tf.reshape(cov, [-1, batch_size, dim_emit])
-    #  x: batch_size x emit_dim
-    d = (mu - x[:, :]) * m
-    w = -tf.reduce_sum(d ** 2 / cov, axis=2)
+    if etype=="normal":
+        #  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
+        #  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
+        mu = obs_params[0]
+        mu = tf.reshape(mu, [-1, batch_size, dim_emit])
+
+        cov = obs_params[1]
+        cov = tf.reshape(cov, [-1, batch_size, dim_emit])
+        #  x: batch_size x emit_dim
+        d = (mu - x[:, :]) * m
+        w = -tf.reduce_sum(d ** 2 / cov, axis=2)
+        pred_obs_params=[mu,cov]
+    elif etype=="none":
+        mu = obs_params[0]
+        mu = tf.reshape(mu, [-1, batch_size, dim_emit])
+        d = (mu - x[:, :]) * m
+        w = -tf.reduce_sum(d ** 2/10, axis=2)
+        pred_obs_params=[mu]
+    else:
+        raise Exception("[Error] unknown pfilter type")
     # w:(proposal_sample_size x sample_size) x batch__size
     #  probs=w/tf.reduce_sum(w,axis=0)
 
@@ -1010,7 +1022,7 @@ def p_filter(
     particle_ids = tf.concat([particle_ids, temp], 2)
     # particles: (resample) x b x dim
     out = tf.gather_nd(particles, particle_ids)
-    outputs = {"sampled_pred_params": [mu, cov], "sampled_z": out}
+    outputs = {"sampled_pred_params": pred_obs_params, "sampled_z": out}
     return outputs
 
 
@@ -1588,7 +1600,7 @@ def computePotentialWithBinaryPot(
 
 	"""
     pot_pole = []
-
+    state_num=2
     hy_param = hy.get_hyperparameter()
     dim = hy_param["dim"]
     z = tf.reshape(z_input, [-1, dim])
@@ -1599,12 +1611,14 @@ def computePotentialWithBinaryPot(
         z1[d] = 0.5
         z2[d] = -0.5
 
-        z1 = z - tf.constant(z1, dtype=np.float32)
-        z2 = z - tf.constant(z2, dtype=np.float32)
-        p1 = tf.reduce_sum(z1 ** 2, axis=1)
-        p2 = tf.reduce_sum(z2 ** 2, axis=1)
-        pot_pole.append(p1)
-        pot_pole.append(p2)
+        d1 = z - tf.constant(z1, dtype=np.float32)
+        d2 = z - tf.constant(z2, dtype=np.float32)
+        p1 = tf.reduce_sum(d1 ** 2, axis=1)
+        p2 = tf.reduce_sum(d2 ** 2, axis=1)
+        if len(pot_pole)<state_num:
+            pot_pole.append(p1)
+        if len(pot_pole)<state_num:
+            pot_pole.append(p2)
     pot_pole = tf.stack(pot_pole)
     # pot_pole: (2xdim) x (bs x T)
     pot = tf.reduce_min(pot_pole, axis=0)

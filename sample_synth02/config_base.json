@@ -1,0 +1,14 @@
+{
+    "data_train_npy": "data/data_train.npy",
+    "data_test_npy": "data/data_test.npy",
+    "result_path":"result/",
+    "evaluation_output": "result/hyparam.result.json",
+    "batch_size": 100,
+    "epoch": 800,
+    "patience": 0,
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}
+

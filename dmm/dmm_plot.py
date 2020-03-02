@@ -28,10 +28,15 @@ class PlotFig():
         plt.gca().yaxis.set_ticks_position("none")
 
     # line: num x steps
-    def draw_line(self,line,label,color,num):
-        plt.plot(line[0,:],label=label,color=color)
-        for i in range(num-1):
-            plt.plot(line[i+1,:],color=color)
+    def draw_line(self,line,label,color,num,alpha=1.0,pred=False):
+        if pred:
+            plt.plot(np.concatenate([[np.nan],line[0,:]]),label=label,color=color,alpha=alpha)
+            for i in range(num-1):
+                plt.plot(np.concatenate([[np.nan],line[i+1,:]]),color=color,alpha=alpha)
+        else:
+            plt.plot(line[0,:],label=label,color=color,alpha=alpha)
+            for i in range(num-1):
+                plt.plot(line[i+1,:],color=color,alpha=alpha)
         
     def draw_scatter_z(self,x,y,c,alpha=1.0,axis_x=0,axis_y=1):
         plt.scatter(x,y,c=c,alpha=alpha)
@@ -148,7 +153,7 @@ class PlotFig():
         if x_plot_type=="line":
             plt.plot(data.x[idx, :s, d], label="x")
             plt.plot(self.obs_mu[idx, :s, d], label="recons")
-            plt.plot(self.pred_mu[idx, :s, d], label="pred")
+            plt.plot(np.concatenate([[np.nan],self.pred_mu[idx, :s, d]]), label="pred")
         else:
             self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
         plt.legend()
@@ -160,9 +165,9 @@ class PlotFig():
         d = args.obs_dim
         x_plot_type=args.x_plot_type
         if x_plot_type=="line":
+            self.draw_line(self.sample_obs[:,idx,:s,d],label="pred",color="g",num=args.obs_num_particle,alpha=0.5,pred=True)
+            plt.plot(np.concatenate([[np.nan],self.obs_mu[idx,:s,d]]),label="pred_mean",color="r")
             plt.plot(data.x[idx,:s,d],label="x",color="b")
-            self.draw_line(self.sample_obs[:,idx,:s,d],label="pred",color="g",num=args.obs_num_particle)
-            plt.plot(self.obs_mu[idx,:s,d],label="pred_mean",color="r")
         else:
             self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
         plt.legend()
