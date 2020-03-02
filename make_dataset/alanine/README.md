@@ -1,8 +1,8 @@
 ***make_data_all.py***
 
 はじめにmdtrajをインストールします   
-http://mdtraj.org/1.9.3/installation.html
-（例）
+mdtraj(http://mdtraj.org/1.9.3/installation.html)   
+（インストール）
 ```
 pip install mdtraj
 ```
@@ -19,7 +19,7 @@ pip install mdtraj
 traj_data/ala_data/trajectory-**.dcd
 traj_data/ala_data/trajectory-**.xtc
 ```
-にあります   
+から入手できます      
 
 42行目で形状を指定できます
 ```
@@ -32,5 +32,8 @@ traj_data/ala_data/trajectory-**.xtc
 ```
 
 
-***phi_psi_sns_all.py***
-構造数のヒートマップを作成します   
+***phi_psi_sns_all.py***   
+構造数のヒートマップを作成します 
+
+![sns_all_out](https://user-images.githubusercontent.com/39581094/75693181-f376b580-5ce9-11ea-9c8a-bd52a03e628b.png)
+
