@@ -13,7 +13,9 @@ DeepKF/make_dataset/brown_model/make_data_adw.py
 ```
 import numpy as np
 traj=np.load("adw_traj1.npy")
-traj.shape #(500, 100, 1)）　　
+traj.shape #(500, 100, 1)
+```
+）　
 
 sample_adw下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
