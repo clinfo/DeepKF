@@ -99,13 +99,10 @@ def plot_fig(idx):
 #    plt.legend()
 #    plt.subplot(2,1,2)
     plt.figure()
-    plt.scatter(data.obs[:idx,:s,0], data.obs[:idx,:s,1], label="x", s=5, alpha=0.3, c= z_q[:idx,:s,0], cmap =cmap)
-    plt.xlabel(r'$\Phi$ Angle [radians]')
+    plt.scatter(data.obs[:idx,:s,0], data.obs[:idx,:s,1], label="x", c= z_q[:idx,:s,0] )
     plt.xlim(-pi, pi)
-    plt.ylabel(r'$\Psi$ Angle [radians]')
     plt.ylim(-pi, pi)
     cbar = plt.colorbar()
-    cbar.set_label('Dim')
     plt.legend()
 
 if args.mode=="all":

@@ -2,7 +2,7 @@ import numpy as np
 import joblib
 import json
 import sys
-sys.path.append("/home/kawai/plot_test/test/plot_script")
+sys.path.append("./script")
 import os
 from matplotlib.colors import LinearSegmentedColormap
 import argparse
@@ -94,7 +94,7 @@ def plot_fig(idx):
     plt.legend()
     plt.subplot(2,1,2)
     plt.scatter(data.obs[idx,:s,0], data.obs[idx,:s,1], label="x", c= z_q[idx,:s,0], cmap =cmap)
-    plt.scatter(obs_mu[idx,:s,0], obs_mu[idx,:s,1], label="recons", c= z_q[idx,:s,0], cmap=cmap)
+#    plt.scatter(obs_mu[idx,:s,0], obs_mu[idx,:s,1], label="recons", c= z_q[idx,:s,0], cmap=cmap)
 #   plt.plot(pred_mu[idx,:s,1],label="pred")
     cbar = plt.colorbar()
     plt.legend()
