@@ -86,6 +86,13 @@ def get_dim(config,hy_param):
 
 
 def compute_discrete_transition_mat(sess,config):
+	"""
+	Compute the transition matrix.
+
+	Returns
+	-------
+		z_next : tensor # dim x dim 
+	"""
 	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
 	dim,dim_emit=get_dim(config,hy_param)
@@ -124,6 +131,9 @@ def compute_discrete_transition_mat(sess,config):
 	return z_next
 	
 def field_discrete(sess,config):
+	"""
+	Refer to "compute_discrete_trainsion_mat"
+	"""
 	z_next=compute_discrete_transition_mat(sess,config)
 	#
 	## save results
@@ -138,12 +148,18 @@ def field_discrete(sess,config):
 	"""
 
 def field(sess,config):
+	"""
+	Compute the state space (discrete or continuous)
+	"""
 	if config["state_type"]=="discrete" or config["state_type"]=="discrete_tr":
 		return field_discrete(sess,config)
 	else:
 		return field_continuous(sess,config)
 
 def field_continuous(sess,config):
+	"""
+	Compute the coninuous state space
+	"""
 	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
 	dim,dim_emit=get_dim(config,hy_param)
@@ -240,6 +256,8 @@ def potential(sess,config):
 
 
 def infer(sess,config):
+	"""
+	"""
 	hy_param=hy.get_hyperparameter()
 	batch_size=config["batch_size"]
 	dim,dim_emit=get_dim(config,hy_param)

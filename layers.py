@@ -253,6 +253,16 @@ def graph_fc_layer(name,data,dim_in,dim_out,node_num,wd_w,wd_b,activate,with_bn=
 		return tf.reshape(out,(-1,node_num,dim_out))
 
 def fc_layer(name,input_layer,dim_in,dim_out,wd_w,wd_b,activate,with_bn=False,is_train=True,init_params_flag=True,params=None):
+	"""
+	Return Full-convolution Layer
+	Patameters
+	----------
+		name :
+		input_layer :
+	Returns
+	-------
+		layer : 
+	"""
 	if not init_params_flag:
 		tf.get_variable_scope().reuse_variables()
 	w = _variable_with_weight_decay('weights', [dim_in, dim_out],
@@ -272,6 +282,16 @@ def fc_layer(name,input_layer,dim_in,dim_out,wd_w,wd_b,activate,with_bn=False,is
 	return layer
 
 def discrete_tr_layer(name,input_layer,dim_in,dim_out,wd_w,is_train=True,init_params_flag=True,params=None,beta=1.0):
+	"""
+	Return the discrete transition layer?
+	Parameters
+	----------
+		name :
+		input_layer :
+	Returns
+	-------
+		layer :
+	"""
 	if not init_params_flag:
 		tf.get_variable_scope().reuse_variables()
 	layer=input_layer/tf.reduce_sum(input_layer,axis=-1,keepdims=True)

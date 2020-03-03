@@ -20,6 +20,17 @@ class dotdict(dict):
 
 
 def load_data(config,with_shuffle=True,with_train_test=True,test_flag=False,output_dict_flag=True):
+	"""
+	load the numpy format data files.
+	Returns
+	-------
+		train_data : DotAccessible dict
+
+		valid_data : DotAccessible dict
+			num
+			n_steps
+			dim
+	"""
 	time_major=config["time_major"]
 	l=None
 	if not test_flag:
