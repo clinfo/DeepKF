@@ -79,17 +79,23 @@ def get_data(num,scale=0):
 
 os.makedirs("data",exist_ok=True)
 np.random.seed(10)
-
+print("data/data_train.npy")
+print("data/data_test.npy")
+"""
 result = get_data(50)
 np.save("data/data_train.npy",result)
 result = get_data(5)
 np.save("data/data_test.npy",result)
-
+"""
 for sc in range(10):
     result = get_data(50,scale=sc+1)
-    np.save("data/data_train.n"+str(sc+1)+".npy",result)
+    filename="data/data_train.n"+str(sc+1)+".npy"
+    np.save(filename,result)
+    print(filename)
     result = get_data(5,scale=sc+1)
-    np.save("data/data_test.n"+str(sc+1)+".npy",result)
+    filename="data/data_test.n"+str(sc+1)+".npy"
+    np.save(filename,result)
+    print(filename)
 
 
 

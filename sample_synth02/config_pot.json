@@ -1,14 +1,13 @@
 {
     "batch_size": 100,
-    "data_train_npy": "data_train.npy",
-    "data_test_npy": "data_test.npy",
-    "epoch": 800,
+    "data_train_npy": "data/data_train.npy",
+    "data_test_npy": "data/data_test.npy",
+    "result_path":"result_pot/",
+    "epoch": 1000,
     "patience": 0,
     "train_test_ratio": [
         0.8,
         0.2
-    ],
-    "result_path":"result_pot/",
-    "evaluation_output": "result_pot/hyparam.result.json"
+    ]
 }
 
