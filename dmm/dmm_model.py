@@ -32,6 +32,8 @@ def construct_placeholder(config):
     tr_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
     potential_points_holder = tf.placeholder(tf.float32, shape=(None, dim))
     alpha_holder = tf.placeholder(tf.float32)
+    beta_holder = tf.placeholder(tf.float32)
+    gamma_holder = tf.placeholder(tf.float32)
     dropout_rate = tf.placeholder(tf.float32)
     is_train = tf.placeholder(tf.bool)
     #
@@ -41,6 +43,8 @@ def construct_placeholder(config):
         "s": s_holder,
         "potential_points": potential_points_holder,
         "alpha": alpha_holder,
+        "beta": beta_holder,
+        "gamma": gamma_holder,
         "vd_eps": vd_eps_holder,
         "tr_eps": tr_eps_holder,
         "dropout_rate": dropout_rate,
@@ -1282,7 +1286,7 @@ def computeTemporalKL(x, outputs, length, control_params):
         mu_p = outputs["z_pred_params"][0]
         cov_q = outputs["z_params"][1]
         mu_q = outputs["z_params"][0]
-        kl_t = tf.log(cov_p) - tf.log(cov_q) - 1 + (cov_q + (mu_p - mu_q) ** 2) / cov_p
+        kl_t = kl_normal(mu_q, cov_q, mu_p, cov_p)
     else:
         raise Exception("[Error] unknown state type")
 
@@ -1290,12 +1294,11 @@ def computeTemporalKL(x, outputs, length, control_params):
     mask = tf.sequence_mask(length, maxlen=kl_t.shape[1], dtype=tf.float32)
     kl_t = tf.reduce_sum(kl_t, axis=2)
     kl_t = kl_t * mask
-
     kl_t = tf.reduce_sum(kl_t, axis=1)
     return kl_t
 
 
-def loss(outputs, alpha=1, control_params=None):
+def loss(outputs,control_params=None):
     """
 	Parameters
 	----------
@@ -1310,10 +1313,12 @@ def loss(outputs, alpha=1, control_params=None):
     x = placeholders["x"]
     mask = placeholders["m"]
     length = placeholders["s"]
+    alpha= placeholders["alpha"]
+    beta= placeholders["beta"]
+    gamma= placeholders["gamma"]
     # loss
     negCLL = computeNegCLL(x, outputs["obs_params"], mask, control_params)
     temporalKL = computeTemporalKL(x, outputs, length, control_params)
-    cost_pot = tf.constant(0.0, dtype=np.float32)
 
     costs_name = ["recons", "temporal"]
     costs = [tf.reduce_mean(negCLL), tf.reduce_mean(temporalKL)]
@@ -1362,14 +1367,17 @@ def loss(outputs, alpha=1, control_params=None):
         errors_name.append("recons_mse")
         errors.append(diff)
 
-    weighted_cost=[]
+    weighted_costs=[]
     for name,c in zip(costs_name, costs):
         if name=="temporal":
-            weighted_cost.append(c*alpha)
+            weighted_costs.append(c*alpha)
+        elif name=="pred":
+            weighted_costs.append(c*beta)
+        elif name=="potential":
+            weighted_costs.append(c*gamma)
         else:
-            weighted_cost.append(c)
-    print(weighted_cost)
-    mean_cost = tf.add_n(weighted_cost,name="train_cost")
+            weighted_costs.append(c)
+    mean_cost = tf.add_n(weighted_costs,name="train_cost")
     tf.add_to_collection("losses", mean_cost)
     total_cost = tf.add_n(tf.get_collection("losses"), name="total_loss")
 
@@ -1545,7 +1553,7 @@ def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
                 # pot: bs x T
                 c = 0.1
                 pot = tf.nn.relu(pot1 - pot0 + c)
-                pot_loss = tf.reshape(pot, [-1, 1])
+                pot_loss = n_steps*tf.reshape(pot, [-1, 1])
     return pot_loss
 
 
@@ -1622,6 +1630,9 @@ def computePotentialWithBinaryPot(
     pot_pole = tf.stack(pot_pole)
     # pot_pole: (2xdim) x (bs x T)
     pot = tf.reduce_min(pot_pole, axis=0)
+    print("pot",pot)
+    print("pot_pole",pot_pole)
+    print("z",z)
     return pot
 
 

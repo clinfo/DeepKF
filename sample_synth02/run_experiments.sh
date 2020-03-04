@@ -12,7 +12,7 @@ dmm train,infer,filter,field --config ${f} --hyperparam hyparam_base.json
 dmm-plot infer --config ${f}
 dmm-plot filter --config ${f}
 dmm-plot infer --config ${f}  --z_plot_type scatter --anim
-dmm-plot filter --config ${f}
+dmm-field-plot infer --config ${f}
 done
 
 for f in `ls experiments/config/config_pot*.json`
@@ -22,6 +22,6 @@ dmm train,infer,filter,field --config ${f} --hyperparam hyparam_pot.json
 dmm-plot infer --config ${f}
 dmm-plot filter --config ${f}
 dmm-plot infer --config ${f}  --z_plot_type scatter --anim
-dmm-plot filter --config ${f}
+dmm-field-plot infer --config ${f}
 done
 

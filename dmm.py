@@ -81,8 +81,12 @@ def get_default_config():
     config["patience"] = 5
     config["batch_size"] = 100
     config["alpha"] = 1.0
+    config["beta"] = 1.0
+    config["gamma"] = 1.0
     config["learning_rate"] = 1.0e-2
     config["curriculum_alpha"] = False
+    config["curriculum_beta"] = False
+    config["curriculum_gamma"] = False
     config["epoch_interval_save"] = 10  # 100
     config["epoch_interval_print"] = 10  # 100
     config["sampling_tau"] = 10  # 0.1
@@ -132,7 +136,7 @@ def get_default_config():
     return config
 
 
-def construct_feed(idx, data, placeholders, alpha, is_train=False):
+def construct_feed(idx, data, placeholders, alpha,beta=1.0,gamma=1.0, is_train=False):
     feed_dict = {}
     num_potential_points = 100
     hy_param = hy.get_hyperparameter()
@@ -159,6 +163,10 @@ def construct_feed(idx, data, placeholders, alpha, is_train=False):
             feed_dict[ph] = data.l[idx, :]
         elif key == "alpha":
             feed_dict[ph] = alpha
+        elif key == "beta":
+            feed_dict[ph] = beta
+        elif key == "gamma":
+            feed_dict[ph] = gamma
         elif key == "vd_eps":
             # eps=np.zeros((batch_size,n_steps,dim))
             if hy_param["state_type"] == "discrete":
@@ -214,9 +222,9 @@ def print_variables():
     return
 
 
-def compute_alpha(config, i):
-    alpha_max = config["alpha"]
-    if config["curriculum_alpha"]:
+def compute_alpha(config, i, key="alpha"):
+    alpha_max = config[key]
+    if config["curriculum_"+key]:
         begin_tau = config["epoch"] * 0.1
         end_tau = config["epoch"] * 0.9
         tau = 100.0
@@ -272,21 +280,23 @@ class EarlyStopping:
         training_all_costs = info["training_all_costs"]
         validation_all_costs = info["validation_all_costs"]
         alpha = info["alpha"]
+        beta = info["beta"]
+        gamma = info["gamma"]
         save_path = info["save_path"]
         if self.first:
-            log = "[LOG] epoch, train cost, valid. cost, alpha"
+            log = "[LOG]\tepoch\ttrain cost\tvalid. cost\talpha\tbeta\tgamma"
             for name in errors_name:
-                log += ", train error(" + name + ")"
+                log += "\ttrain error(" + name + ")"
             for name in errors_name:
-                log += ", valid. error(" + name + ")"
+                log += "\tvalid. error(" + name + ")"
             for name in metrics_name:
-                log += ", train (" + name + ")"
+                log += "\ttrain (" + name + ")"
             for name in metrics_name:
-                log += ", valid. (" + name + ")"
+                log += "\tvalid. (" + name + ")"
             for name in costs_name:
-                log += ", train cost(" + name + ")"
+                log += "\ttrain cost(" + name + ")"
             for name in costs_name:
-                log += ", valid. cost(" + name + ")"
+                log += "\tvalid. cost(" + name + ")"
             logger.info(log)
             self.first = False
         log = "epoch %d, training cost %g (error=%g), validation cost %g (error=%g)" % (
@@ -304,24 +314,25 @@ class EarlyStopping:
         if save_path is None:
             log += "([SAVE] %s) " % (save_path,)
         print(log)
-        log = "[LOG] %d, %g, %g, %g" % (epoch, training_cost, validation_cost, alpha)
+        log = "[LOG]\t%d\t%g\t%g" % (epoch, training_cost, validation_cost)
+        log += "\t%g\t%g\t%g"%(alpha, beta, gamma)
         for el in training_errors:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         for el in validation_errors:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         for el in training_metrics:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         for el in validation_metrics:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         for el in training_all_costs:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         for el in validation_all_costs:
-            log += ", " + str(el)
+            log += "\t" + str(el)
         logger.info(log)
 
 
 def compute_cost(
-    sess, placeholders, data, data_idx, output_cost, batch_size, alpha, is_train
+    sess, placeholders, data, data_idx, output_cost, batch_size, alpha,beta,gamma, is_train
 ):
     # initialize costs
     cost = 0.0
@@ -333,7 +344,7 @@ def compute_cost(
     sess.run(tf.local_variables_initializer())
     for j in range(n_batch):
         idx = data_idx[j * batch_size : (j + 1) * batch_size]
-        feed_dict = construct_feed(idx, data, placeholders, alpha, is_train=is_train)
+        feed_dict = construct_feed(idx, data, placeholders, alpha,beta,gamma, is_train=is_train)
         ## computing error/cost
         c, ac, e, met, _ = sess.run(
             [
@@ -379,6 +390,8 @@ def compute_cost_train_valid(
     output_cost,
     batch_size,
     alpha,
+    beta,
+    gamma,
 ):
     train_data_info = compute_cost(
         sess,
@@ -388,6 +401,8 @@ def compute_cost_train_valid(
         output_cost,
         batch_size,
         alpha,
+        beta,
+        gamma,
         is_train=True,
     )
     valid_data_info = compute_cost(
@@ -398,6 +413,8 @@ def compute_cost_train_valid(
         output_cost,
         batch_size,
         alpha,
+        beta,
+        gamma,
         is_train=False,
     )
     all_info = {}
@@ -408,12 +425,12 @@ def compute_cost_train_valid(
     return all_info
 
 
-def compute_result(sess, placeholders, data, data_idx, outputs, batch_size, alpha):
+def compute_result(sess, placeholders, data, data_idx, outputs, batch_size, alpha, beta, gamma):
     results = {}
     n_batch = int(np.ceil(data.num * 1.0 / batch_size))
     for j in range(n_batch):
         idx = data_idx[j * batch_size : (j + 1) * batch_size]
-        feed_dict = construct_feed(idx, data, placeholders, alpha)
+        feed_dict = construct_feed(idx, data, placeholders, alpha, beta, gamma)
         for k, v in outputs.items():
             if v is not None:
                 res = sess.run(v, feed_dict=feed_dict)
@@ -500,7 +517,7 @@ def train(sess, config):
         outputs = inference_label(outputs, n_steps, control_params=control_params)
 
     # cost
-    output_cost = loss(outputs, placeholders["alpha"], control_params=control_params)
+    output_cost = loss(outputs, control_params=control_params)
     # train_step
     update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
     with tf.control_dependencies(update_ops):
@@ -522,7 +539,9 @@ def train(sess, config):
     early_stopping = EarlyStopping(config)
     for i in range(config["epoch"]):
         np.random.shuffle(train_idx)
-        alpha = compute_alpha(config, i)
+        alpha = compute_alpha(config, i, key="alpha")
+        beta = compute_alpha(config, i, key="beta")
+        gamma = compute_alpha(config, i, key="gamma")
         training_info = compute_cost_train_valid(
             sess,
             placeholders,
@@ -533,6 +552,8 @@ def train(sess, config):
             output_cost,
             batch_size,
             alpha,
+            beta,
+            gamma,
         )
         # save
         save_path = None
@@ -543,6 +564,8 @@ def train(sess, config):
         # early stopping
         training_info["epoch"] = i
         training_info["alpha"] = alpha
+        training_info["beta"] = beta
+        training_info["gamma"] = gamma
         training_info["save_path"] = save_path
         if i % config["epoch_interval_print"] == 0:
             early_stopping.print_info(training_info)
@@ -557,7 +580,7 @@ def train(sess, config):
         for j in range(n_batch):
             idx = train_idx[j * batch_size : (j + 1) * batch_size]
             feed_dict = construct_feed(
-                idx, train_data, placeholders, alpha, is_train=True
+                idx, train_data, placeholders, alpha,beta,gamma, is_train=True
             )
             train_step.run(feed_dict=feed_dict)
 
@@ -571,6 +594,8 @@ def train(sess, config):
         output_cost,
         batch_size,
         alpha,
+        beta,
+        gamma,
     )
     print(
         "[RESULT] training cost %g, validation cost %g, training error %g, validation error %g"
@@ -591,7 +616,7 @@ def train(sess, config):
     ## save results
     if config["save_result_train"] != "":
         results = compute_result(
-            sess, placeholders, train_data, train_idx, outputs, batch_size, alpha
+            sess, placeholders, train_data, train_idx, outputs, batch_size, alpha, beta, gamma
         )
         results["config"] = config
         print("[SAVE] result : ", config["save_result_train"])
@@ -618,7 +643,11 @@ def infer(sess, config):
     print("n_steps        :", n_steps)
     print("dim_emit       :", dim_emit)
     alpha = config["alpha"]
+    beta  = config["beta"]
+    gamma = config["gamma"]
     print("alpha          :", alpha)
+    print("beta           :", beta)
+    print("gamma          :", gamma)
 
     placeholders = construct_placeholder(config)
     control_params = {"config": config, "placeholders": placeholders}
@@ -627,7 +656,7 @@ def infer(sess, config):
     if config["task"] == "label_prediction":
         outputs = inference_label(outputs, n_steps, control_params=control_params)
     # cost
-    output_cost = loss(outputs, placeholders["alpha"], control_params=control_params)
+    output_cost = loss(outputs, control_params=control_params)
     # train_step
     saver = tf.train.Saver()
     print_variables()
@@ -642,7 +671,7 @@ def infer(sess, config):
         test_idx,
         output_cost,
         batch_size,
-        alpha,
+        alpha, beta, gamma,
         is_train=False,
     )
     print("cost: %g" % (test_info["cost"]))
@@ -651,7 +680,7 @@ def infer(sess, config):
     ## save results
     if config["save_result_test"] != "":
         results = compute_result(
-            sess, placeholders, test_data, test_idx, outputs, batch_size, alpha
+            sess, placeholders, test_data, test_idx, outputs, batch_size, alpha, beta, gamma
         )
         results["config"] = config
         print("[SAVE] result : ", config["save_result_test"])
@@ -1121,11 +1150,13 @@ def train_fivo(sess, config):
     alpha = None
     early_stopping = EarlyStopping(config)
     print(
-        "[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)"
+        "[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha, beta, gamma,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)"
     )
     for i in range(config["epoch"]):
         np.random.shuffle(train_idx)
-        alpha = compute_alpha(config, i)
+        alpha = compute_alpha(config, i, key="alpha")
+        beta = compute_alpha(config, i, key="beta")
+        gamma = compute_alpha(config, i, key="gamma")
 
         # save
         save_path = None

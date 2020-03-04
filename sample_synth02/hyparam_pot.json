@@ -1,5 +1,7 @@
 {
-    "alpha": 1.0,
+    "alpha": 10.0,
+    "beta": 1.0,
+    "gamma": 1000.0,
     "learning_rate": 0.03,
     "sampling_type":"normal",
     "emission_type":"none",
@@ -20,9 +22,14 @@
     ],
     "transition_internal_layers": [
         {
-            "name": "lstm",
+            "name": "fc_bn",
+            "dim_output": 8
+        },
+        {
+            "name": "fc_bn",
             "dim_output": 8
         }
+
     ],
     "variational_internal_layers": [
         {
