@@ -2,3 +2,5 @@ ala_traj_all.npy
 model
 cmd.**
 config.result.json
+chig_dkf_*.npy
+md2_*.npy
