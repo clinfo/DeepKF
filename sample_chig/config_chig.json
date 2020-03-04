@@ -1,8 +1,8 @@
 {
     "batch_size": 100,
-    "data_test_npy": "sample_br2d/dataset/folding_2d_traj.npy",
-    "data_train_npy": "sample_br2d/dataset/folding_2d_traj.npy",
-    "epoch": 400,
+    "data_test_npy": "sample_chig/dataset/chig_dkf_test.npy",
+    "data_train_npy": "sample_chig/dataset/chig_dkf_train.npy",
+    "epoch": 600,
     "load_model": "",
     "save_model_path":"dummy",
     "patience": 0,
@@ -12,8 +12,9 @@
         0.8,
         0.2
     ],
-    "alpha": 0.1,
+    "alpha": 0.001,
     "batch_size": 100,
-    "dim": 2
+    "dim": 1,
+    "learning rate": 1e-04
 }
 

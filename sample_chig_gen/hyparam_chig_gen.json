@@ -2,25 +2,19 @@
     "emission_internal_layers": [
         {
             "name": "fc_bn",
-            "dim_output": 64
+            "dim_output": 16
         }
     ],
 	"transition_internal_layers": [
         {
-            "name": "lstm"
-        },
-        {
             "name": "fc_bn",
-            "dim_output": 64
+            "dim_output": 16
         }
     ],
     "variational_internal_layers": [
         {
-            "name": "lstm"
-        },
-        {
-            "name": "fc_bn",
-            "dim_output": 64
+            "name": "lstm",
+            "dim_output": 16
         }
     ],
     "potential_internal_layers": [
@@ -43,25 +37,24 @@
         ],
         "validation_cost": 0.0
     },
-    "evaluation_output": "sample_chig/model/hyparam.result.json",
-    "plot_path": "sample_chig/model/plot",
-    "save_model_path": "sample_chig/model/model",
-    "save_result_filter": "sample_chig/model/result/filter.jbl",
-    "save_result_test": "sample_chig/model/result/test.jbl",
-    "save_result_train": "sample_chig/model/result/train.jbl",
+    "evaluation_output": "sample_chig_gen/model/hyparam.result.json",
+    "plot_path": "sample_chig_gen/model/plot",
+    "save_model_path": "sample_chig_gen/model/model",
+    "save_result_filter": "sample_chig_gen/model/result/filter.jbl",
+    "save_result_test": "sample_chig_gen/model/result/test.jbl",
+    "save_result_train": "sample_chig_gen/model/result/train.jbl",
     "sampling_type":"normal",
     "emission_type":"normal",
     "state_type":"normal",
     "dynamics_type":"distribution",
     "pfilter_type":"trained_dynamics",
-    "simulation_path": "sample_chig/model/sim",
+    "simulation_path": "sample_chig_gen/model/sim",
     "potential_enabled": true,
     "potential_grad_transition_enabled": false,
     "potential_nn_enabled": false,
-    "save_model": "sample_chig/model/model/model.last.ckpt",
-    "load_model": "sample_chig/model/model/model.last.ckpt",
+    "save_model": "sample_chig_gen/model/model/model.last.ckpt",
+    "load_model": "sample_chig_gen/model/model/model.last.ckpt",
     "pfilter_proposal_sample_size":1,
     "pfilter_sample_size":1,
     "pfilter_sample_size_num":1
-
 }

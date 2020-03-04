@@ -5,6 +5,7 @@ import sys
 import os
 scrdir = os.path.abspath(os.path.dirname(__file__))
 sys.path.append(scrdir)
+sys.path.append("./script")
 from matplotlib.colors import LinearSegmentedColormap
 import argparse
 from plot_input import load_plot_data,get_default_argparser
@@ -107,7 +108,7 @@ if args.mode=="all":
         l = args.limit_all
     plot_fig(l-1)
     name=data.info[data.pid_key][l-1]
-    out_filename=str(l)+"_"+name+"_plot.png"
+    out_filename=data.out_dir+"/"+str(l)+"_"+name+"_plot.png"
     print("[SAVE] :",out_filename)
     plt.savefig(out_filename)
     plt.clf()
@@ -115,7 +116,7 @@ else:
     idx=args.index
     plot_fig(idx)
     name=data.info[data.pid_key][idx]
-    out_filename=str(idx)+"_"+name+"_plot.png"
+    out_filename=data.out_dir+"/"+str(idx)+"_"+name+"_plot.png"
     print("[SAVE] :",out_filename)
     plt.savefig(out_filename)
     plt.clf()
