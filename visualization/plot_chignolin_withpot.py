@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from matplotlib.colors import LinearSegmentedColormap
+sys.path.append("./script")
 from plot_input import load_plot_data,get_default_argparser
 from math import pi
 import argparse
@@ -177,7 +178,7 @@ def plot_fig(idx):
 if args.mode=="all":
     idx=499
     plot_fig(idx)
-    out_filename="test_plot.png"
+    out_filename=data.out_dir+"/"+str(idx)+"_plot_withpot.png"
     print("[SAVE] :",out_filename)
     plt.savefig(out_filename)
     plt.clf()
