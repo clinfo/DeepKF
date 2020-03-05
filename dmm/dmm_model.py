@@ -91,13 +91,13 @@ def build_nn(
         if hy_layer["name"] == "fc":
             with tf.variable_scope(name + "_fc" + str(i)) as scope:
                 layer = layers.fc_layer(
-                    "vd_fc" + str(i),
+                    "fc" + str(i),
                     layer,
                     layer_dim,
                     layer_dim_out,
                     wd_w,
                     wd_bias,
-                    activate=tf.sigmoid,
+                    activate=tf.nn.relu,
                     init_params_flag=init_params_flag,
                 )
                 layer_dim = layer_dim_out
@@ -132,7 +132,7 @@ def build_nn(
                     layer_dim_out,
                     wd_w,
                     wd_bias,
-                    activate=tf.sigmoid,
+                    activate=tf.nn.relu,
                     with_bn=True,
                     init_params_flag=init_params_flag,
                     is_train=is_train,
@@ -306,7 +306,7 @@ def computeVariationalDist(x, n_steps, init_params_flag=True, control_params=Non
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                 layer_logit = tf.reshape(layer_logit, [-1, n_steps, dim])
@@ -321,7 +321,7 @@ def computeVariationalDist(x, n_steps, init_params_flag=True, control_params=Non
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                     layer_mu = tf.reshape(layer_mu, [-1, n_steps, dim])
@@ -675,7 +675,7 @@ def computeTransitionDistWithNN(
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                     layer_mu = tf.reshape(layer_mu, [-1, n_steps, dim])
@@ -1545,15 +1545,24 @@ def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
                     )
                     mu_trans_1=out_params[0]
 
-                params_pot = None
+                mu_trans_1 = tf.reshape(mu_trans_1, [-1, pot_points.shape[1]])
+                
                 pot0 = computePotential(pot_points, 1, control_params=control_params)
                 pot1 = computePotential(
                     mu_trans_1, 1, init_params_flag=False, control_params=control_params
                 )
                 # pot: bs x T
-                c = 0.1
+                dist=(mu_trans_1-pot_points)**2
+                dist=tf.nn.relu(dist-0.1)
+                dist=tf.reduce_sum(dist)
+                print("dist:",dist)
+                dist_loss=dist
+                c = 0.0001
                 pot = tf.nn.relu(pot1 - pot0 + c)
-                pot_loss = n_steps*tf.reshape(pot, [-1, 1])
+                print("pot:",pot)
+                pot_loss=tf.reduce_sum(pot)
+                #pot=tf.zeros_like(pot)#pot+dist_loss
+                pot_loss=n_steps*(pot_loss+dist_loss)
     return pot_loss
 
 
