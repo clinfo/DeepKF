@@ -1,0 +1,126 @@
+{
+    "alpha": 1.0,
+    "batch_size": 50,
+    "curriculum_alpha": false,
+    "data_test_npy": "synthetic001/train_data1.npy",
+    "data_train_npy": "synthetic001/test_data1.npy",
+    "dim": 1,
+    "dim_emit": 1,
+    "dynamics_type": "distribution",
+    "emission_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "emission_type": "normal",
+    "epoch": 100,
+    "epoch_interval_print": 10,
+    "epoch_interval_save": 10,
+    "evaluation": {
+        "training_all_costs": [
+            3.6657791137695312,
+            2.7356463760952465e-05,
+            3.4904401302337646
+        ],
+        "training_all_costs_name": [
+            "recons",
+            "temporal",
+            "pred"
+        ],
+        "training_cost": 7.178560892740886,
+        "training_errors": [
+            2.073091983795166
+        ],
+        "training_errors_name": [
+            "recons_mse"
+        ],
+        "training_metrics": [],
+        "training_metrics_name": [],
+        "validation_all_costs": [
+            10.975053787231445,
+            8.20644199848175e-05,
+            10.524044036865234
+        ],
+        "validation_all_costs_name": [
+            "recons",
+            "temporal",
+            "pred"
+        ],
+        "validation_cost": 21.566123962402344,
+        "validation_errors": [
+            6.2044477462768555
+        ],
+        "validation_errors_name": [
+            "recons_mse"
+        ],
+        "validation_metrics": [],
+        "validation_metrics_name": []
+    },
+    "evaluation_output": "synthetic001/hyparam.result.json",
+    "field_grid_dim": null,
+    "field_grid_num": 30,
+    "hyperparameter_input": "synthetic001/hyparam.json",
+    "label_test_npy": null,
+    "label_train_npy": null,
+    "label_type": "multinominal",
+    "learning_rate": 0.01,
+    "load_model": "synthetic001/model/model.last.ckpt",
+    "mask_test_npy": null,
+    "mask_train_npy": null,
+    "n_steps": 5,
+    "normal_max_var": 5.0,
+    "normal_min_var": 1e-05,
+    "patience": 0,
+    "pfilter_proposal_sample_size": 1000,
+    "pfilter_sample_size": 10,
+    "pfilter_save_sample_num": 100,
+    "pfilter_type": "trained_dynamics",
+    "plot_path": "synthetic001/model/plot/",
+    "potential_enabled": false,
+    "potential_grad_transition_enabled": false,
+    "potential_internal_layers": [
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "potential_nn_enabled": false,
+    "sampling_tau": 10,
+    "sampling_type": "normal",
+    "save_model": "synthetic001/model/model.last.ckpt",
+    "save_model_path": "synthetic001/model/",
+    "save_result_filter": "synthetic001/model/result/filter.jbl",
+    "save_result_test": "synthetic001/model/result/test.jbl",
+    "save_result_train": "synthetic001/model/result/train.jbl",
+    "state_type": "normal",
+    "steps_test_npy": null,
+    "steps_train_npy": null,
+    "task": "generative",
+    "time_major": true,
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ],
+    "transition_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "lstm"
+        }
+    ],
+    "zero_dynamics_var": 1.0
+}

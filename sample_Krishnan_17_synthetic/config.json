@@ -1,0 +1,22 @@
+{
+    "data_test_npy": "synthetic001/train_data1.npy",
+    "data_train_npy": "synthetic001/test_data1.npy",
+    "batch_size": 50,
+    "dim": 1,
+    "epoch": 100,
+    "patience": 0,
+    "load_model": "synthetic001/model/model.last.ckpt",
+    "save_model": "synthetic001/model/model.last.ckpt",
+    "save_model_path": "synthetic001/model/",
+    "save_result_test": "synthetic001/model/result/test.jbl",
+    "save_result_train": "synthetic001/model/result/train.jbl",
+    "save_result_filter": "synthetic001/model/result/filter.jbl",
+    "train_test_ratio": [0.8,0.2],
+    "alpha": 1.0,
+    "evaluation_output": "synthetic001/hyparam.result.json",
+    "hyperparameter_input": "synthetic001/hyparam.json",
+    "potential_enabled": false,
+    "potential_grad_transition_enabled": false,
+    "potential_nn_enabled": false,
+    "plot_path": "synthetic001/model/plot/"
+}
