@@ -4,21 +4,18 @@
     "mask_test_npy": "data_state_space_v3/pack_selected_mask_emit_test.npy",
     "data_train_npy": "data_state_space_v3/pack_selected_data_emit.npy",
     "mask_train_npy": "data_state_space_v3/pack_selected_mask_emit.npy",
-	"steps_npy": "data_state_space_v3/pack_selected_steps.npy",
-	"steps_test_npy": "data_state_space_v3/pack_selected_steps_test.npy",
+    "steps_npy": "data_state_space_v3/pack_selected_steps.npy",
+    "steps_test_npy": "data_state_space_v3/pack_selected_steps_test.npy",
     "data_info_json": "data_state_space_v3/pack_selected_info.json",
     "dim": 4,
     "epoch": 1000,
-	"save_model_path":"example_model",
+    "save_model_path": "example_model",
     "load_model": "example_model/large_g_model.last.ckpt",
     "save_model": "example_model/large_g_model.last.ckpt",
-	"patience": 0,
+    "patience": 0,
     "save_result_test": "example_result/large_g_test.jbl",
     "save_result_train": "example_result/large_g_teain.jbl",
-	"state_type": "gauss",
-	"sampling_type": "gauss",
-    "train_test_ratio": [
-        0.8,
-        0.2
-    ]
+    "state_type": "gauss",
+    "sampling_type": "gauss",
+    "train_test_ratio": [0.8, 0.2],
 }

@@ -983,7 +983,7 @@ def p_filter(
     obs_params = computeEmission(particles, 1, control_params=control_params)
     print("@@@@", batch_size)
     print("@@@@", proposal_sample_size, sample_size)
-    if etype=="normal":
+    if etype == "normal":
         #  mu: (proposal_sample_size x sample_size)  x batch_size x emit_dim
         #  cov: (proposal_sample_size x sample_size) x batch_size x emit_dim
         mu = obs_params[0]
@@ -994,13 +994,13 @@ def p_filter(
         #  x: batch_size x emit_dim
         d = (mu - x[:, :]) * m
         w = -tf.reduce_sum(d ** 2 / cov, axis=2)
-        pred_obs_params=[mu,cov]
-    elif etype=="none":
+        pred_obs_params = [mu, cov]
+    elif etype == "none":
         mu = obs_params[0]
         mu = tf.reshape(mu, [-1, batch_size, dim_emit])
         d = (mu - x[:, :]) * m
-        w = -tf.reduce_sum(d ** 2/10, axis=2)
-        pred_obs_params=[mu]
+        w = -tf.reduce_sum(d ** 2 / 10, axis=2)
+        pred_obs_params = [mu]
     else:
         raise Exception("[Error] unknown pfilter type")
     # w:(proposal_sample_size x sample_size) x batch__size
@@ -1108,7 +1108,9 @@ def inference_by_dist(n_steps, control_params):
             z_pred_s, n_steps, init_params_flag=False, control_params=control_params
         )
 
-        pot_loss=computePotentialLoss(z_params, pot_points, n_steps, control_params=control_params)
+        pot_loss = computePotentialLoss(
+            z_params, pot_points, n_steps, control_params=control_params
+        )
     outputs = {
         "z_s": z_s,
         "z_params": z_params,
@@ -1158,7 +1160,9 @@ def inference_by_sample(n_steps, control_params):
         obs_pred_params = computeEmission(
             z_pred_s, n_steps, init_params_flag=False, control_params=control_params
         )
-        pot_loss=computePotentialLoss(z_params, pot_points, n_steps, control_params=control_params)
+        pot_loss = computePotentialLoss(
+            z_params, pot_points, n_steps, control_params=control_params
+        )
     outputs = {
         "z_s": z_s,
         "z_params": z_params,
@@ -1209,11 +1213,12 @@ def computeNegCLL(x, params, mask, control_params):
         negCLL = negCLL * 0.5
         negCLL = negCLL * mask
     elif etype == "none":
-        negCLL = (params[0]-x)**2
+        negCLL = (params[0] - x) ** 2
         negCLL = negCLL * mask
     negCLL = tf.reduce_sum(negCLL, axis=2)
     negCLL = tf.reduce_sum(negCLL, axis=1)
     return negCLL
+
 
 def computeNegPredLL(x, params, mask, control_params):
     """
@@ -1228,19 +1233,19 @@ def computeNegPredLL(x, params, mask, control_params):
 	"""
     etype = control_params["config"]["emission_type"]
     if etype == "normal":
-        mu_p = params[0][:,:-1,:]
-        cov_p = params[1][:,:-1,:]
-        v=x[:,1:,:]
-        m=mask[:,1:,:]
+        mu_p = params[0][:, :-1, :]
+        cov_p = params[1][:, :-1, :]
+        v = x[:, 1:, :]
+        m = mask[:, 1:, :]
 
         negCLL = tf.log(2 * np.pi) + tf.log(cov_p) + (v - mu_p) ** 2 / cov_p
         negCLL = negCLL * 0.5
         negCLL = negCLL * m
     elif etype == "none":
-        pred=params[0][:,:-1,:]
-        v=x[:,1:,:]
-        m=mask[:,1:,:]
-        negCLL = (pred-v)**2
+        pred = params[0][:, :-1, :]
+        v = x[:, 1:, :]
+        m = mask[:, 1:, :]
+        negCLL = (pred - v) ** 2
         negCLL = negCLL * m
     negCLL = tf.reduce_sum(negCLL, axis=2)
     negCLL = tf.reduce_sum(negCLL, axis=1)
@@ -1323,8 +1328,10 @@ def loss(outputs, alpha=1, control_params=None):
     metrics_name = []
     metrics = []
     if "obs_pred_params" in outputs:
-        negPredLL = computeNegPredLL(x, outputs["obs_pred_params"], mask, control_params)
-        cost_pred=tf.reduce_mean(negPredLL)
+        negPredLL = computeNegPredLL(
+            x, outputs["obs_pred_params"], mask, control_params
+        )
+        cost_pred = tf.reduce_mean(negPredLL)
         costs_name.append("pred")
         costs.append(cost_pred)
 
@@ -1362,14 +1369,14 @@ def loss(outputs, alpha=1, control_params=None):
         errors_name.append("recons_mse")
         errors.append(diff)
 
-    weighted_cost=[]
-    for name,c in zip(costs_name, costs):
-        if name=="temporal":
-            weighted_cost.append(c*alpha)
+    weighted_cost = []
+    for name, c in zip(costs_name, costs):
+        if name == "temporal":
+            weighted_cost.append(c * alpha)
         else:
             weighted_cost.append(c)
     print(weighted_cost)
-    mean_cost = tf.add_n(weighted_cost,name="train_cost")
+    mean_cost = tf.add_n(weighted_cost, name="train_cost")
     tf.add_to_collection("losses", mean_cost)
     total_cost = tf.add_n(tf.get_collection("losses"), name="total_loss")
 
@@ -1500,7 +1507,7 @@ def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
             if pot_points is None:
                 use_data_points = True
             if use_data_points:
-                mu_q, cov_q=z_params
+                mu_q, cov_q = z_params
                 ## compute V(x(t+1))-V(x(t)) < 0 for stability
                 mu_trans_1, cov_trans_1 = computeTransitionUKF(
                     mu_q,
@@ -1527,15 +1534,21 @@ def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
                 pot_loss = tf.reshape(pot, [-1, n_steps])
             else:
                 print("=== potential loss: potential points")
-                if dytype=="function":
+                if dytype == "function":
                     mu_trans_1 = computeTransitionFunc(
-                        pot_points, 1, init_params_flag=False, control_params=control_params
+                        pot_points,
+                        1,
+                        init_params_flag=False,
+                        control_params=control_params,
                     )
-                elif dytype=="distribution":
+                elif dytype == "distribution":
                     out_params = computeTransitionDistWithNN(
-                        pot_points, 1, init_params_flag=False, control_params=control_params
+                        pot_points,
+                        1,
+                        init_params_flag=False,
+                        control_params=control_params,
                     )
-                    mu_trans_1=out_params[0]
+                    mu_trans_1 = out_params[0]
 
                 params_pot = None
                 pot0 = computePotential(pot_points, 1, control_params=control_params)
@@ -1600,7 +1613,7 @@ def computePotentialWithBinaryPot(
 
 	"""
     pot_pole = []
-    state_num=2
+    state_num = 2
     hy_param = hy.get_hyperparameter()
     dim = hy_param["dim"]
     z = tf.reshape(z_input, [-1, dim])
@@ -1615,9 +1628,9 @@ def computePotentialWithBinaryPot(
         d2 = z - tf.constant(z2, dtype=np.float32)
         p1 = tf.reduce_sum(d1 ** 2, axis=1)
         p2 = tf.reduce_sum(d2 ** 2, axis=1)
-        if len(pot_pole)<state_num:
+        if len(pot_pole) < state_num:
             pot_pole.append(p1)
-        if len(pot_pole)<state_num:
+        if len(pot_pole) < state_num:
             pot_pole.append(p2)
     pot_pole = tf.stack(pot_pole)
     # pot_pole: (2xdim) x (bs x T)

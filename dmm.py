@@ -20,7 +20,13 @@ import argparse
 import dmm.dmm_input as dmm_input
 
 # from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
-from dmm.dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
+from dmm.dmm_model import (
+    inference,
+    inference_label,
+    loss,
+    p_filter,
+    sampleVariationalDist,
+)
 from dmm.dmm_model import fivo
 from dmm.dmm_model import construct_placeholder, computeEmission, computeVariationalDist
 import dmm.hyopt as hy
@@ -30,8 +36,10 @@ from dmm.attractor import (
     make_griddata_discrete,
     compute_discrete_transition_mat,
 )
+
 # for profiler
 from tensorflow.python.client import timeline
+
 
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
@@ -58,18 +66,19 @@ class NumPyArangeEncoder(json.JSONEncoder):
 
 def build_config(config):
     if "result_path" in config:
-        path=config["result_path"]
+        path = config["result_path"]
         os.makedirs(path, exist_ok=True)
-        config["save_model"]        =path+"/model/model.last.ckpt"
-        config["save_model_path"]   =path+"/model"
-        config["save_result_filter"]=path+"/filter.jbl"
-        config["save_result_test"]  =path+"/test.jbl"
-        config["save_result_train"] =path+"/train.jbl"
-        config["simulation_path"]   =path+"/sim"
-        config["evaluation_output"] =path+"/hyparam.result.json"
-        config["load_model"]        =path+"/model/model.last.ckpt"
-        config["plot_path"]         =path+"/plot"
-        config["log"]         =path+"/log.txt"
+        config["save_model"] = path + "/model/model.last.ckpt"
+        config["save_model_path"] = path + "/model"
+        config["save_result_filter"] = path + "/filter.jbl"
+        config["save_result_test"] = path + "/test.jbl"
+        config["save_result_train"] = path + "/train.jbl"
+        config["simulation_path"] = path + "/sim"
+        config["evaluation_output"] = path + "/hyparam.result.json"
+        config["load_model"] = path + "/model/model.last.ckpt"
+        config["plot_path"] = path + "/plot"
+        config["log"] = path + "/log.txt"
+
 
 def get_default_config():
     config = {}
@@ -712,7 +721,7 @@ def filter_discrete_forward(sess, config):
     for d in range(num_d):
         m = x_params[0][d, 0, :]
         cov = x_params[1][d, 0, :]
-        diff_x = -(x - m) ** 2 / (2 * cov)
+        diff_x = -((x - m) ** 2) / (2 * cov)
         prob = -1.0 / 2.0 * np.log(2 * np.pi * cov) + diff_x
         # prob: data_num x n_steps x emit_dim
         prob = np.mean(prob * mask, axis=2)
@@ -791,214 +800,232 @@ def get_batch_size(config, hy_param, data):
         n_batch += 1
     return batch_size, n_batch
 
-def infer(sess,config):
-	hy_param=hy.get_hyperparameter()
-	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,
-			test_flag=True)
-	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
-	dim,dim_emit=get_dim(config,hy_param,test_data)
-	n_steps=test_data.n_steps
-	hy_param["n_steps"]=n_steps
-	print("test_data_size:",test_data.num)
-	print("batch_size     :",batch_size)
-	print("n_steps        :",n_steps)
-	print("dim_emit       :",dim_emit)
-	alpha=config["alpha"]
-	print("alpha          :",alpha)
-	
-	placeholders=construct_placeholder(config)
-	control_params={
-			"config":config,
-			"placeholders":placeholders,
-			}
-	# inference
-	outputs=inference(n_steps,control_params)
-	if config["task"]=="label_prediction":
-		outputs=inference_label(outputs,n_steps,control_params=control_params)
-	# cost
-	output_cost=loss(outputs,placeholders["alpha"],control_params=control_params)
-	# train_step
-	saver = tf.train.Saver()
-	print_variables()
-	print("[LOAD]",config["load_model"])
-	saver.restore(sess,config["load_model"])
-	test_idx=list(range(test_data.num))
-	# check point
-	test_info=compute_cost(sess,placeholders,
-			test_data,test_idx,
-			output_cost,batch_size,alpha,is_train=False)
-	print("cost: %g"%(test_info["cost"]))
 
-	## save results
-	if config["save_result_test"]!="":
-		results=compute_result(sess,placeholders,test_data,test_idx,outputs,batch_size,alpha)
-		results["config"]=config
-		print("[SAVE] result : ",config["save_result_test"])
-		base_path = os.path.dirname(config["save_result_test"])
-		os.makedirs(base_path,exist_ok=True)
-		joblib.dump(results,config["save_result_test"])
-	
+def infer(sess, config):
+    hy_param = hy.get_hyperparameter()
+    _, test_data = dmm_input.load_data(
+        config, with_shuffle=False, with_train_test=False, test_flag=True
+    )
+    batch_size, n_batch = get_batch_size(config, hy_param, test_data)
+    dim, dim_emit = get_dim(config, hy_param, test_data)
+    n_steps = test_data.n_steps
+    hy_param["n_steps"] = n_steps
+    print("test_data_size:", test_data.num)
+    print("batch_size     :", batch_size)
+    print("n_steps        :", n_steps)
+    print("dim_emit       :", dim_emit)
+    alpha = config["alpha"]
+    print("alpha          :", alpha)
 
-def filter_discrete_forward(sess,config):
-	hy_param=hy.get_hyperparameter()
-	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
-	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
-	dim,dim_emit=get_dim(config,hy_param,test_data)
-	
-	n_steps=test_data.n_steps
-	hy_param["n_steps"]=n_steps
-	z_holder=tf.placeholder(tf.float32,shape=(None,dim))
-	z0=make_griddata_discrete(dim)
-	control_params={
-		"dropout_rate":0.0,
-		"config":config,
-		}
-	# inference
-	params=computeEmission(z_holder,n_steps=1,
-		init_params_flag=True,control_params=control_params)
-	
-	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	qz=computeVariationalDist(x_holder,n_steps,init_params_flag=True,control_params=control_params)
-	# load
-	try:
-		saver = tf.train.Saver()
-		print("[LOAD] ",config["load_model"])
-		saver.restore(sess,config["load_model"])
-	except:
-		print("[SKIP] Load parameters")
-	# computing grid data(state => emission)
-	feed_dict={z_holder:z0}
-	x_params=sess.run(params,feed_dict=feed_dict)
-	# computing qz (test_x => qz)
-	x=test_data.x
-	mask=test_data.m
-	feed_dict={x_holder:x}
-	out_qz=sess.run(qz,feed_dict=feed_dict)
+    placeholders = construct_placeholder(config)
+    control_params = {
+        "config": config,
+        "placeholders": placeholders,
+    }
+    # inference
+    outputs = inference(n_steps, control_params)
+    if config["task"] == "label_prediction":
+        outputs = inference_label(outputs, n_steps, control_params=control_params)
+    # cost
+    output_cost = loss(outputs, placeholders["alpha"], control_params=control_params)
+    # train_step
+    saver = tf.train.Saver()
+    print_variables()
+    print("[LOAD]", config["load_model"])
+    saver.restore(sess, config["load_model"])
+    test_idx = list(range(test_data.num))
+    # check point
+    test_info = compute_cost(
+        sess,
+        placeholders,
+        test_data,
+        test_idx,
+        output_cost,
+        batch_size,
+        alpha,
+        is_train=False,
+    )
+    print("cost: %g" % (test_info["cost"]))
 
-	# showing mean and variance at each state 
-	# usually,  num_d == dim 
-	num_d=x_params[0].shape[0]
-	dist_x=[]
-	for d in range(num_d):
-		m=x_params[0][d,0,:]
-		print("##,mean of state=",d,",".join(map(str,m)))
-	for d in range(num_d):
-		cov=x_params[1][d,0,:]
-		print("##,var. of state=",d,",".join(map(str,cov)))
-	# compute dist_x
-	for d in range(num_d):
-		m=x_params[0][d,0,:]
-		cov=x_params[1][d,0,:]
-		diff_x=-(x-m)**2/(2*cov)
-		prob=-1.0/2.0*np.log(2*np.pi*cov)+diff_x
-		# prob: data_num x n_steps x emit_dim
-		prob=np.mean(prob*mask,axis=2)
-		dist_x.append(prob)
-	dist_x=np.array(dist_x)
-	dist_x=np.transpose(dist_x,[1,2,0])
-	# dist: data_num x n_steps x dim(#state)
-	dist_x_max=np.zeros_like(dist_x)
-	for i in range(dist_x.shape[0]):
-		for j in range(dist_x.shape[1]):
-			k=np.argmax(dist_x[i,j,:])
-			dist_x_max[i,j,k]=1
-	##
-	## p(x|z)*q(z)
-	## p(x,z)
-	dist_qz=out_qz[0].reshape((20,100,dim))
-	dist_pxz=dist_qz*np.exp(dist_x)
-	##
-	tr_mat=compute_discrete_transition_mat(sess,config)
-	print("original transition matrix")
-	print(tr_mat)
-	beta=5.0e-2
-	tr_mat=beta*tr_mat+(1.0-beta)*np.identity(dim)
-	print("modified transition matrix")
-	print(tr_mat)
-	## viterbi
-	prob_viterbi=np.zeros_like(dist_x)
-	prob_viterbi[:,:,:]=-np.inf
-	path_viterbi=np.zeros_like(dist_x)
-	index_viterbi=np.zeros_like(dist_x,dtype=np.int32)
-	for d in range(dist_x.shape[0]):
-		prob_viterbi[d,0,:]=dist_pxz[d,0,:]
-		index_viterbi[d,0,:]=np.argmax(dist_pxz[d,0,:])
-		step=dist_x.shape[1]-1
-		for t in range(step):
-			for i in range(dim):
-				for j in range(dim):
-					p=0
-					p+=prob_viterbi[d,t,i]
-					p+=np.log(dist_pxz[d,t+1,j])
-					#p+=np.log(dist_qz[d,t+1,j])
-					p+=np.log(tr_mat[i,j])
-					if prob_viterbi[d,t+1,j]<p:
-						prob_viterbi[d,t+1,j]=p
-						index_viterbi[d,t+1,j]=i
-		##
-		i=np.argmax(prob_viterbi[d,step,:])
-		path_viterbi[d,step,i]=1.0
-		for t in range(step):
-			j=index_viterbi[d,step-t-1,i]
-			#print(prob_viterbi[d,step-t-1,i])
-			path_viterbi[d,step-t-1,j]=1.0
-			i=j
+    ## save results
+    if config["save_result_test"] != "":
+        results = compute_result(
+            sess, placeholders, test_data, test_idx, outputs, batch_size, alpha
+        )
+        results["config"] = config
+        print("[SAVE] result : ", config["save_result_test"])
+        base_path = os.path.dirname(config["save_result_test"])
+        os.makedirs(base_path, exist_ok=True)
+        joblib.dump(results, config["save_result_test"])
 
 
-	## save results
-	if config["save_result_filter"]!="":
-		results={}
-		#results["dist"]=dist_x
-		results["dist_max"]=dist_x_max
-		results["dist_qz"]=dist_qz
-		results["dist_pxz"]=dist_pxz
-		results["dist_px"]=dist_x
-		results["dist_viterbi"]=path_viterbi
-		results["tr_mat"]=tr_mat
-		print("[SAVE] result : ",config["save_result_filter"])
-		joblib.dump(results,config["save_result_filter"])
+def filter_discrete_forward(sess, config):
+    hy_param = hy.get_hyperparameter()
+    _, test_data = dmm_input.load_data(
+        config, with_shuffle=False, with_train_test=False, test_flag=True
+    )
+    batch_size, n_batch = get_batch_size(config, hy_param, test_data)
+    dim, dim_emit = get_dim(config, hy_param, test_data)
+
+    n_steps = test_data.n_steps
+    hy_param["n_steps"] = n_steps
+    z_holder = tf.placeholder(tf.float32, shape=(None, dim))
+    z0 = make_griddata_discrete(dim)
+    control_params = {
+        "dropout_rate": 0.0,
+        "config": config,
+    }
+    # inference
+    params = computeEmission(
+        z_holder, n_steps=1, init_params_flag=True, control_params=control_params
+    )
+
+    x_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
+    qz = computeVariationalDist(
+        x_holder, n_steps, init_params_flag=True, control_params=control_params
+    )
+    # load
+    try:
+        saver = tf.train.Saver()
+        print("[LOAD] ", config["load_model"])
+        saver.restore(sess, config["load_model"])
+    except:
+        print("[SKIP] Load parameters")
+    # computing grid data(state => emission)
+    feed_dict = {z_holder: z0}
+    x_params = sess.run(params, feed_dict=feed_dict)
+    # computing qz (test_x => qz)
+    x = test_data.x
+    mask = test_data.m
+    feed_dict = {x_holder: x}
+    out_qz = sess.run(qz, feed_dict=feed_dict)
+
+    # showing mean and variance at each state
+    # usually,  num_d == dim
+    num_d = x_params[0].shape[0]
+    dist_x = []
+    for d in range(num_d):
+        m = x_params[0][d, 0, :]
+        print("##,mean of state=", d, ",".join(map(str, m)))
+    for d in range(num_d):
+        cov = x_params[1][d, 0, :]
+        print("##,var. of state=", d, ",".join(map(str, cov)))
+    # compute dist_x
+    for d in range(num_d):
+        m = x_params[0][d, 0, :]
+        cov = x_params[1][d, 0, :]
+        diff_x = -((x - m) ** 2) / (2 * cov)
+        prob = -1.0 / 2.0 * np.log(2 * np.pi * cov) + diff_x
+        # prob: data_num x n_steps x emit_dim
+        prob = np.mean(prob * mask, axis=2)
+        dist_x.append(prob)
+    dist_x = np.array(dist_x)
+    dist_x = np.transpose(dist_x, [1, 2, 0])
+    # dist: data_num x n_steps x dim(#state)
+    dist_x_max = np.zeros_like(dist_x)
+    for i in range(dist_x.shape[0]):
+        for j in range(dist_x.shape[1]):
+            k = np.argmax(dist_x[i, j, :])
+            dist_x_max[i, j, k] = 1
+    ##
+    ## p(x|z)*q(z)
+    ## p(x,z)
+    dist_qz = out_qz[0].reshape((20, 100, dim))
+    dist_pxz = dist_qz * np.exp(dist_x)
+    ##
+    tr_mat = compute_discrete_transition_mat(sess, config)
+    print("original transition matrix")
+    print(tr_mat)
+    beta = 5.0e-2
+    tr_mat = beta * tr_mat + (1.0 - beta) * np.identity(dim)
+    print("modified transition matrix")
+    print(tr_mat)
+    ## viterbi
+    prob_viterbi = np.zeros_like(dist_x)
+    prob_viterbi[:, :, :] = -np.inf
+    path_viterbi = np.zeros_like(dist_x)
+    index_viterbi = np.zeros_like(dist_x, dtype=np.int32)
+    for d in range(dist_x.shape[0]):
+        prob_viterbi[d, 0, :] = dist_pxz[d, 0, :]
+        index_viterbi[d, 0, :] = np.argmax(dist_pxz[d, 0, :])
+        step = dist_x.shape[1] - 1
+        for t in range(step):
+            for i in range(dim):
+                for j in range(dim):
+                    p = 0
+                    p += prob_viterbi[d, t, i]
+                    p += np.log(dist_pxz[d, t + 1, j])
+                    # p+=np.log(dist_qz[d,t+1,j])
+                    p += np.log(tr_mat[i, j])
+                    if prob_viterbi[d, t + 1, j] < p:
+                        prob_viterbi[d, t + 1, j] = p
+                        index_viterbi[d, t + 1, j] = i
+        ##
+        i = np.argmax(prob_viterbi[d, step, :])
+        path_viterbi[d, step, i] = 1.0
+        for t in range(step):
+            j = index_viterbi[d, step - t - 1, i]
+            # print(prob_viterbi[d,step-t-1,i])
+            path_viterbi[d, step - t - 1, j] = 1.0
+            i = j
+
+    ## save results
+    if config["save_result_filter"] != "":
+        results = {}
+        # results["dist"]=dist_x
+        results["dist_max"] = dist_x_max
+        results["dist_qz"] = dist_qz
+        results["dist_pxz"] = dist_pxz
+        results["dist_px"] = dist_x
+        results["dist_viterbi"] = path_viterbi
+        results["tr_mat"] = tr_mat
+        print("[SAVE] result : ", config["save_result_filter"])
+        joblib.dump(results, config["save_result_filter"])
 
 
-def get_batch_size(config,hy_param,data):
-	"""
+def get_batch_size(config, hy_param, data):
+    """
 	Returns
 	-------
 		batch_size :
 		n_batch :
 	"""
-	batch_size=config["batch_size"]
-	n_batch=int(data.num/batch_size)
-	if n_batch==0:
-		batch_size=data.num
-		n_batch=1
-	elif n_batch*batch_size!=data.num:
-		n_batch+=1
-	return batch_size,n_batch
+    batch_size = config["batch_size"]
+    n_batch = int(data.num / batch_size)
+    if n_batch == 0:
+        batch_size = data.num
+        n_batch = 1
+    elif n_batch * batch_size != data.num:
+        n_batch += 1
+    return batch_size, n_batch
+
 
 def construct_filter_placeholder(config):
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	dim_emit=hy_param["dim_emit"]
-	n_steps=hy_param["n_steps"]
-	# 
-	x_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
-	m_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
-	z_holder=tf.placeholder(tf.float32,shape=(None,n_steps+1,dim))
-	step=tf.placeholder(tf.int32)
-	dropout_rate=tf.placeholder(tf.float32)
-	is_train=tf.placeholder(tf.bool)
-	#
-	placeholders={"x":x_holder,
-			"z":z_holder,
-			"m":m_holder,
-			"step": step,
-			"dropout_rate": dropout_rate,
-			"is_train": is_train,
-			}
-	return placeholders
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    dim_emit = hy_param["dim_emit"]
+    n_steps = hy_param["n_steps"]
+    #
+    x_holder = tf.placeholder(tf.float32, shape=(None, dim_emit))
+    m_holder = tf.placeholder(tf.float32, shape=(None, dim_emit))
+    z_holder = tf.placeholder(tf.float32, shape=(None, n_steps + 1, dim))
+    step = tf.placeholder(tf.int32)
+    dropout_rate = tf.placeholder(tf.float32)
+    is_train = tf.placeholder(tf.bool)
+    #
+    placeholders = {
+        "x": x_holder,
+        "z": z_holder,
+        "m": m_holder,
+        "step": step,
+        "dropout_rate": dropout_rate,
+        "is_train": is_train,
+    }
+    return placeholders
 
-def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False):
-	"""
+
+def construct_filter_feed(idx, batch_size, step, data, z, placeholders, is_train=False):
+    """
 	Parameters
 	----------
 		idx :
@@ -1015,52 +1042,53 @@ def construct_filter_feed(idx,batch_size,step,data,z,placeholders,is_train=False
 		bs :
 			batch_size 
 	"""
-	feed_dict={}
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	dim_emit=hy_param["dim_emit"]
-	n_steps=hy_param["n_steps"]
-	sample_size=config["pfilter_sample_size"]
-	proposal_sample_size=config["pfilter_proposal_sample_size"]
+    feed_dict = {}
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    dim_emit = hy_param["dim_emit"]
+    n_steps = hy_param["n_steps"]
+    sample_size = config["pfilter_sample_size"]
+    proposal_sample_size = config["pfilter_proposal_sample_size"]
 
-	dropout_rate=0.0
-	if is_train:
-		if "dropout_rate" in hy_param:
-			dropout_rate=hy_param["dropout_rate"]
-		else:
-			dropout_rate=0.5
-	# 
-	for key,ph in placeholders.items():
-		if key == "x":
-			if idx+batch_size>data.num: # for last
-				x=np.zeros((batch_size,dim_emit),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-data.num)
-				x[:bs,:]=data.x[idx:idx+batch_size,step,:]
-			else:
-				x=data.x[idx:idx+batch_size,step,:]
-				bs=batch_size
-			feed_dict[ph]=x
-		elif key == "z":
-			feed_dict[ph]=z
-		elif key == "m":
-			if idx+batch_size>data.num: # for last
-				m=np.zeros((batch_size,dim_emit),dtype=np.float32)
-				bs=batch_size-(idx+batch_size-data.num)
-				m[:bs,:]=data.m[idx:idx+batch_size,step,:]
-			else:
-				m=data.m[idx:idx+batch_size,step,:]
-				bs=batch_size
-			feed_dict[ph]=m
-		elif key == "dropout_rate":
-			feed_dict[ph]=dropout_rate
-		elif key == "is_train":
-			feed_dict[ph]=is_train
-		elif key == "step":
-			feed_dict[ph]=step
-	return feed_dict,bs
+    dropout_rate = 0.0
+    if is_train:
+        if "dropout_rate" in hy_param:
+            dropout_rate = hy_param["dropout_rate"]
+        else:
+            dropout_rate = 0.5
+    #
+    for key, ph in placeholders.items():
+        if key == "x":
+            if idx + batch_size > data.num:  # for last
+                x = np.zeros((batch_size, dim_emit), dtype=np.float32)
+                bs = batch_size - (idx + batch_size - data.num)
+                x[:bs, :] = data.x[idx : idx + batch_size, step, :]
+            else:
+                x = data.x[idx : idx + batch_size, step, :]
+                bs = batch_size
+            feed_dict[ph] = x
+        elif key == "z":
+            feed_dict[ph] = z
+        elif key == "m":
+            if idx + batch_size > data.num:  # for last
+                m = np.zeros((batch_size, dim_emit), dtype=np.float32)
+                bs = batch_size - (idx + batch_size - data.num)
+                m[:bs, :] = data.m[idx : idx + batch_size, step, :]
+            else:
+                m = data.m[idx : idx + batch_size, step, :]
+                bs = batch_size
+            feed_dict[ph] = m
+        elif key == "dropout_rate":
+            feed_dict[ph] = dropout_rate
+        elif key == "is_train":
+            feed_dict[ph] = is_train
+        elif key == "step":
+            feed_dict[ph] = step
+    return feed_dict, bs
 
-def construct_server_filter_feed(step,x,m,z,placeholders,is_train=False):
-	"""
+
+def construct_server_filter_feed(step, x, m, z, placeholders, is_train=False):
+    """
 	Prameters
 	---------
 		step :
@@ -1074,41 +1102,41 @@ def construct_server_filter_feed(step,x,m,z,placeholders,is_train=False):
 		bs : 1
 	-------
 	"""
-	feed_dict={}
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	dim_emit=hy_param["dim_emit"]
-	n_steps=hy_param["n_steps"]
-	sample_size=config["pfilter_sample_size"]
-	proposal_sample_size=config["pfilter_proposal_sample_size"]
+    feed_dict = {}
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    dim_emit = hy_param["dim_emit"]
+    n_steps = hy_param["n_steps"]
+    sample_size = config["pfilter_sample_size"]
+    proposal_sample_size = config["pfilter_proposal_sample_size"]
 
-	dropout_rate=0.0
-	if is_train:
-		if "dropout_rate" in hy_param:
-			dropout_rate=hy_param["dropout_rate"]
-		else:
-			dropout_rate=0.5
-	# 
-	for key,ph in placeholders.items():
-		if key == "x":
-			#x=np.zeros((batch_size,dim_emit),dtype=np.float32)
-			feed_dict[ph]=x
-		elif key == "z":
-			feed_dict[ph]=z
-		elif key == "m":
-			feed_dict[ph]=m
-		elif key == "dropout_rate":
-			feed_dict[ph]=dropout_rate
-		elif key == "is_train":
-			feed_dict[ph]=is_train
-		elif key == "step":
-			feed_dict[ph]=step
-	bs=1
-	return feed_dict,bs
+    dropout_rate = 0.0
+    if is_train:
+        if "dropout_rate" in hy_param:
+            dropout_rate = hy_param["dropout_rate"]
+        else:
+            dropout_rate = 0.5
+    #
+    for key, ph in placeholders.items():
+        if key == "x":
+            # x=np.zeros((batch_size,dim_emit),dtype=np.float32)
+            feed_dict[ph] = x
+        elif key == "z":
+            feed_dict[ph] = z
+        elif key == "m":
+            feed_dict[ph] = m
+        elif key == "dropout_rate":
+            feed_dict[ph] = dropout_rate
+        elif key == "is_train":
+            feed_dict[ph] = is_train
+        elif key == "step":
+            feed_dict[ph] = step
+    bs = 1
+    return feed_dict, bs
 
 
-def construct_batch_z(idx,batch_size,zs,is_train=False):
-	"""
+def construct_batch_z(idx, batch_size, zs, is_train=False):
+    """
 	Parameters
 	----------
 		idx :
@@ -1119,23 +1147,24 @@ def construct_batch_z(idx,batch_size,zs,is_train=False):
 	-------
 
 	"""
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	#zs: sample_size x test_data.num x n_steps+1 x dim
-	zz = zs[:,idx:idx+batch_size,:,:]
-	sample_size=zz.shape[0]
-	s=zz.shape[2]
-	bs=zz.shape[1]
-	if bs<batch_size: # for last
-		z_temp=np.zeros((sample_size,batch_size,s,dim),dtype=np.float32)
-		z_temp[:,:bs,:,:]=zz
-	else:
-		z_temp=zz
-	#zs: (sample_size x batch_size) x n_steps+1 x dim
-	return np.reshape(z_temp,[-1,s,dim])
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    # zs: sample_size x test_data.num x n_steps+1 x dim
+    zz = zs[:, idx : idx + batch_size, :, :]
+    sample_size = zz.shape[0]
+    s = zz.shape[2]
+    bs = zz.shape[1]
+    if bs < batch_size:  # for last
+        z_temp = np.zeros((sample_size, batch_size, s, dim), dtype=np.float32)
+        z_temp[:, :bs, :, :] = zz
+    else:
+        z_temp = zz
+    # zs: (sample_size x batch_size) x n_steps+1 x dim
+    return np.reshape(z_temp, [-1, s, dim])
 
-def filtering(sess,config):
-	"""
+
+def filtering(sess, config):
+    """
 
 	Prameters
 	---------
@@ -1143,79 +1172,98 @@ def filtering(sess,config):
 			tensorflow session
 		config :
 	"""
-	hy_param=hy.get_hyperparameter()
-	_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
-	n_steps=test_data.n_steps
-	hy_param["n_steps"]=n_steps
-	dim,dim_emit=get_dim(config,hy_param,test_data)
-	batch_size,n_batch=get_batch_size(config,hy_param,test_data)
+    hy_param = hy.get_hyperparameter()
+    _, test_data = dmm_input.load_data(
+        config, with_shuffle=False, with_train_test=False, test_flag=True
+    )
+    n_steps = test_data.n_steps
+    hy_param["n_steps"] = n_steps
+    dim, dim_emit = get_dim(config, hy_param, test_data)
+    batch_size, n_batch = get_batch_size(config, hy_param, test_data)
 
-	print("data_size",test_data.num,
-		"batch_size",batch_size,
-		", n_step",test_data.n_steps,
-		", dim_emit",test_data.dim)
-	placeholders=construct_filter_placeholder(config)
+    print(
+        "data_size",
+        test_data.num,
+        "batch_size",
+        batch_size,
+        ", n_step",
+        test_data.n_steps,
+        ", dim_emit",
+        test_data.dim,
+    )
+    placeholders = construct_filter_placeholder(config)
 
-	sample_size=config["pfilter_sample_size"]
-	proposal_sample_size=config["pfilter_proposal_sample_size"]
-	save_sample_num=config["pfilter_save_sample_num"]
-	
-	control_params={
-		"config":config,
-		"placeholders":placeholders,
-		}
-	# inference
-	# z: (batch_size x sample_size) x n_steps x dim
-	outputs=p_filter(placeholders["x"],
-		placeholders["z"],
-		placeholders["m"],
-		placeholders["step"],
-		n_steps+1,
-		None,
-		sample_size,
-		proposal_sample_size,
-		batch_size,
-		control_params=control_params)
-	# loding model
-	print_variables()
-	saver = tf.train.Saver()
-	print("[LOAD]",config["load_model"])
-	saver.restore(sess,config["load_model"])
-	
-	zs=np.zeros((sample_size,test_data.num,n_steps+1,dim),dtype=np.float32)
-	# max: proposal_sample_size*sample_size
-	sample_idx=list(range(proposal_sample_size*sample_size))
-	np.random.shuffle(sample_idx)
-	sample_idx=sample_idx[:save_sample_num]
-	mus=np.zeros((save_sample_num,test_data.num,n_steps,dim_emit),dtype=np.float32)
-	errors=np.zeros((save_sample_num,test_data.num,n_steps,dim_emit),dtype=np.float32)
-	for j in range(n_batch):
-		idx=j*batch_size
-		print(j,"/",n_batch)
-		for step in range(n_steps):
-			zs_input=construct_batch_z(idx,batch_size,zs)
-			feed_dict,bs=construct_filter_feed(idx,batch_size,step,test_data,zs_input,placeholders)
-			result=sess.run(outputs,feed_dict=feed_dict)
-			z=result["sampled_z"]
-			# z: sample_size x batch_size x dim
-			mu=result["sampled_pred_params"][0]
-			zs[:,idx:idx+batch_size,step+1,:]=z[:,:bs,:]
-			mus[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]
-			x=feed_dict[placeholders["x"]]
-			errors[:,idx:idx+batch_size,step,:]=mu[sample_idx,:bs,:]-x[:bs,:]
-			print("*", end="")
-		print("")
-	## save results
-	if config["save_result_filter"]!="":
-		results={}
-		results["z"]=zs
-		results["mu"]=mus
-		results["error"]=errors
-		print("[SAVE] result : ",config["save_result_filter"])
-		joblib.dump(results,config["save_result_filter"])
+    sample_size = config["pfilter_sample_size"]
+    proposal_sample_size = config["pfilter_proposal_sample_size"]
+    save_sample_num = config["pfilter_save_sample_num"]
+
+    control_params = {
+        "config": config,
+        "placeholders": placeholders,
+    }
+    # inference
+    # z: (batch_size x sample_size) x n_steps x dim
+    outputs = p_filter(
+        placeholders["x"],
+        placeholders["z"],
+        placeholders["m"],
+        placeholders["step"],
+        n_steps + 1,
+        None,
+        sample_size,
+        proposal_sample_size,
+        batch_size,
+        control_params=control_params,
+    )
+    # loding model
+    print_variables()
+    saver = tf.train.Saver()
+    print("[LOAD]", config["load_model"])
+    saver.restore(sess, config["load_model"])
+
+    zs = np.zeros((sample_size, test_data.num, n_steps + 1, dim), dtype=np.float32)
+    # max: proposal_sample_size*sample_size
+    sample_idx = list(range(proposal_sample_size * sample_size))
+    np.random.shuffle(sample_idx)
+    sample_idx = sample_idx[:save_sample_num]
+    mus = np.zeros(
+        (save_sample_num, test_data.num, n_steps, dim_emit), dtype=np.float32
+    )
+    errors = np.zeros(
+        (save_sample_num, test_data.num, n_steps, dim_emit), dtype=np.float32
+    )
+    for j in range(n_batch):
+        idx = j * batch_size
+        print(j, "/", n_batch)
+        for step in range(n_steps):
+            zs_input = construct_batch_z(idx, batch_size, zs)
+            feed_dict, bs = construct_filter_feed(
+                idx, batch_size, step, test_data, zs_input, placeholders
+            )
+            result = sess.run(outputs, feed_dict=feed_dict)
+            z = result["sampled_z"]
+            # z: sample_size x batch_size x dim
+            mu = result["sampled_pred_params"][0]
+            zs[:, idx : idx + batch_size, step + 1, :] = z[:, :bs, :]
+            mus[:, idx : idx + batch_size, step, :] = mu[sample_idx, :bs, :]
+            x = feed_dict[placeholders["x"]]
+            errors[:, idx : idx + batch_size, step, :] = (
+                mu[sample_idx, :bs, :] - x[:bs, :]
+            )
+            print("*", end="")
+        print("")
+    ## save results
+    if config["save_result_filter"] != "":
+        results = {}
+        results["z"] = zs
+        results["mu"] = mus
+        results["error"] = errors
+        print("[SAVE] result : ", config["save_result_filter"])
+        joblib.dump(results, config["save_result_filter"])
+
 
 def construct_fivo_placeholder(config):
-	"""
+    """
 	Returns
 	-------
 		placeholders :
@@ -1224,26 +1272,27 @@ def construct_fivo_placeholder(config):
 			"dropout_rate": dropout_rate,
 			"is_train": is_train,
 	"""
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	dim_emit=hy_param["dim_emit"]
-	n_steps=hy_param["n_steps"]
-	# 
-	x_holder=tf.placeholder(tf.float32,shape=(None,n_steps,dim_emit))
-	z0_holder=tf.placeholder(tf.float32,shape=(None,dim_emit))
-	dropout_rate=tf.placeholder(tf.float32)
-	is_train=tf.placeholder(tf.bool)
-	#
-	placeholders={"x":x_holder,
-			"z":z0_holder,
-			"dropout_rate": dropout_rate,
-			"is_train": is_train,
-			}
-	return placeholders
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    dim_emit = hy_param["dim_emit"]
+    n_steps = hy_param["n_steps"]
+    #
+    x_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
+    z0_holder = tf.placeholder(tf.float32, shape=(None, dim_emit))
+    dropout_rate = tf.placeholder(tf.float32)
+    is_train = tf.placeholder(tf.bool)
+    #
+    placeholders = {
+        "x": x_holder,
+        "z": z0_holder,
+        "dropout_rate": dropout_rate,
+        "is_train": is_train,
+    }
+    return placeholders
 
 
-def construct_fivo_feed(data_idx,batch_size,step,data,placeholders,is_train=False):
-	"""
+def construct_fivo_feed(data_idx, batch_size, step, data, placeholders, is_train=False):
+    """
 	Parameters
 	----------
 		data_idx :
@@ -1254,141 +1303,165 @@ def construct_fivo_feed(data_idx,batch_size,step,data,placeholders,is_train=Fals
 	-------
 		feed_dict : dict
 	"""
-	feed_dict={}
-	hy_param=hy.get_hyperparameter()
-	dim=hy_param["dim"]
-	dim_emit=hy_param["dim_emit"]
-	n_steps=hy_param["n_steps"]
-	sample_size=hy_param["pfilter_sample_size"]
+    feed_dict = {}
+    hy_param = hy.get_hyperparameter()
+    dim = hy_param["dim"]
+    dim_emit = hy_param["dim_emit"]
+    n_steps = hy_param["n_steps"]
+    sample_size = hy_param["pfilter_sample_size"]
 
-	dropout_rate=0.0
-	if is_train:
-		if "dropout_rate" in hy_param:
-			dropout_rate=hy_param["dropout_rate"]
-		else:
-			dropout_rate=0.5
-	# 
-	for key,ph in placeholders.items():
-		if key == "x":
-			idx=data_idx[step*batch_size:(step+1)*batch_size]
-			if len(idx)<batch_size:
-				x=np.zeros((batch_size,n_steps,dim),dtype=np.float32)
-				x[:len(idx),:,:]=data.x[idx,:,:]
-			else:
-				x=data.x[idx,:,:]
-			feed_dict[ph]=x
-		elif key == "z":
-			z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim_emit))
-			feed_dict[ph]=z0
-		elif key == "dropout_rate":
-			feed_dict[ph]=dropout_rate
-		elif key == "is_train":
-			feed_dict[ph]=is_train
-	return feed_dict
+    dropout_rate = 0.0
+    if is_train:
+        if "dropout_rate" in hy_param:
+            dropout_rate = hy_param["dropout_rate"]
+        else:
+            dropout_rate = 0.5
+    #
+    for key, ph in placeholders.items():
+        if key == "x":
+            idx = data_idx[step * batch_size : (step + 1) * batch_size]
+            if len(idx) < batch_size:
+                x = np.zeros((batch_size, n_steps, dim), dtype=np.float32)
+                x[: len(idx), :, :] = data.x[idx, :, :]
+            else:
+                x = data.x[idx, :, :]
+            feed_dict[ph] = x
+        elif key == "z":
+            z0 = np.random.normal(0, 1.0, size=(batch_size * sample_size, dim_emit))
+            feed_dict[ph] = z0
+        elif key == "dropout_rate":
+            feed_dict[ph] = dropout_rate
+        elif key == "is_train":
+            feed_dict[ph] = is_train
+    return feed_dict
 
 
-
-def train_fivo(sess,config):
+def train_fivo(sess, config):
+    """
 	"""
-	"""
-	hy_param=hy.get_hyperparameter()
-	#_,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
-	train_data,valid_data = dmm_input.load_data(config,with_shuffle=True,with_train_test=True)
-	n_steps=train_data.n_steps
-	hy_param["n_steps"]=n_steps
-	dim,dim_emit=get_dim(config,hy_param,train_data)
-	batch_size,n_batch=get_batch_size(config,hy_param,train_data)
+    hy_param = hy.get_hyperparameter()
+    # _,test_data = dmm_input.load_data(config,with_shuffle=False,with_train_test=False,test_flag=True)
+    train_data, valid_data = dmm_input.load_data(
+        config, with_shuffle=True, with_train_test=True
+    )
+    n_steps = train_data.n_steps
+    hy_param["n_steps"] = n_steps
+    dim, dim_emit = get_dim(config, hy_param, train_data)
+    batch_size, n_batch = get_batch_size(config, hy_param, train_data)
 
-	print("data_size",train_data.num,
-		"batch_size",batch_size,
-		", n_step",train_data.n_steps,
-		", dim_emit",train_data.dim)
-	placeholders=construct_fivo_placeholder(config)
+    print(
+        "data_size",
+        train_data.num,
+        "batch_size",
+        batch_size,
+        ", n_step",
+        train_data.n_steps,
+        ", dim_emit",
+        train_data.dim,
+    )
+    placeholders = construct_fivo_placeholder(config)
 
-	sample_size=config["pfilter_sample_size"]
-	proposal_sample_size=config["pfilter_proposal_sample_size"]
-	save_sample_num=config["pfilter_save_sample_num"]
-	#z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
-	z0=np.random.normal(0,1.0,size=(batch_size*sample_size,dim))
-	control_params={
-		"config":config,
-		"placeholders":placeholders,
-		}
-	# inference
-	#outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
-	output_cost=fivo(placeholders["x"],placeholders["z"],None,n_steps,sample_size,proposal_sample_size,batch_size,control_params=control_params)
-	##========##
-	# train_step
-	update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-	with tf.control_dependencies(update_ops):
-		train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(output_cost["cost"])
-	print_variables()
-	saver = tf.train.Saver()
-	if config["profile"]:
-		vars_to_train = tf.trainable_variables()
-		print(vars_to_train)
-		writer = tf.summary.FileWriter('logs', sess.graph)
-	# initialize
-	init = tf.global_variables_initializer()
-	sess.run(init)
+    sample_size = config["pfilter_sample_size"]
+    proposal_sample_size = config["pfilter_proposal_sample_size"]
+    save_sample_num = config["pfilter_save_sample_num"]
+    # z0=np.zeros((batch_size*sample_size,dim),dtype=np.float32)
+    z0 = np.random.normal(0, 1.0, size=(batch_size * sample_size, dim))
+    control_params = {
+        "config": config,
+        "placeholders": placeholders,
+    }
+    # inference
+    # outputs=p_filter(x_holder,z_holder,None,dim,dim_emit,sample_size,batch_size,control_params=control_params)
+    output_cost = fivo(
+        placeholders["x"],
+        placeholders["z"],
+        None,
+        n_steps,
+        sample_size,
+        proposal_sample_size,
+        batch_size,
+        control_params=control_params,
+    )
+    ##========##
+    # train_step
+    update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    with tf.control_dependencies(update_ops):
+        train_step = tf.train.AdamOptimizer(config["learning_rate"]).minimize(
+            output_cost["cost"]
+        )
+    print_variables()
+    saver = tf.train.Saver()
+    if config["profile"]:
+        vars_to_train = tf.trainable_variables()
+        print(vars_to_train)
+        writer = tf.summary.FileWriter("logs", sess.graph)
+    # initialize
+    init = tf.global_variables_initializer()
+    sess.run(init)
 
-	train_idx=list(range(train_data.num))
-	valid_idx=list(range(valid_data.num))
-	## training
-	validation_count=0
-	prev_validation_cost=0
-	alpha=None
-	early_stopping=EarlyStopping(config)
-	print("[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)")
-	for i in range(config["epoch"]):
-		np.random.shuffle(train_idx)
-		alpha=compute_alpha(config,i)
-		
-		# save
-		save_path=None
-		if i%config["epoch_interval_save"] == 0:
-			save_path = saver.save(sess, config["save_model_path"]+"/model.%05d.ckpt"%(i))
-		# early stopping
-		
-		# update
-		n_batch=int(np.ceil(train_data.num*1.0/batch_size))
-		profiler_start=False
-		cost=0
-		for j in range(n_batch):
-			print(j,"/",n_batch)
-			run_metadata=None
-			run_options=None
-			if config["profile"] and j==1 and i==2:
-				profiler_start=True
-				run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-				run_metadata = tf.RunMetadata()
-			feed_dict=construct_fivo_feed(train_idx,batch_size,j,train_data,placeholders,is_train=True)
-			train_step.run(feed_dict=feed_dict)
-			c=sess.run(output_cost["cost"],feed_dict=feed_dict)
-			cost+=c
-			if profiler_start:
-				step_stats = run_metadata.step_stats
-				tl = timeline.Timeline(step_stats)
-				ctf = tl.generate_chrome_trace_format(
-					show_memory=False,
-					show_dataflow=True)
-				with open("logs/timeline.json", "w") as f:
-					f.write(ctf)
-				print("[SAVE] logs/timeline.json")
-				profiler_start=False
+    train_idx = list(range(train_data.num))
+    valid_idx = list(range(valid_data.num))
+    ## training
+    validation_count = 0
+    prev_validation_cost = 0
+    alpha = None
+    early_stopping = EarlyStopping(config)
+    print(
+        "[LOG] epoch, cost,cost(valid.),error,error(valid.),alpha,cost(recons.),cost(temporal),cost(potential),cost(recons.,valid.),cost(temporal,valid),cost(potential,valid)"
+    )
+    for i in range(config["epoch"]):
+        np.random.shuffle(train_idx)
+        alpha = compute_alpha(config, i)
 
+        # save
+        save_path = None
+        if i % config["epoch_interval_save"] == 0:
+            save_path = saver.save(
+                sess, config["save_model_path"] + "/model.%05d.ckpt" % (i)
+            )
+        # early stopping
 
-		print(cost/n_batch)
-		###
-		###
-		#result=sess.run(outputs,feed_dict=feed_dict)
-	# save hyperparameter
-	if config["save_model"] is not None and config["save_model"]!="":
-		save_model_path=config["save_model"]
-		save_path = saver.save(sess, save_model_path)
-		print("[SAVE] %s"%(save_path))
-	hy.save_hyperparameter()
-	## save results
+        # update
+        n_batch = int(np.ceil(train_data.num * 1.0 / batch_size))
+        profiler_start = False
+        cost = 0
+        for j in range(n_batch):
+            print(j, "/", n_batch)
+            run_metadata = None
+            run_options = None
+            if config["profile"] and j == 1 and i == 2:
+                profiler_start = True
+                run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+                run_metadata = tf.RunMetadata()
+            feed_dict = construct_fivo_feed(
+                train_idx, batch_size, j, train_data, placeholders, is_train=True
+            )
+            train_step.run(feed_dict=feed_dict)
+            c = sess.run(output_cost["cost"], feed_dict=feed_dict)
+            cost += c
+            if profiler_start:
+                step_stats = run_metadata.step_stats
+                tl = timeline.Timeline(step_stats)
+                ctf = tl.generate_chrome_trace_format(
+                    show_memory=False, show_dataflow=True
+                )
+                with open("logs/timeline.json", "w") as f:
+                    f.write(ctf)
+                print("[SAVE] logs/timeline.json")
+                profiler_start = False
+
+        print(cost / n_batch)
+        ###
+        ###
+        # result=sess.run(outputs,feed_dict=feed_dict)
+    # save hyperparameter
+    if config["save_model"] is not None and config["save_model"] != "":
+        save_model_path = config["save_model"]
+        save_path = saver.save(sess, save_model_path)
+        print("[SAVE] %s" % (save_path))
+    hy.save_hyperparameter()
+    ## save results
+
 
 def construct_filter_placeholder(config):
     hy_param = hy.get_hyperparameter()
@@ -1420,8 +1493,8 @@ def construct_filter_feed(idx, batch_size, step, data, z, placeholders, is_train
     dim = hy_param["dim"]
     dim_emit = hy_param["dim_emit"]
     n_steps = hy_param["n_steps"]
-    #sample_size = config["pfilter_sample_size"]
-    #proposal_sample_size = config["pfilter_proposal_sample_size"]
+    # sample_size = config["pfilter_sample_size"]
+    # proposal_sample_size = config["pfilter_proposal_sample_size"]
 
     dropout_rate = 0.0
     if is_train:
@@ -1466,8 +1539,8 @@ def construct_server_filter_feed(step, x, m, z, placeholders, is_train=False):
     dim = hy_param["dim"]
     dim_emit = hy_param["dim_emit"]
     n_steps = hy_param["n_steps"]
-    #sample_size = config["pfilter_sample_size"]
-    #proposal_sample_size = config["pfilter_proposal_sample_size"]
+    # sample_size = config["pfilter_sample_size"]
+    # proposal_sample_size = config["pfilter_proposal_sample_size"]
 
     dropout_rate = 0.0
     if is_train:

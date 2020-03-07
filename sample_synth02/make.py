@@ -2,8 +2,10 @@ import numpy as np
 import os
 import json
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 from matplotlib import pyplot as plt
+
 """
 info={
         "attr_emit_list": ["item1"],
@@ -16,14 +18,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-def lorenz_f(xyz, p=10, r=28, b=8/3.0):
+
+def lorenz_f(xyz, p=10, r=28, b=8 / 3.0):
     return [
         -p * xyz[0] + p * xyz[1],
         -xyz[0] * xyz[2] + r * xyz[0] - xyz[1],
-        xyz[0] * xyz[1] - b * xyz[2]
+        xyz[0] * xyz[1] - b * xyz[2],
     ]
 
-def run(x0=1,y0=1,z0=1,step=100000,dt=1e-3):
+
+def run(x0=1, y0=1, z0=1, step=100000, dt=1e-3):
     """ Loranz attractor (Runge-Kutta method) execution """
     res = [[], [], []]
     xyz = [x0, y0, z0]
@@ -46,38 +50,45 @@ def plot3d(res):
     ax.set_zlabel("z")
     ax.set_title("Lorenz attractor (Runge-Kutta method)")
     ax.plot(res[0], res[1], res[2], color="red", lw=1)
-    #plt.show()
+    # plt.show()
     plt.savefig("lorenz_attractor_runge_kutta.png")
-def plot_lines(res):
-    plt.figure(figsize=(10,1))
-    l=res.shape[1]
-    plt.plot(list(range(l)),res[0,:], color="red", lw=1)
-    plt.figure(figsize=(10,1))
-    plt.plot(list(range(l)),res[1,:], color="red", lw=1)
-    plt.figure(figsize=(10,1))
-    plt.plot(list(range(l)),res[2,:], color="red", lw=1)
-    #plt.show()
-    plt.savefig("lorenz_attractor_runge_kutta.png")
-def get_data(num,scale=0):
-    result=[]
-    for _ in range(num):
-      res=run(np.random.rand(),np.random.rand(),np.random.rand(),step=120000,dt=1e-3)
-      res=res[:,20000:]
-      n=res.shape[1]
-      idx=np.linspace(0, n, num = n/100, dtype = 'int', endpoint = False) 
-      res=res[:,idx]
-      result.append(res)
 
-    result=np.array(result)
-    result=np.transpose(result,[0,2,1])
-    result=np.reshape(result,(num,10,100,3))
-    result=np.reshape(result,(-1,100,3))
+
+def plot_lines(res):
+    plt.figure(figsize=(10, 1))
+    l = res.shape[1]
+    plt.plot(list(range(l)), res[0, :], color="red", lw=1)
+    plt.figure(figsize=(10, 1))
+    plt.plot(list(range(l)), res[1, :], color="red", lw=1)
+    plt.figure(figsize=(10, 1))
+    plt.plot(list(range(l)), res[2, :], color="red", lw=1)
+    # plt.show()
+    plt.savefig("lorenz_attractor_runge_kutta.png")
+
+
+def get_data(num, scale=0):
+    result = []
+    for _ in range(num):
+        res = run(
+            np.random.rand(), np.random.rand(), np.random.rand(), step=120000, dt=1e-3
+        )
+        res = res[:, 20000:]
+        n = res.shape[1]
+        idx = np.linspace(0, n, num=n / 100, dtype="int", endpoint=False)
+        res = res[:, idx]
+        result.append(res)
+
+    result = np.array(result)
+    result = np.transpose(result, [0, 2, 1])
+    result = np.reshape(result, (num, 10, 100, 3))
+    result = np.reshape(result, (-1, 100, 3))
     np.random.shuffle(result)
     if scale:
-        result+=np.random.normal(scale=scale, size=result.shape)
+        result += np.random.normal(scale=scale, size=result.shape)
     return result
 
-os.makedirs("data",exist_ok=True)
+
+os.makedirs("data", exist_ok=True)
 np.random.seed(10)
 print("data/data_train.npy")
 print("data/data_test.npy")
@@ -88,14 +99,11 @@ result = get_data(5)
 np.save("data/data_test.npy",result)
 """
 for sc in range(10):
-    result = get_data(50,scale=sc+1)
-    filename="data/data_train.n"+str(sc+1)+".npy"
-    np.save(filename,result)
+    result = get_data(50, scale=sc + 1)
+    filename = "data/data_train.n" + str(sc + 1) + ".npy"
+    np.save(filename, result)
     print(filename)
-    result = get_data(5,scale=sc+1)
-    filename="data/data_test.n"+str(sc+1)+".npy"
-    np.save(filename,result)
+    result = get_data(5, scale=sc + 1)
+    filename = "data/data_test.n" + str(sc + 1) + ".npy"
+    np.save(filename, result)
     print(filename)
-
-
-

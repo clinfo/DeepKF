@@ -26,11 +26,7 @@ def get_default_argparser():
         "--hyperparam", type=str, default=None, nargs="?", help="config json file"
     )
     parser.add_argument(
-        "--input",
-        type=str,
-        default=None,
-        nargs="?",
-        help="input file .jbl",
+        "--input", type=str, default=None, nargs="?", help="input file .jbl",
     )
     parser.add_argument(
         "--info_key",
@@ -86,38 +82,41 @@ def load_config(args):
         config.update(json.load(fp))
     return config
 
-def load_plot_data(args,config=None):
+
+def load_plot_data(args, config=None):
     if config is None:
         config = load_config(args)
 
-    test_flag=False
+    test_flag = False
     print("mode:", args.mode)
-    if args.mode=="train":
-        result_key="save_result_train"
-    elif args.mode=="infer":
-        result_key="save_result_test"
-        test_flag=True
-    elif args.mode=="filter":
-        result_key="save_result_filter"
-        test_flag=True
-    elif args.mode=="data":
-        result_key=None
+    if args.mode == "train":
+        result_key = "save_result_train"
+    elif args.mode == "infer":
+        result_key = "save_result_test"
+        test_flag = True
+    elif args.mode == "filter":
+        result_key = "save_result_filter"
+        test_flag = True
+    elif args.mode == "data":
+        result_key = None
 
-    _,data=load_data(config,with_shuffle=False,with_train_test=False,test_flag=test_flag)
-    
+    _, data = load_data(
+        config, with_shuffle=False, with_train_test=False, test_flag=test_flag
+    )
+
     if args.input:
-        filename_result=args.input
+        filename_result = args.input
         print("[LOAD]:", filename_result)
         result = joblib.load(filename_result)
-        result_data=dotdict(result)
+        result_data = dotdict(result)
     elif result_key:
         print("result:", result_key)
-        filename_result=config[result_key]
+        filename_result = config[result_key]
         print("[LOAD]:", filename_result)
         result = joblib.load(filename_result)
-        result_data=dotdict(result)
+        result_data = dotdict(result)
     else:
-        result_data=dotdict()
+        result_data = dotdict()
     pid_key = args.info_key
     out_dir = args.out_dir
     out_dir = get_param(config, "plot_path", out_dir)
@@ -133,4 +132,4 @@ def load_plot_data(args,config=None):
         result_data.info = json.load(fp)
     else:
         result_data.info = make_default_info(data.x)
-    return data,result_data
+    return data, result_data

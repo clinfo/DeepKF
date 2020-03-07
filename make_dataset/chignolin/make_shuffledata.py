@@ -20,14 +20,11 @@ def disarrange(a, axis=-1):
     return
 
 
+if __name__ == "__main__":
 
-if __name__=="__main__":
-
-    data =np.load("../p1_data/p1_skip5_10ns.npy")
-    shp=data.shape[0]
+    data = np.load("../p1_data/p1_skip5_10ns.npy")
+    shp = data.shape[0]
     for ndx in range(shp):
-        np.random.shuffle(data[ndx,:,:])
-
+        np.random.shuffle(data[ndx, :, :])
 
     np.save("../p1_data/p1_skip5_10ns_shf.npy", data)
-
