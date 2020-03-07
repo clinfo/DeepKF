@@ -4,3 +4,5 @@ cmd.**
 config.result.json
 chig_dkf_*.npy
 md2_*.npy
+*.ipynb_checkpoints
+__pycache__
