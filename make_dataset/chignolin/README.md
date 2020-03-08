@@ -12,9 +12,9 @@ python make_data_contact.py
 ***スクリプトの中身は適宜編集してください***
 
 スクリプト内20行目   
-```
- 20 list=["0_31410"]
-```
+
+> 20 list=["0_31410"]
+
 で初期構造を指定します   
 (例えば、0_31410は、traj_data/chig_data/traj_n1/0_31410）   
 traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの
@@ -25,9 +25,8 @@ traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの
 <img width="606" alt="スクリーンショット 2020-03-08 18 32 48" src="https://user-images.githubusercontent.com/39581094/76160344-b177c480-616c-11ea-9054-ddb7e2d7f53f.png">
 
 スクリプト内37行目
-```
- 37     traj=name+'/protein_gpu/equil_n1/md1_noSOL_fit_skip10.xtc'
-```
+
+> 37     traj=name+'/protein_gpu/equil_n1/md1_noSOL_fit_skip10.xtc'
 でトラジェクトリ を指定します   
 
 traj_data/chig_data/traj_n??/0_????/protein_gpu下、   
