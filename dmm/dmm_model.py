@@ -1617,6 +1617,7 @@ def computePotentialWithBinaryPot(
 
 	"""
     pot_pole = []
+    hy_param = hy.get_hyperparameter()
     if "binary_potential_state_num" in hy_param:
         state_num=hy_param["binary_potential_state_num"]
     else:
@@ -1625,7 +1626,6 @@ def computePotentialWithBinaryPot(
         r=hy_param["binary_potential_distance"]
     else:
         r=0.5
-    hy_param = hy.get_hyperparameter()
     dim = hy_param["dim"]
     print("binary potentisl: #dim=",dim)
     print("binary potentisl: #state=",state_num)
