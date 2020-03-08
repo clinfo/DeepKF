@@ -26,7 +26,7 @@ traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの
 
 スクリプト内37行目
 
-> 37     traj=name+'/protein_gpu/equil_n1/md1_noSOL_fit_skip10.xtc'
+> 37     traj=name+'/protein_gpu/equil_n1/md1_noSOL_fit_skip10.xtc'   
 でトラジェクトリ を指定します   
 
 traj_data/chig_data/traj_n??/0_????/protein_gpu下、   
