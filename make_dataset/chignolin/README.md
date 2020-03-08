@@ -16,9 +16,9 @@ python make_data_contact.py
 > 20 list=["0_31410"]
 
 で初期構造を指定します   
-(例えば、0_31410は、traj_data/chig_data/traj_n1/0_31410）   
-traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの
-①: D(Asp3N-Thr8O)>1.5 [nm] & D(Asp3N-Gly7O)>1.5 [nm]   
+(例えば、0_31410は、traj_data/chig_data/traj_n1/0_31410を指します）      
+traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの   
+①: D(Asp3N-Thr8O)>1.5 [nm] & D(Asp3N-Gly7O)>1.5 [nm]    
 を満たす領域から選んだ初期構造   
 
 下記を参照ください      
