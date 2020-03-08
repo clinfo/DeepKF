@@ -12,6 +12,8 @@
     "potential_enabled": true,
     "potential_grad_transition_enabled": false,
     "potential_nn_enabled": false,
+    "binary_potential_state_num": 2,
+    "binary_potential_distance": 0.5,
     "normal_max_var": 1.0,
     "normal_min_var": 1e-05,
     "emission_internal_layers": [

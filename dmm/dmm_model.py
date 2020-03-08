@@ -1336,8 +1336,8 @@ def loss(outputs,control_params=None):
     if outputs["potential_loss"] is not None:
         pot = outputs["potential_loss"]
         # sum_pot=tf.reduce_sum(pot*mask,axis=1)
-        sum_pot = tf.reduce_sum(pot, axis=1)
-        cost_pot = tf.reduce_mean(pot)
+        #sum_pot = tf.reduce_sum(pot, axis=1)
+        cost_pot = pot
         ##
         costs_name.append("potential")
         costs.append(cost_pot)
@@ -1617,17 +1617,26 @@ def computePotentialWithBinaryPot(
 
 	"""
     pot_pole = []
-    state_num=2
+    if "binary_potential_state_num" in hy_param:
+        state_num=hy_param["binary_potential_state_num"]
+    else:
+        state_num=2
+    if "binary_potential_distance" in hy_param:
+        r=hy_param["binary_potential_distance"]
+    else:
+        r=0.5
     hy_param = hy.get_hyperparameter()
     dim = hy_param["dim"]
+    print("binary potentisl: #dim=",dim)
+    print("binary potentisl: #state=",state_num)
+    print("binary potentisl: r=",r)
     z = tf.reshape(z_input, [-1, dim])
     # z=tf.reshape(z_input,[900,dim])
     for d in range(dim):
         z1 = np.zeros((dim,), dtype=np.float32)
         z2 = np.zeros((dim,), dtype=np.float32)
-        z1[d] = 0.5
-        z2[d] = -0.5
-
+        z1[d] = r
+        z2[d] = -r
         d1 = z - tf.constant(z1, dtype=np.float32)
         d2 = z - tf.constant(z2, dtype=np.float32)
         p1 = tf.reduce_sum(d1 ** 2, axis=1)
@@ -1639,9 +1648,6 @@ def computePotentialWithBinaryPot(
     pot_pole = tf.stack(pot_pole)
     # pot_pole: (2xdim) x (bs x T)
     pot = tf.reduce_min(pot_pole, axis=0)
-    print("pot",pot)
-    print("pot_pole",pot_pole)
-    print("z",z)
     return pot
 
 
