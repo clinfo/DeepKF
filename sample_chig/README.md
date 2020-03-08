@@ -4,7 +4,7 @@
 シニョリンでは、特徴量として重原子間距離を抽出します   
 入力データの作成は、   
 ```
-make_dataset/alanine/make_data_ala.py
+make_dataset/chignolin/make_data_contact.py
 ```
 を参照ください   
    
