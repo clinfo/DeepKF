@@ -15,7 +15,7 @@ traj_data/input_files/ala_traj_all.npy
 にあります   
 ala_traj_all.npyの形状は、(600, 300, 2)としています （# 変更可能）
 
-DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今回は、ala_traj_all.npy)を置きます   
+DeepKF/sample_ala/dataset 下に解析するトラジェクトリデータ (今回は、ala_traj_all.npy)を置きます   
 
 sample_ala下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
@@ -37,7 +37,7 @@ sh sample_adw/run_ala.sh
 さらに、下記コマンドで二面角情報上に、dimの値で色付けしたプロットを作成します   
 
 ```
-sh sample_adw/plot_ala.sh
+sh sample_ala/plot_ala.sh
 ```
 
 アラニンジペプチドには3つのメジャー領域が知られています（下図 αR、αL、β）   
