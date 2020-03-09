@@ -1,4 +1,4 @@
-***DKFの入力データ（npyファイル）を作成***
+### ***DKFの入力データ（npyファイル）を作成***
 
 - **brown_model**:ブラン運動モデルのデータセットを作成     
 vampnetのコード(https://github.com/markovmodel/deeptime.git) を引用
