@@ -1,0 +1,73 @@
+{
+    "alpha": 1.0,
+    "batch_size": 100,
+    "epoch": 100,
+    "dim": 2,
+    "emission_internal_layers": [
+        {
+            "name": "fc",
+			"dim_output": 64
+        },
+		{
+            "name": "fc"
+        }
+
+    ],
+	"transition_internal_layers": [
+        {
+            "name": "fc"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+		{
+            "name": "fc"
+        },
+        {
+            "name": "lstm"
+        }
+    ],
+    "potential_internal_layers": [
+        {
+            "name": "do"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "evaluation": {
+        "all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "validation_cost": 0.0
+    },
+    "evaluation_output": "model/hyparam.result.json",
+    "hyperparameter_input": "sample/hyparam.json",
+    "plot_path": "model/plot",
+    "save_model_path": "model/model",
+    "save_result_filter": "model/result/filter.jbl",
+    "save_result_test": "model/result/test.jbl",
+    "save_result_train": "model/result/train.jbl",
+    "simulation_path": "model/sim",
+    "patience": 0,
+    "potential_enabled": true,
+    "potential_grad_transition_enabled": true,
+    "potential_nn_enabled": true,
+    "save_model": "model/model/model.last.ckpt",
+    "load_model": "model/model/model.last.ckpt",
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}
