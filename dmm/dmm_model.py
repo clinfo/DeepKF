@@ -32,6 +32,8 @@ def construct_placeholder(config):
     tr_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
     potential_points_holder = tf.placeholder(tf.float32, shape=(None, dim))
     alpha_holder = tf.placeholder(tf.float32)
+    beta_holder = tf.placeholder(tf.float32)
+    gamma_holder = tf.placeholder(tf.float32)
     dropout_rate = tf.placeholder(tf.float32)
     is_train = tf.placeholder(tf.bool)
     #
@@ -41,6 +43,8 @@ def construct_placeholder(config):
         "s": s_holder,
         "potential_points": potential_points_holder,
         "alpha": alpha_holder,
+        "beta": beta_holder,
+        "gamma": gamma_holder,
         "vd_eps": vd_eps_holder,
         "tr_eps": tr_eps_holder,
         "dropout_rate": dropout_rate,
@@ -87,13 +91,13 @@ def build_nn(
         if hy_layer["name"] == "fc":
             with tf.variable_scope(name + "_fc" + str(i)) as scope:
                 layer = layers.fc_layer(
-                    "vd_fc" + str(i),
+                    "fc" + str(i),
                     layer,
                     layer_dim,
                     layer_dim_out,
                     wd_w,
                     wd_bias,
-                    activate=tf.sigmoid,
+                    activate=tf.nn.relu,
                     init_params_flag=init_params_flag,
                 )
                 layer_dim = layer_dim_out
@@ -128,7 +132,7 @@ def build_nn(
                     layer_dim_out,
                     wd_w,
                     wd_bias,
-                    activate=tf.sigmoid,
+                    activate=tf.nn.relu,
                     with_bn=True,
                     init_params_flag=init_params_flag,
                     is_train=is_train,
@@ -302,7 +306,7 @@ def computeVariationalDist(x, n_steps, init_params_flag=True, control_params=Non
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                 layer_logit = tf.reshape(layer_logit, [-1, n_steps, dim])
@@ -317,7 +321,7 @@ def computeVariationalDist(x, n_steps, init_params_flag=True, control_params=Non
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                     layer_mu = tf.reshape(layer_mu, [-1, n_steps, dim])
@@ -671,7 +675,7 @@ def computeTransitionDistWithNN(
                         dim,
                         wd_w,
                         wd_bias,
-                        activate=tf.tanh,
+                        activate=None,
                         init_params_flag=init_params_flag,
                     )
                     layer_mu = tf.reshape(layer_mu, [-1, n_steps, dim])
@@ -734,6 +738,8 @@ def computeTransitionFuncFromPotential(
 	-------
 		laeyer_mean : 
 	"""
+    hy_param = hy.get_hyperparameter()
+    delta=hy_param["potential_grad_delta"]
     with tf.name_scope("transition") as scope_parent:
         # z  : (bs x T) x dim
         # pot: (bs x T)
@@ -745,8 +751,9 @@ def computeTransitionFuncFromPotential(
         )
         sum_pot = tf.reduce_sum(pot)
         g_z = tf.gradients(sum_pot, [in_points])
+        
         # print(g_z)
-        layer_mean = in_points + g_z
+        layer_mean = in_points -delta* g_z[0]
     return layer_mean
 
 
@@ -1287,7 +1294,7 @@ def computeTemporalKL(x, outputs, length, control_params):
         mu_p = outputs["z_pred_params"][0]
         cov_q = outputs["z_params"][1]
         mu_q = outputs["z_params"][0]
-        kl_t = tf.log(cov_p) - tf.log(cov_q) - 1 + (cov_q + (mu_p - mu_q) ** 2) / cov_p
+        kl_t = kl_normal(mu_q, cov_q, mu_p, cov_p)
     else:
         raise Exception("[Error] unknown state type")
 
@@ -1295,12 +1302,11 @@ def computeTemporalKL(x, outputs, length, control_params):
     mask = tf.sequence_mask(length, maxlen=kl_t.shape[1], dtype=tf.float32)
     kl_t = tf.reduce_sum(kl_t, axis=2)
     kl_t = kl_t * mask
-
     kl_t = tf.reduce_sum(kl_t, axis=1)
     return kl_t
 
 
-def loss(outputs, alpha=1, control_params=None):
+def loss(outputs,control_params=None):
     """
 	Parameters
 	----------
@@ -1315,10 +1321,12 @@ def loss(outputs, alpha=1, control_params=None):
     x = placeholders["x"]
     mask = placeholders["m"]
     length = placeholders["s"]
+    alpha= placeholders["alpha"]
+    beta= placeholders["beta"]
+    gamma= placeholders["gamma"]
     # loss
     negCLL = computeNegCLL(x, outputs["obs_params"], mask, control_params)
     temporalKL = computeTemporalKL(x, outputs, length, control_params)
-    cost_pot = tf.constant(0.0, dtype=np.float32)
 
     costs_name = ["recons", "temporal"]
     costs = [tf.reduce_mean(negCLL), tf.reduce_mean(temporalKL)]
@@ -1338,8 +1346,8 @@ def loss(outputs, alpha=1, control_params=None):
     if outputs["potential_loss"] is not None:
         pot = outputs["potential_loss"]
         # sum_pot=tf.reduce_sum(pot*mask,axis=1)
-        sum_pot = tf.reduce_sum(pot, axis=1)
-        cost_pot = tf.reduce_mean(pot)
+        #sum_pot = tf.reduce_sum(pot, axis=1)
+        cost_pot = pot
         ##
         costs_name.append("potential")
         costs.append(cost_pot)
@@ -1369,14 +1377,17 @@ def loss(outputs, alpha=1, control_params=None):
         errors_name.append("recons_mse")
         errors.append(diff)
 
-    weighted_cost = []
-    for name, c in zip(costs_name, costs):
-        if name == "temporal":
-            weighted_cost.append(c * alpha)
+    weighted_costs=[]
+    for name,c in zip(costs_name, costs):
+        if name=="temporal":
+            weighted_costs.append(c*alpha)
+        elif name=="pred":
+            weighted_costs.append(c*beta)
+        elif name=="potential":
+            weighted_costs.append(c*gamma)
         else:
-            weighted_cost.append(c)
-    print(weighted_cost)
-    mean_cost = tf.add_n(weighted_cost, name="train_cost")
+            weighted_costs.append(c)
+    mean_cost = tf.add_n(weighted_costs,name="train_cost")
     tf.add_to_collection("losses", mean_cost)
     total_cost = tf.add_n(tf.get_collection("losses"), name="total_loss")
 
@@ -1550,15 +1561,24 @@ def computePotentialLoss(z_params, pot_points, n_steps, control_params=None):
                     )
                     mu_trans_1 = out_params[0]
 
-                params_pot = None
+                mu_trans_1 = tf.reshape(mu_trans_1, [-1, pot_points.shape[1]])
+                
                 pot0 = computePotential(pot_points, 1, control_params=control_params)
                 pot1 = computePotential(
                     mu_trans_1, 1, init_params_flag=False, control_params=control_params
                 )
                 # pot: bs x T
-                c = 0.1
+                dist=(mu_trans_1-pot_points)**2
+                dist=tf.nn.relu(dist-0.1)
+                dist=tf.reduce_sum(dist)
+                print("dist:",dist)
+                dist_loss=dist
+                c = 0.0001
                 pot = tf.nn.relu(pot1 - pot0 + c)
-                pot_loss = tf.reshape(pot, [-1, 1])
+                print("pot:",pot)
+                pot_loss=tf.reduce_sum(pot)
+                #pot=tf.zeros_like(pot)#pot+dist_loss
+                pot_loss=n_steps*(pot_loss+dist_loss)
     return pot_loss
 
 
@@ -1613,17 +1633,26 @@ def computePotentialWithBinaryPot(
 
 	"""
     pot_pole = []
-    state_num = 2
     hy_param = hy.get_hyperparameter()
+    if "binary_potential_state_num" in hy_param:
+        state_num=hy_param["binary_potential_state_num"]
+    else:
+        state_num=2
+    if "binary_potential_distance" in hy_param:
+        r=hy_param["binary_potential_distance"]
+    else:
+        r=0.5
     dim = hy_param["dim"]
+    print("binary potentisl: #dim=",dim)
+    print("binary potentisl: #state=",state_num)
+    print("binary potentisl: r=",r)
     z = tf.reshape(z_input, [-1, dim])
     # z=tf.reshape(z_input,[900,dim])
     for d in range(dim):
         z1 = np.zeros((dim,), dtype=np.float32)
         z2 = np.zeros((dim,), dtype=np.float32)
-        z1[d] = 0.5
-        z2[d] = -0.5
-
+        z1[d] = r
+        z2[d] = -r
         d1 = z - tf.constant(z1, dtype=np.float32)
         d2 = z - tf.constant(z2, dtype=np.float32)
         p1 = tf.reduce_sum(d1 ** 2, axis=1)

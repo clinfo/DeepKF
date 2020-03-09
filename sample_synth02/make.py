@@ -64,10 +64,8 @@ def plot_lines(res):
     plt.plot(list(range(l)), res[2, :], color="red", lw=1)
     # plt.show()
     plt.savefig("lorenz_attractor_runge_kutta.png")
-
-
-def get_data(num, scale=0):
-    result = []
+def get_data(num):
+    result=[]
     for _ in range(num):
         res = run(
             np.random.rand(), np.random.rand(), np.random.rand(), step=120000, dt=1e-3
@@ -83,6 +81,8 @@ def get_data(num, scale=0):
     result = np.reshape(result, (num, 10, 100, 3))
     result = np.reshape(result, (-1, 100, 3))
     np.random.shuffle(result)
+    return result
+def add_noise(result,scale=0):
     if scale:
         result += np.random.normal(scale=scale, size=result.shape)
     return result
@@ -98,12 +98,25 @@ np.save("data/data_train.npy",result)
 result = get_data(5)
 np.save("data/data_test.npy",result)
 """
+result_train = get_data(50)
+m=np.mean(result_train,axis=(0,1))
+s=np.std(result_train,axis=(0,1))
+result_train=(result_train-m)/s
+result_test = (get_data(5)-m)/s
+print(m)
+filename="data/mean.npy"
+np.save(filename,m)
+filename="data/std.npy"
+np.save(filename,s)
 for sc in range(10):
-    result = get_data(50, scale=sc + 1)
-    filename = "data/data_train.n" + str(sc + 1) + ".npy"
-    np.save(filename, result)
+    x=np.copy(result_train)
+    x=add_noise(x,scale=(sc+1)/10.0)
+    filename="data/data_train.n"+str(sc+1)+".npy"
+    np.save(filename,x)
     print(filename)
-    result = get_data(5, scale=sc + 1)
-    filename = "data/data_test.n" + str(sc + 1) + ".npy"
-    np.save(filename, result)
+    ##
+    x=np.copy(result_test)
+    x=add_noise(x,scale=(sc+1)/10.0)
+    filename="data/data_test.n"+str(sc+1)+".npy"
+    np.save(filename,x)
     print(filename)

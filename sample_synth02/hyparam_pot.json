@@ -1,5 +1,7 @@
 {
-    "alpha": 1.0,
+    "alpha": 10.0,
+    "beta": 1.0,
+    "gamma": 1000.0,
     "learning_rate": 0.03,
     "sampling_type":"normal",
     "emission_type":"none",
@@ -10,6 +12,8 @@
     "potential_enabled": true,
     "potential_grad_transition_enabled": false,
     "potential_nn_enabled": false,
+    "binary_potential_state_num": 2,
+    "binary_potential_distance": 0.5,
     "normal_max_var": 1.0,
     "normal_min_var": 1e-05,
     "emission_internal_layers": [
@@ -20,9 +24,14 @@
     ],
     "transition_internal_layers": [
         {
-            "name": "lstm",
+            "name": "fc_bn",
+            "dim_output": 8
+        },
+        {
+            "name": "fc_bn",
             "dim_output": 8
         }
+
     ],
     "variational_internal_layers": [
         {

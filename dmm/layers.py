@@ -63,6 +63,8 @@ def _variable_with_weight_decay(name, shape, initializer_name, wd):
         var = _variable_on_cpu(name, shape, tf.constant_initializer(0.0, dtype=dtype))
     elif initializer_name == "xavier":
         var = _variable_on_cpu(name, shape, tf.contrib.layers.xavier_initializer())
+    elif initializer_name == "uniform":
+        var = _variable_on_cpu(name, shape, tf.contrib.layers.variance_scaling_initializer(uniform=True))
     if wd is not None:
         weight_decay = tf.nn.l2_loss(var) * wd
         tf.add_to_collection("losses", weight_decay)
@@ -374,10 +376,10 @@ def fc_layer(
     if not init_params_flag:
         tf.get_variable_scope().reuse_variables()
     w = _variable_with_weight_decay(
-        "weights", [dim_in, dim_out], initializer_name="normal", wd=wd_w
+        "weights", [dim_in, dim_out], initializer_name="uniform", wd=wd_w
     )
     b = _variable_with_weight_decay(
-        "biases", [dim_out], initializer_name="zero", wd=wd_b
+        "biases", [dim_out], initializer_name="uniform", wd=wd_b
     )
     pre_activate = tf.nn.bias_add(tf.matmul(input_layer, w), b)
     # bn

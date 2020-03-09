@@ -1,7 +1,7 @@
 {
     "data_train_npy": "data/data_train.npy",
     "data_test_npy": "data/data_test.npy",
-    "result_path":"result/",
+    "result_path":"result_base/",
     "batch_size": 100,
     "epoch": 1000,
     "patience": 0,

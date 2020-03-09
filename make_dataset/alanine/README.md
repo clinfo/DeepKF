@@ -12,10 +12,10 @@ python make_data_all.py
 ***スクリプトの中身は適宜編集してください(vim等で編集します)***
 
 スクリプト内24・25行目   
-```
- 24     fname1_list = ['../trajectory-'+str(i)+'.dcd' for i in range(2, 9)]
- 25     fname2_list = ['../trajectory-'+str(g)+'.xtc' for g in range(1, 6)]
-```
+
+> 24     fname1_list = ['../trajectory-'+str(i)+'.dcd' for i in range(2, 9)]   
+> 25     fname2_list = ['../trajectory-'+str(g)+'.xtc' for g in range(1, 6)]   
+
 でトラジェクトリデータ(dcdやxtc)の場所を指定します   
 
 （トラジェクトリデータ(dcdやxtc)は、小島Google Driveの
@@ -26,14 +26,14 @@ traj_data/ala_data/trajectory-**.xtc
 から入手できます）      
 
 スクリプト内42行目で形状を指定できます
-```
- 42     traj1 = np.reshape(angles, (-1, 300, 2))
-```
+
+> 42     traj1 = np.reshape(angles, (-1, 300, 2))   
+
 
 スクリプト内44行目で出力名を指定できます
-```
- 44     np.save('ala_traj_all.npy', traj1)
-```
+
+> 44     np.save('ala_traj_all.npy', traj1)   
+
 
 
 - ***phi_psi_sns_all.py***   

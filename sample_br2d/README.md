@@ -1,6 +1,6 @@
-***下記ポテンシャル（folding potential）上を動く2D ブラウン運動トラジェクトリ を使ってDKFを行う***
+### ***下記ポテンシャル（folding potential）上を動く2D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
-![folding_energy](https://user-images.githubusercontent.com/39581094/75623495-d2c93580-5bed-11ea-8e73-6e7b03f5b47b.png)  
+![folding_energy](https://user-images.githubusercontent.com/39581094/76176808-6c4ba500-61f5-11ea-82a0-f75b20a3a8b0.png) 
 
 
 DeepKF/sample_br2d/dataset 下に解析するトラジェクトリデータ (今回は、folding_2d_traj.npy)を置きます  
@@ -52,4 +52,4 @@ sh sample_adw/plot_br2d.sh
 
 
 
-![br2d](https://user-images.githubusercontent.com/39581094/75623555-5be06c80-5bee-11ea-84e1-40f6c8a94aa3.png)
+![br2d_dkf](https://user-images.githubusercontent.com/39581094/76176815-6eadff00-61f5-11ea-8543-2ee1adc10590.png)

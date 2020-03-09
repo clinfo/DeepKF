@@ -7,5 +7,5 @@ dmm train,infer,filter,field --config config_pot.json --hyperparam hyparam_pot.j
 dmm-plot infer --config config_pot.json
 dmm-plot filter --config config_pot.json
 dmm-plot infer --config config_pot.json  --z_plot_type scatter --anim
-dmm-plot filter --config config_pot.json
+dmm-field-plot infer --config config_pot.json
 

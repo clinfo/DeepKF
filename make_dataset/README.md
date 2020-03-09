@@ -1,4 +1,4 @@
-***DKFの入力データ（npyファイル）を作成***
+### ***DKFの入力データ（npyファイル）を作成***
 
 - **brown_model**:ブラン運動モデルのデータセットを作成     
 vampnetのコード(https://github.com/markovmodel/deeptime.git) を引用
@@ -22,5 +22,5 @@ mdtrajとmsmbuilder(http://msmbuilder.org/3.8.0/) を使用
    - make_data_rmsd.py: xtcトラジェクトリ を入力とし、msmbuilderのRMSD featurizerを用いて、参照構造(初期構造)に対するRMSDを抽出したデータを作成  
    - make_shuffledata.py: 上記で出力したnpyファイルを入力とし、時系列情報をなくしたトラジェクトリを作成  
    
-- maskdata.py: 生成filteringの際、使用するマスクデータ(npyファイル)を作成  
+- maskdata.py: 生成を行う際に使用するマスクデータ(npyファイル)を作成  
 
