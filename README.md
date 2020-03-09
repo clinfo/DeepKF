@@ -54,7 +54,7 @@ pip install joblib
 以下のコマンドで動かすことが可能です．
 
 ```
-$sh sample.sh
+$sh run_sample.sh
 ```
 ## サンプルデータについて
 利用しているデータは以下
