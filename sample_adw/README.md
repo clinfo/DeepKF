@@ -1,6 +1,6 @@
-***下記のポテンシャル上（assymetry double well potential）を動く1D ブラウン運動トラジェクトリ を使ってDKFを行う***
+### ***下記のポテンシャル上（assymetry double well potential）を動く1D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
-![adw_potential](https://user-images.githubusercontent.com/39581094/75623493-ce048180-5bed-11ea-87ce-79103efbc7cf.png)  
+![adw_potential](https://user-images.githubusercontent.com/39581094/76176944-e9771a00-61f5-11ea-8b24-3ed25a2c2b02.png)
 
 DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今回は、adw_traj1.npy)を置きます  
   
@@ -44,7 +44,7 @@ sh sample_adw/run_adw.sh
 plot_adw_test下に実行結果のPNGファイルを置いています
 
 
-![adw](https://user-images.githubusercontent.com/39581094/75623342-66016b80-5bec-11ea-87a6-cab205fefd56.png)
+![adw](https://user-images.githubusercontent.com/39581094/76176949-eda33780-61f5-11ea-85c0-4e8ad81d8ceb.png)
   
 
 ***※上手くいかない場合***
