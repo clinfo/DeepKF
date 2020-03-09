@@ -159,8 +159,10 @@ def field_continuous(sess, config):
 
     if config["field_grid_dim"] is None:
         config["field_grid_dim"] = dim
+    if config["field_grid_range"] is None:
+        config["field_grid_range"] = 2.0
     z0 = make_griddata(
-        config["field_grid_dim"], max_dim=dim, nx=config["field_grid_num"], rx=2.0
+        config["field_grid_dim"], max_dim=dim, nx=config["field_grid_num"], rx=config["field_grid_range"]
     )
     batch_size = z0.shape[0]
     control_params = {"config": config, "placeholders": placeholders}
@@ -213,7 +215,13 @@ def potential(sess, config):
     z_holder = tf.placeholder(tf.float32, shape=(None, dim))
     placeholders["z"] = z_holder
 
-    z0 = make_griddata(2, max_dim=dim, nx=30, rx=2.0)
+    if config["field_grid_dim"] is None:
+        config["field_grid_dim"] = dim
+    if config["field_grid_range"] is None:
+        config["field_grid_range"] = 2.0
+    z0 = make_griddata(
+        config["field_grid_dim"], max_dim=dim, nx=config["field_grid_num"], rx=config["field_grid_range"]
+    )
     batch_size = z0.shape[0]
     control_params = {"config": config, "placeholders": placeholders}
     # inference

@@ -738,6 +738,8 @@ def computeTransitionFuncFromPotential(
 	-------
 		laeyer_mean : 
 	"""
+    hy_param = hy.get_hyperparameter()
+    delta=hy_param["potential_grad_delta"]
     with tf.name_scope("transition") as scope_parent:
         # z  : (bs x T) x dim
         # pot: (bs x T)
@@ -749,8 +751,9 @@ def computeTransitionFuncFromPotential(
         )
         sum_pot = tf.reduce_sum(pot)
         g_z = tf.gradients(sum_pot, [in_points])
+        
         # print(g_z)
-        layer_mean = in_points + g_z
+        layer_mean = in_points -delta* g_z[0]
     return layer_mean
 
 

@@ -67,7 +67,7 @@ def build_config(config):
         config["save_result_train"] =path+"/train.jbl"
         config["simulation_path"]   =path+"/sim"
         config["evaluation_output"] =path+"/hyparam.result.json"
-        config["load_model"]        =path+"/model/model.last.ckpt"
+        config["load_model"]        =path+"/model/model.best.ckpt"
         config["plot_path"]         =path+"/plot"
         config["log"]         =path+"/log.txt"
 
@@ -89,6 +89,7 @@ def get_default_config():
     config["curriculum_gamma"] = False
     config["epoch_interval_save"] = 10  # 100
     config["epoch_interval_print"] = 10  # 100
+    config["epoch_interval_eval"] = 1
     config["sampling_tau"] = 10  # 0.1
     config["normal_max_var"] = 5.0  # 1.0
     config["normal_min_var"] = 1.0e-5
@@ -126,6 +127,7 @@ def get_default_config():
     config["potential_enabled"] = (True,)
     config["potential_grad_transition_enabled"] = (True,)
     config["potential_nn_enabled"] = (False,)
+    config["potential_grad_delta"] = 0.1
     #
     config["field_grid_num"] = 30
     config["field_grid_dim"] = None
@@ -283,6 +285,44 @@ class EarlyStopping:
         beta = info["beta"]
         gamma = info["gamma"]
         save_path = info["save_path"]
+        log = "epoch %d, training cost %g (error=%g), validation cost %g (error=%g)" % (
+            epoch,
+            training_cost,
+            training_errors[0],
+            validation_cost,
+            validation_errors[0],
+        )
+        if config["patience"] > 0:
+            log += "(EarlyStopping counter=%d/%d)" % (
+                self.validation_count,
+                self.config["patience"],
+            )
+        if save_path is None:
+            log += "([SAVE] %s) " % (save_path,)
+        print(log)
+
+    def logging_info(self, info):
+        config = self.config
+        epoch = info["epoch"]
+        logger = logging.getLogger("logger")
+        logger.setLevel(logging.INFO)
+
+        costs_name = info["training_all_costs_name"]
+        errors_name = info["training_errors_name"]
+        metrics_name = info["training_metrics_name"]
+
+        training_cost = info["training_cost"]
+        validation_cost = info["validation_cost"]
+        training_errors = info["training_errors"]
+        validation_errors = info["validation_errors"]
+        training_metrics = info["training_metrics"]
+        validation_metrics = info["validation_metrics"]
+        training_all_costs = info["training_all_costs"]
+        validation_all_costs = info["validation_all_costs"]
+        alpha = info["alpha"]
+        beta = info["beta"]
+        gamma = info["gamma"]
+        save_path = info["save_path"]
         if self.first:
             log = "[LOG]\tepoch\ttrain cost\tvalid. cost\talpha\tbeta\tgamma"
             for name in errors_name:
@@ -299,21 +339,6 @@ class EarlyStopping:
                 log += "\tvalid. cost(" + name + ")"
             logger.info(log)
             self.first = False
-        log = "epoch %d, training cost %g (error=%g), validation cost %g (error=%g)" % (
-            epoch,
-            training_cost,
-            training_errors[0],
-            validation_cost,
-            validation_errors[0],
-        )
-        if config["patience"] > 0:
-            log += "(EarlyStopping counter=%d/%d)" % (
-                self.validation_count,
-                self.config["patience"],
-            )
-        if save_path is None:
-            log += "([SAVE] %s) " % (save_path,)
-        print(log)
         log = "[LOG]\t%d\t%g\t%g" % (epoch, training_cost, validation_cost)
         log += "\t%g\t%g\t%g"%(alpha, beta, gamma)
         for el in training_errors:
@@ -534,8 +559,8 @@ def train(sess, config):
     valid_idx = list(range(valid_data.num))
     ## training
     validation_count = 0
-    prev_validation_cost = 0
-    alpha = None
+    best_cost = None
+    alpha,beta,gamma = None,None,None
     early_stopping = EarlyStopping(config)
     for i in range(config["epoch"]):
         np.random.shuffle(train_idx)
@@ -567,14 +592,21 @@ def train(sess, config):
         training_info["beta"] = beta
         training_info["gamma"] = gamma
         training_info["save_path"] = save_path
+        training_info["validation_cost"], training_info
         if i % config["epoch_interval_print"] == 0:
             early_stopping.print_info(training_info)
-        if i % 100:
+        if i % config["epoch_interval_eval"] == 0:
             if early_stopping.evaluate_validation(
                 training_info["validation_cost"], training_info
             ):
                 break
-
+        early_stopping.logging_info(training_info)
+        if best_cost is None or training_info["validation_cost"] < best_cost:
+            best_cost=training_info["validation_cost"]
+            save_path = saver.save(
+                sess, config["save_model_path"] + "/model.best.ckpt"
+            )
+            #print("[SAVE] bast model:",save_path)
         # update
         n_batch = int(np.ceil(train_data.num * 1.0 / batch_size))
         for j in range(n_batch):
@@ -1146,7 +1178,6 @@ def train_fivo(sess, config):
     valid_idx = list(range(valid_data.num))
     ## training
     validation_count = 0
-    prev_validation_cost = 0
     alpha = None
     early_stopping = EarlyStopping(config)
     print(
@@ -1493,7 +1524,7 @@ def main():
     logger = logging.getLogger("logger")
     logger.setLevel(logging.WARN)
     if "log" in config:
-        h = logging.FileHandler(filename=config["log"])
+        h = logging.FileHandler(filename=config["log"],mode='w')
         h.setLevel(logging.INFO)
         logger.addHandler(h)
 
