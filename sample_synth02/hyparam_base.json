@@ -1,0 +1,54 @@
+{
+    "alpha": 1.0,
+    "beta": 0.0,
+    "gamma": 1.0,
+    "learning_rate": 0.03,
+    "sampling_type":"normal",
+    "emission_type":"none",
+    "state_type":"normal",
+    "dynamics_type":"distribution",
+    "pfilter_type":"trained_dynamics",
+    "dim": 2,
+    "potential_enabled": false,
+    "potential_grad_transition_enabled": false,
+    "potential_nn_enabled": false,
+    "binary_potential_state_num": 2,
+    "binary_potential_distance": 0.5,
+    "normal_max_var": 1.0,
+    "normal_min_var": 1e-05,
+    "emission_internal_layers": [
+        {
+            "name": "fc_bn",
+            "dim_output": 8
+        }
+    ],
+    "transition_internal_layers": [
+        {
+            "name": "lstm",
+            "dim_output": 8
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "lstm",
+            "dim_output": 8
+        }
+    ],
+    "potential_internal_layers": [
+    ],
+    "evaluation": {
+        "all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "validation_cost": 0.0
+    }
+}

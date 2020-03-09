@@ -8,16 +8,12 @@ mkdir -p model/sim/
 # data generator
 python make.py
 
-cd ..
+dmm train,infer,filter,filter,field --config config.json --hyperparam hyparam.json --save-config ./config.result.json
 
-export  CUDA_VISIBLE_DEVICES=3
+#python script/plot_p.py --config ./sample_synth/config.result.json all 
+dmm-plot infer --config config.json
+dmm-plot filter --config config.json
+#python script/plot.py --config ./sample_synth/config.result.json all
+#python script/plot_vec.py ./sample_synth/config.result.json all
 
-python dmm.py --config sample_synth/config.json --hyperparam sample_synth/hyparam.json train --save-config ./sample_synth/config.result.json
-python dmm.py --config sample_synth/config.result.json infer
-python dmm.py --config ./sample_synth/config.result.json filter
-python attractor.py --config ./sample_synth/config.result.json field
-
-python script/plot_p.py --config ./sample_synth/config.result.json all 
-python script/plot.py --config ./sample_synth/config.result.json all
-python script/plot_vec.py ./sample_synth/config.result.json all
-
+#dmm-plot infer --config config.json --z_plot_type scatter --anim

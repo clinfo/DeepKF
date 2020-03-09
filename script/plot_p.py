@@ -40,7 +40,7 @@ if data.mask is not None:
 
 z=data.result["z"]
 #print("z:",z[0,idx,:,0])
-#print(z.shape)
+print("z:",z.shape)
 mu=data.result["mu"]
 
 colorlist = ["g", "b", "r", "c", "m", "y", "k", "w"]
