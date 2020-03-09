@@ -1,4 +1,4 @@
-***シニョリンのトラジェクトリ を用いたDKFを行う***
+### ***シニョリンのトラジェクトリ を用いたDKFを行う***
 
 
 シニョリンでは、特徴量として重原子間距離を抽出します   
@@ -16,6 +16,10 @@ traj_data/input_files/chig_dkf_test.npy
 にあります   
 
 DeepKF/sample_chig/dataset 下に解析するトラジェクトリデータ (今回は、chig_dkf_train.npy & chig_dkf_test.npy)を置きます   
+
+chig_dkf_train.npyは、1step=2psの9マイクロ秒のトラジェクトリデータ   
+chig_dkf_test.npyは、1step=2psの1マイクロ秒のトラジェクトリデータ   
+
 
 sample_chig下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
@@ -39,10 +43,10 @@ sh sample_chig/run_chig.sh
 sh sample_chig/plot_chig.sh
 ```
 下図Dimの色が青になっている領域（Native領域）を区別していることを確認します   
-![500_data499_plot](https://user-images.githubusercontent.com/39581094/76159978-63ad8d00-6169-11ea-969c-a83597c5b66e.png)
+![chig_dkf](https://user-images.githubusercontent.com/39581094/76176594-c13aeb80-61f4-11ea-8b1e-5a8a733e7ce0.png)
 
 （参考）下図は温度一定MDでのプロット   
-<img width="471" alt="スクリーンショット 2020-03-08 18 17 07" src="https://user-images.githubusercontent.com/39581094/76159988-6c9e5e80-6169-11ea-9e9e-31b18f990108.png">
+<img width="471" alt="chig_state" src="https://user-images.githubusercontent.com/39581094/76176605-c6983600-61f4-11ea-98b3-446167eb0fdd.png">
 
 
 さらに計算した状態空間を用いて擬似ポテンシャルを作成します   
@@ -51,5 +55,5 @@ sh sample_chig/field.sh
 ```
 Dimの色が青になっている領域（Native領域）が安定であることを確認します   
 
-![test_plot](https://user-images.githubusercontent.com/39581094/76159983-67d9aa80-6169-11ea-90b0-bdf68f0d177f.png)
+![chig_dkf_withpot](https://user-images.githubusercontent.com/39581094/76176625-cf890780-61f4-11ea-9978-7e4a1607ac71.png)
 
