@@ -1,5 +1,7 @@
 ### ***下記のポテンシャル上（assymetry double well potential）を動く1D ブラウン運動トラジェクトリ を使ってDKFを行う***
 
+V(x)=(x-2.0)^4-6.0*(x-2.0)^2+2.0*(x-2.0)$
+
 ![adw_potential](https://user-images.githubusercontent.com/39581094/76176944-e9771a00-61f5-11ea-8b24-3ed25a2c2b02.png)
 
 DeepKF/sample_adw/dataset 下に解析するトラジェクトリデータ (今回は、adw_traj1.npy)を置きます  
