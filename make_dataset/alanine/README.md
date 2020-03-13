@@ -7,7 +7,7 @@ pip install mdtraj
 ```
 使い方
 ```
-python make_data_all.py
+python make_data_ala.py
 ```
 ***スクリプトの中身は適宜編集してください(vim等で編集します)***
 
