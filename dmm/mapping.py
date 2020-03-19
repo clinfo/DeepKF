@@ -72,7 +72,7 @@ def run(config,args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", type=str, help="pca/infer")
+    parser.add_argument("mode", type=str, help="pca/tsne/umap")
     parser.add_argument(
         "--config", type=str, default=None, nargs="?", help="config json file"
     )

@@ -94,7 +94,7 @@ def load_plot_data(args,config=None):
     print("mode:", args.mode)
     if args.mode=="train":
         result_key="save_result_train"
-    elif args.mode=="infer":
+    elif args.mode=="infer" or args.mode=="test":
         result_key="save_result_test"
         test_flag=True
     elif args.mode=="filter":

@@ -152,8 +152,10 @@ class PlotFig():
         x_plot_type=args.x_plot_type
         if x_plot_type=="line":
             plt.plot(data.x[idx, :s, d], label="x")
-            plt.plot(self.obs_mu[idx, :s, d], label="recons")
-            plt.plot(np.concatenate([[np.nan],self.pred_mu[idx, :s, d]]), label="pred")
+            if self.obs_mu is not None:
+                plt.plot(self.obs_mu[idx, :s, d], label="recons")
+            if self.pred_mu is not None:
+                plt.plot(np.concatenate([[np.nan],self.pred_mu[idx, :s, d]]), label="pred")
         else:
             self.draw_heatmap(np.transpose(data.x[idx, :s, :]), cmap_x)
         plt.legend()

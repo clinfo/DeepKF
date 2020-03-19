@@ -1471,7 +1471,7 @@ def filtering_server(sess, config):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("mode", type=str, help="train/infer")
+    parser.add_argument("mode", type=str, help="train/test/filter")
     parser.add_argument(
         "--config", type=str, default=None, nargs="?", help="config json file"
     )
