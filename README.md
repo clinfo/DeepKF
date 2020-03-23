@@ -79,7 +79,7 @@ data/sample_*
 ### 学習
 
 ```
-python dmm.py --config sample/config.json --hyperparam sample/hyparam.json train 
+dmm train --config sample/config.json --hyperparam sample/hyparam.json 
 ```
 config.jsonファイルはデータ入出力等に関する設定を記述する設定ファイル
 hyparam.jsonファイルは主に学習に関する設定を記述する設定ファイル
@@ -88,7 +88,7 @@ hyparam.jsonファイルは主に学習に関する設定を記述する設定�
 ### 予測
 
 ```
-python dmm.py --config sample/config.json --hyperparam model/hyparam.result.json --save-config ./model/config.result.json test
+dmm test --config sample/config.json --hyperparam model/hyparam.result.json --save-config ./model/config.result.json
 ```
 model/hyparam.result.json
 は学習時に与えられたhyparam.jsonファイルから自動決定されたパラメータ等も含めた設定ファイル
@@ -97,25 +97,33 @@ model/hyparam.result.json
 ### フィルタリング
 
 ```
-python dmm.py --config model/config.result.json --hyperparam model/hyparam.result.json filter
+dmm filter --config model/config.result.json --hyperparam model/hyparam.result.json
 ```
 
 
 ### 状態空間の計算
 
 ```
-python dmm.py --config model/config.result.json --hyperparam model/hyparam.result.json field
+dmm field --config model/config.result.json --hyperparam model/hyparam.result.json
 ```
+
+
 
 ### 上述のサンプルスクリプトをまとめて実行
 
 ```
-python dmm.py --config sample/config.json --hyperparam sample/hyparam.json train,test,filter,field
+dmm train,test,filter,field --config sample/config.json --hyperparam sample/hyparam.json
 ```
 ### 予測のプロット
 
+#### 学習データの推定結果のプロット
 ```
-python script/plot.py --config model/config.result.json --obs_dim 0 all
+dmm-plot train --config model/config.result.json --obs_dim 0
+```
+
+#### テストデータの推定結果のプロット
+```
+dmm-plot infer --config model/config.result.json --obs_dim 0
 ```
 
 ２段のプロットを作成する。
@@ -126,7 +134,7 @@ python script/plot.py --config model/config.result.json --obs_dim 0 all
 ### フィルタリングのプロット
 
 ```
-python script/plot_p.py --config model/config.result.json --num_dim 2 --obs_dim 0 all
+dmm-plot filter --config model/config.result.json --num_dim 2 --obs_dim 0 all
 ```
 ３段のプロットを作成する。
 上段がサンプリングされた状態空間、中段が観測空間になっており、下段は観測空間の予測値と実際のずれをプロット
@@ -145,10 +153,24 @@ python script/plot_p.py --config model/config.result.json --num_dim 2 --obs_dim 
 ### 状態空間のプロット
 
 ```
-python script/plot_vec.py model/config.result.json all
+dmm-field-plot --config model/config.result.json
 ```
 
 状態空間の時間による遷移方向の表示
+
+### 次元削減との比較
+
+次元削減を実行
+```
+dmm-map pca --config model/config.result.json
+```
+
+プロット（入力ファイルを--inputで指定する）
+```
+dmm-plot pca --config model/config.result.json --input pca.jbl
+```
+
+pcaの部分をumap/tsneに変えることで他の手法も実行可能
 
 ## パラメータ
 sample/config.jsonやsample/hyparam.jsonのような形式で各種パラメータを設定することができます。

@@ -39,13 +39,13 @@ config_adw.json内の
 ```
 cd DeepKF  
 mkdir -p sample_br2d/model  
-sh sample_adw/run_br2d.sh
+sh sample_br2d/run_br2d.sh
 ```
    
 下記コマンドで2次元の座標を、dimの値で色付けしたプロットを作成します   
 
 ```
-sh sample_adw/plot_br2d.sh
+sh sample_br2d/plot_br2d.sh
 ```
 
 0 < |r| < 2 と 4 < |r| で 状態が区別できていることを確認します
