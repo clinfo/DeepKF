@@ -3,7 +3,7 @@
 はじめにmdtrajをインストールします   
 mdtraj (http://mdtraj.org/1.9.3/installation.html)   
 ```
-conda install -c cond-forge mdtraj
+conda install -c conda-forge mdtraj
 ```
 使い方
 ```
