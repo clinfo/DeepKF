@@ -10,7 +10,7 @@ vampnetのコード(https://github.com/markovmodel/deeptime.git) を引用
      出力は、ポテンシャル図（folding_energy.png）とnpyファイル（folding_2d_traj.npy）  
 
 - **alanine**:アラニンジペプチドモデルのデータセットを作成  
-mdtraj(http://mdtraj.org/1.9.3/) を使用. `conda install -c cond-forge mdtraj` でインストルール
+mdtraj(http://mdtraj.org/1.9.3/) を使用. `conda install -c conda-forge mdtraj` でインストルール
 
    - make_data_ala.py：　dcd・xtcトラジェクトリデータを入力とし、mdtrajを用いて二面角情報を抽出したデータを作成   
    - phi_psi_sns_all.py：　構造数ヒートマップ(sns_all_out.png)を作成  
