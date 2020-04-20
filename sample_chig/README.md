@@ -13,9 +13,19 @@ make_dataset/chignolin/make_data_contact.py
 traj_data/input_files/chig_dkf_train.npy
 traj_data/input_files/chig_dkf_test.npy
 ```
-にあります   
+およびpe1計算機の
+```
+/data/traj_data/input_files/chig_dkf_train.npy
+/data/traj_data/input_files/chig_dkf_test.npy
+```
+にあります
 
 DeepKF/sample_chig/dataset 下に解析するトラジェクトリデータ (今回は、chig_dkf_train.npy & chig_dkf_test.npy)を置きます   
+pe1計算機上では, 当該フォルダにて下記コマンドを実行し, トラジェクトリデータへのシンボリックリンクを貼ってください.
+```
+ln -s /data/traj_data/input_files/chig_dkf_train.npy
+ln -s /data/traj_data/input_files/chig_dkf_test.npy
+```
 
 chig_dkf_train.npyは、1step=2psの9マイクロ秒のトラジェクトリデータ   
 chig_dkf_test.npyは、1step=2psの1マイクロ秒のトラジェクトリデータ   
