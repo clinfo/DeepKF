@@ -2,7 +2,27 @@
 
 はじめにmdtrajとmsmbuilderをインストールします   
 mdtraj (http://mdtraj.org/1.9.3/installation.html)   
-msmbuilder(http://msmbuilder.org/3.8.0/installation.html)   
+msmbuilder(http://msmbuilder.org/3.8.0/installation.html) 
+
+- mdtrajのインストールについて
+```
+conda install -c conda-forge mdtraj
+```
+- msmbuilderのインストールについて
+conda, pip経由ではうまくいかないため, ソースをダウンロードしてインストールします.
+```
+git clone https://github.com/msmbuilder/msmbuilder.git
+cd msmbuilder/
+python setup.py install
+```
+msmbuilderはfastclusterに依存するため, これもインストールします.
+```
+conda install -c conda-forge fastcluster
+```
+下記コマンドでmsmbuilderが正しくインストールされたか確認してください.
+```
+msmb -h
+```
 
 使い方
 ```
