@@ -12,10 +12,18 @@ make_dataset/alanine/make_data_ala.py
 ```
 traj_data/input_files/ala_traj_all.npy
 ```
+およびpe1計算機の
+```
+/data/traj_data/input_files/ala_traj_all.npy
+```
 にあります   
 ala_traj_all.npyの形状は、(600, 300, 2)としています （# 変更可能）
 
 DeepKF/sample_ala/dataset 下に解析するトラジェクトリデータ (今回は、ala_traj_all.npy)を置きます   
+pe1計算機上では, 当該フォルダにて下記コマンドを実行し, トラジェクトリデータへのシンボリックリンクを貼ってください.
+```
+ln -s /data/traj_data/input_files/ala_traj_all.npy
+```
 
 sample_ala下に、config.josnとhyparam.jsonを置いています  
 （今回の設定例は、  
