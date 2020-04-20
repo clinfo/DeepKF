@@ -28,25 +28,25 @@ source ~/.bashrc
 ```
 pyenv install -l | grep ana
 ```
-
+（anaconda3-2019.10を推奨）
 - Installing anaconda
 ```
-pyenv install anaconda3-4.3.1
+pyenv install anaconda3-2019.10
 pyenv rehash
-pyenv global anaconda3-4.3.1
-echo 'export PATH="$PYENV_ROOT/versions/anaconda3-4.3.1/bin/:$PATH"' >> ~/.bashrc
+pyenv global anaconda3-2019.10
+echo 'export PATH="$PYENV_ROOT/versions/anaconda3-2019.10/bin/:$PATH"' >> ~/.bashrc
 source ~/.bashrc
 conda update conda
 ```
 
 Next, please install following libraries if you have GPU:
 ```
-pip install --ignore-installed --upgrade tensorflow_gpu==1.10.0
+pip install --ignore-installed --upgrade tensorflow_gpu==1.15.0
 pip install joblib
 ```
 if you use only CPUs:
 ```
-pip install --ignore-installed --upgrade tensorflow==1.10.0
+pip install --ignore-installed --upgrade tensorflow==1.15.0
 pip install joblib
 ```
 ## サンプルの動かし方
