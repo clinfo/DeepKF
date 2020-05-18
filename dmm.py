@@ -558,7 +558,7 @@ def train(sess, config):
             output_cost["cost"]
         )
     print_variables()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=None)
     # initialize
     init = tf.global_variables_initializer()
     sess.run(init)
@@ -1835,7 +1835,7 @@ def train_fivo(sess, config):
             output_cost["cost"]
         )
     print_variables()
-    saver = tf.train.Saver()
+    saver = tf.train.Saver(max_to_keep=None)
     if config["profile"]:
         vars_to_train = tf.trainable_variables()
         print(vars_to_train)
