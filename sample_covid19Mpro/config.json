@@ -1,0 +1,13 @@
+{
+    "data_train_npy": "out_every1ns_chunk10.npy",
+    "data_test_npy": "out_every1ns_chunk10.npy",
+    "result_path":"result_base/",
+    "batch_size": 10,
+    "epoch": 10000,
+    "patience": 0,
+    "train_test_ratio": [
+        0.8,
+        0.2
+    ]
+}
+
