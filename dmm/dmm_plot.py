@@ -211,6 +211,7 @@ class PlotFig():
             self.draw_line(e,label="error",color="b",num=args.obs_num_particle)
             plt.legend()
             plt.title("error")
+            plt.tight_layout()
         else:
 
             plt.subplot(2, 1, 1)
@@ -221,6 +222,7 @@ class PlotFig():
             
             plt.subplot(2, 1, 2)
             self.plot_x(args,idx,s,data)
+            plt.tight_layout()
             if args.anim:
                 h=data.x.shape[2]
                 if args.x_plot_type=="line":
