@@ -1,0 +1,5 @@
+ {
+    "alpha": ${alpha},
+    "beta": ${beta},
+    "result_path": "" 
+ }
