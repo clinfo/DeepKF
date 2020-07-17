@@ -1,0 +1,44 @@
+{
+    "dim": 2,
+    "emission_internal_layers": [
+        {
+            "name": "fc",
+            "dim_output": 32
+        }
+    ],
+	"transition_internal_layers": [
+        {
+            "name": "fc"
+        }
+    ],
+    "variational_internal_layers": [
+        {
+            "name": "lstm"
+        },
+        {
+            "name": "fc"
+        }
+    ],
+    "potential_internal_layers": null,
+    "evaluation": {
+        "all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "cost": 0.0,
+        "error": 0.0,
+        "validation_all_costs": [
+            0.0,
+            0.0,
+            0.0
+        ],
+        "validation_cost": 0.0
+    },
+    "alpha": 1.0,
+    "beta": 1.0,
+    "curriculum_alpha": false,
+    "curriculum_beta": false,
+    "learning_rate": 1.0e-2,
+    "result_path":"result_000/"
+}
