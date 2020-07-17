@@ -1,7 +1,9 @@
-for alpha in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+for i in `seq 1 10`
 do
-    for beta in 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+alpha=`echo ${i}| awk '{print $1*0.1}'`
+    for j in `seq 1 10`
     do
+        beta=`echo ${j}| awk '{print $1*0.1}'`
         hyparam=hyparam_adw_gen_${alpha}_${beta}.json
         rm ${hyparam}
         touch ${hyparam}
@@ -10,5 +12,8 @@ do
         echo "\t \"beta\": ${beta}," >> ${hyparam}
         echo "\t \"result_path\": \"result_${alpha}_${beta}\"" >> ${hyparam}
         echo "}" >> ${hyparam}
+        dmm train --config config_adw_gen.json\
+         --hyperparam hyparam_adw_gen_${alpha}_${beta}.json\
+         --save-config config_adw_gen_${i}_${j}.result.json --gpu 0
     done
 done
