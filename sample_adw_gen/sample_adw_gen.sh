@@ -4,7 +4,7 @@ alpha=`echo ${i}| awk '{print $1*0.1}'`
     for j in `seq 1 10`
     do
         beta=`echo ${j}| awk '{print $1*0.1}'`
-        hyparam=hyparam_adw_gen_${i}_${j}.result.json
+        hyparam=hyparam_adw_gen_${i}_${j}.json
         rm ${hyparam}
         touch ${hyparam}
         echo "{" >> ${hyparam} 
@@ -13,7 +13,7 @@ alpha=`echo ${i}| awk '{print $1*0.1}'`
         echo "\t \"result_path\": \"result_${i}_${j}\"" >> ${hyparam}
         echo "}" >> ${hyparam}
         dmm train,test,filter --config config_adw_gen.json\
-         --hyperparam hyparam_adw_gen_${i}_${j}.json\
+         --hyperparam ${hyparam}\
          --save-config config_adw_gen_${i}_${j}.result.json --gpu 0
         dmm-plot infer --config config_adw_gen_${i}_${j}.result.json --limit_all 5
         dmm-plot filter --config config_adw_gen_${i}_${j}.result.json --limit_all 5
