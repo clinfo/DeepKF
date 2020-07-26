@@ -3,7 +3,7 @@
     "data_train_npy": "dataset/data_train.npy",
     "data_test_npy": "dataset/data_test.npy",
     "mask_train_npy": null,
-    "mask_test_npy": "dataset/mask_test.npy",
+    "mask_test_npy": null,
     "steps_train_npy": null,
     "steps_test_npy": null,
     "label_train_npy": null,
