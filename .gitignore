@@ -5,3 +5,4 @@ config.result.json
 chig_dkf_*.npy
 md2_*.npy
 __pycache__
+.vscode/*
