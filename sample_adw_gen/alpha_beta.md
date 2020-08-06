@@ -1,15 +1,102 @@
-| alpha\beta|.1|.2|.3|.4|.5|.6|.7|.8|.9|1.0| 
-| -| -| -| -| -| -| -| -| -| -|  -|
-| .1 |![](result_1_1/plot/0_data0_infer.png) |![](result_1_2/plot/0_data0_infer.png) |![](result_1_3/plot/0_data0_infer.png) |![](result_1_4/plot/0_data0_infer.png) |![](result_1_5/plot/0_data0_infer.png) |![](result_1_6/plot/0_data0_infer.png) |![](result_1_7/plot/0_data0_infer.png) |![](result_1_8/plot/0_data0_infer.png) |![](result_1_9/plot/0_data0_infer.png) |![](result_1_10/plot/0_data0_infer.png)|
-| .2 |![](result_2_1/plot/0_data0_infer.png) |![](result_2_2/plot/0_data0_infer.png) |![](result_2_3/plot/0_data0_infer.png) |![](result_2_4/plot/0_data0_infer.png) |![](result_2_5/plot/0_data0_infer.png) |![](result_2_6/plot/0_data0_infer.png) |![](result_2_7/plot/0_data0_infer.png) |![](result_2_8/plot/0_data0_infer.png) |![](result_2_9/plot/0_data0_infer.png) |![](result_2_10/plot/0_data0_infer.png)|
-| .3 |![](result_3_1/plot/0_data0_infer.png) |![](result_3_2/plot/0_data0_infer.png) |![](result_3_3/plot/0_data0_infer.png) |![](result_3_4/plot/0_data0_infer.png) |![](result_3_5/plot/0_data0_infer.png) |![](result_3_6/plot/0_data0_infer.png) |![](result_3_7/plot/0_data0_infer.png) |![](result_3_8/plot/0_data0_infer.png) |![](result_3_9/plot/0_data0_infer.png) |![](result_3_10/plot/0_data0_infer.png)|
-| .4 |![](result_4_1/plot/0_data0_infer.png) |![](result_4_2/plot/0_data0_infer.png) |![](result_4_3/plot/0_data0_infer.png) |![](result_4_4/plot/0_data0_infer.png) |![](result_4_5/plot/0_data0_infer.png) |![](result_4_6/plot/0_data0_infer.png) |![](result_4_7/plot/0_data0_infer.png) |![](result_4_8/plot/0_data0_infer.png) |![](result_4_9/plot/0_data0_infer.png) |![](result_4_10/plot/0_data0_infer.png)|
-| .5 |![](result_5_1/plot/0_data0_infer.png) |![](result_5_2/plot/0_data0_infer.png) |![](result_5_3/plot/0_data0_infer.png) |![](result_5_4/plot/0_data0_infer.png) |![](result_5_5/plot/0_data0_infer.png) |![](result_5_6/plot/0_data0_infer.png) |![](result_5_7/plot/0_data0_infer.png) |![](result_5_8/plot/0_data0_infer.png) |![](result_5_9/plot/0_data0_infer.png) |![](result_5_10/plot/0_data0_infer.png)|
-| .6 |![](result_6_1/plot/0_data0_infer.png) |![](result_6_2/plot/0_data0_infer.png) |![](result_6_3/plot/0_data0_infer.png) |![](result_6_4/plot/0_data0_infer.png) |![](result_6_5/plot/0_data0_infer.png) |![](result_6_6/plot/0_data0_infer.png) |![](result_6_7/plot/0_data0_infer.png) |![](result_6_8/plot/0_data0_infer.png) |![](result_6_9/plot/0_data0_infer.png) |![](result_6_10/plot/0_data0_infer.png)|
-| .7 |![](result_7_1/plot/0_data0_infer.png) |![](result_7_2/plot/0_data0_infer.png) |![](result_7_3/plot/0_data0_infer.png) |![](result_7_4/plot/0_data0_infer.png) |![](result_7_5/plot/0_data0_infer.png) |![](result_7_6/plot/0_data0_infer.png) |![](result_7_7/plot/0_data0_infer.png) |![](result_7_8/plot/0_data0_infer.png) |![](result_7_9/plot/0_data0_infer.png) |![](result_7_10/plot/0_data0_infer.png)|
-| .8 |![](result_8_1/plot/0_data0_infer.png) |![](result_8_2/plot/0_data0_infer.png) |![](result_8_3/plot/0_data0_infer.png) |![](result_8_4/plot/0_data0_infer.png) |![](result_8_5/plot/0_data0_infer.png) |![](result_8_6/plot/0_data0_infer.png) |![](result_8_7/plot/0_data0_infer.png) |![](result_8_8/plot/0_data0_infer.png) |![](result_8_9/plot/0_data0_infer.png) |![](result_8_10/plot/0_data0_infer.png)|
-| .9 |![](result_9_1/plot/0_data0_infer.png) |![](result_9_2/plot/0_data0_infer.png) |![](result_9_3/plot/0_data0_infer.png) |![](result_9_4/plot/0_data0_infer.png) |![](result_9_5/plot/0_data0_infer.png) |![](result_9_6/plot/0_data0_infer.png) |![](result_9_7/plot/0_data0_infer.png) |![](result_9_8/plot/0_data0_infer.png) |![](result_9_9/plot/0_data0_infer.png) |![](result_9_10/plot/0_data0_infer.png)|
-| .10 |![](result_10_1/plot/0_data0_infer.png) |![](result_10_2/plot/0_data0_infer.png) |![](result_10_3/plot/0_data0_infer.png) |![](result_10_4/plot/0_data0_infer.png) |![](result_10_5/plot/0_data0_infer.png) |![](result_10_6/plot/0_data0_infer.png) |![](result_10_7/plot/0_data0_infer.png) |![](result_10_8/plot/0_data0_infer.png) |![](result_10_9/plot/0_data0_infer.png) |![](result_10_10/plot/0_data0_infer.png)|
-
-
-
+| alpha |beta|ex0|ex1|ex2|
+|      -|   -| -| -| -| -| -| -| -| -|  -|
+|0.1|0.1|![](results/result_1_1/ex0/plot/0_data0_infer.png) |![](results/result_1_1/ex1/plot/0_data0_infer.png) |![](results/result_1_1/ex2/plot/0_data0_infer.png) |
+|0.1|0.2|![](results/result_1_2/ex0/plot/0_data0_infer.png) |![](results/result_1_2/ex1/plot/0_data0_infer.png) |![](results/result_1_2/ex2/plot/0_data0_infer.png) |
+|0.1|0.3|![](results/result_1_3/ex0/plot/0_data0_infer.png) |![](results/result_1_3/ex1/plot/0_data0_infer.png) |![](results/result_1_3/ex2/plot/0_data0_infer.png) |
+|0.1|0.4|![](results/result_1_4/ex0/plot/0_data0_infer.png) |![](results/result_1_4/ex1/plot/0_data0_infer.png) |![](results/result_1_4/ex2/plot/0_data0_infer.png) |
+|0.1|0.5|![](results/result_1_5/ex0/plot/0_data0_infer.png) |![](results/result_1_5/ex1/plot/0_data0_infer.png) |![](results/result_1_5/ex2/plot/0_data0_infer.png) |
+|0.1|0.6|![](results/result_1_6/ex0/plot/0_data0_infer.png) |![](results/result_1_6/ex1/plot/0_data0_infer.png) |![](results/result_1_6/ex2/plot/0_data0_infer.png) |
+|0.1|0.7|![](results/result_1_7/ex0/plot/0_data0_infer.png) |![](results/result_1_7/ex1/plot/0_data0_infer.png) |![](results/result_1_7/ex2/plot/0_data0_infer.png) |
+|0.1|0.8|![](results/result_1_8/ex0/plot/0_data0_infer.png) |![](results/result_1_8/ex1/plot/0_data0_infer.png) |![](results/result_1_8/ex2/plot/0_data0_infer.png) |
+|0.1|0.9|![](results/result_1_9/ex0/plot/0_data0_infer.png) |![](results/result_1_9/ex1/plot/0_data0_infer.png) |![](results/result_1_9/ex2/plot/0_data0_infer.png) |
+|0.1|1|![](results/result_1_10/ex0/plot/0_data0_infer.png) |![](results/result_1_10/ex1/plot/0_data0_infer.png) |![](results/result_1_10/ex2/plot/0_data0_infer.png) |
+|0.2|0.1|![](results/result_2_1/ex0/plot/0_data0_infer.png) |![](results/result_2_1/ex1/plot/0_data0_infer.png) |![](results/result_2_1/ex2/plot/0_data0_infer.png) |
+|0.2|0.2|![](results/result_2_2/ex0/plot/0_data0_infer.png) |![](results/result_2_2/ex1/plot/0_data0_infer.png) |![](results/result_2_2/ex2/plot/0_data0_infer.png) |
+|0.2|0.3|![](results/result_2_3/ex0/plot/0_data0_infer.png) |![](results/result_2_3/ex1/plot/0_data0_infer.png) |![](results/result_2_3/ex2/plot/0_data0_infer.png) |
+|0.2|0.4|![](results/result_2_4/ex0/plot/0_data0_infer.png) |![](results/result_2_4/ex1/plot/0_data0_infer.png) |![](results/result_2_4/ex2/plot/0_data0_infer.png) |
+|0.2|0.5|![](results/result_2_5/ex0/plot/0_data0_infer.png) |![](results/result_2_5/ex1/plot/0_data0_infer.png) |![](results/result_2_5/ex2/plot/0_data0_infer.png) |
+|0.2|0.6|![](results/result_2_6/ex0/plot/0_data0_infer.png) |![](results/result_2_6/ex1/plot/0_data0_infer.png) |![](results/result_2_6/ex2/plot/0_data0_infer.png) |
+|0.2|0.7|![](results/result_2_7/ex0/plot/0_data0_infer.png) |![](results/result_2_7/ex1/plot/0_data0_infer.png) |![](results/result_2_7/ex2/plot/0_data0_infer.png) |
+|0.2|0.8|![](results/result_2_8/ex0/plot/0_data0_infer.png) |![](results/result_2_8/ex1/plot/0_data0_infer.png) |![](results/result_2_8/ex2/plot/0_data0_infer.png) |
+|0.2|0.9|![](results/result_2_9/ex0/plot/0_data0_infer.png) |![](results/result_2_9/ex1/plot/0_data0_infer.png) |![](results/result_2_9/ex2/plot/0_data0_infer.png) |
+|0.2|1|![](results/result_2_10/ex0/plot/0_data0_infer.png) |![](results/result_2_10/ex1/plot/0_data0_infer.png) |![](results/result_2_10/ex2/plot/0_data0_infer.png) |
+|0.3|0.1|![](results/result_3_1/ex0/plot/0_data0_infer.png) |![](results/result_3_1/ex1/plot/0_data0_infer.png) |![](results/result_3_1/ex2/plot/0_data0_infer.png) |
+|0.3|0.2|![](results/result_3_2/ex0/plot/0_data0_infer.png) |![](results/result_3_2/ex1/plot/0_data0_infer.png) |![](results/result_3_2/ex2/plot/0_data0_infer.png) |
+|0.3|0.3|![](results/result_3_3/ex0/plot/0_data0_infer.png) |![](results/result_3_3/ex1/plot/0_data0_infer.png) |![](results/result_3_3/ex2/plot/0_data0_infer.png) |
+|0.3|0.4|![](results/result_3_4/ex0/plot/0_data0_infer.png) |![](results/result_3_4/ex1/plot/0_data0_infer.png) |![](results/result_3_4/ex2/plot/0_data0_infer.png) |
+|0.3|0.5|![](results/result_3_5/ex0/plot/0_data0_infer.png) |![](results/result_3_5/ex1/plot/0_data0_infer.png) |![](results/result_3_5/ex2/plot/0_data0_infer.png) |
+|0.3|0.6|![](results/result_3_6/ex0/plot/0_data0_infer.png) |![](results/result_3_6/ex1/plot/0_data0_infer.png) |![](results/result_3_6/ex2/plot/0_data0_infer.png) |
+|0.3|0.7|![](results/result_3_7/ex0/plot/0_data0_infer.png) |![](results/result_3_7/ex1/plot/0_data0_infer.png) |![](results/result_3_7/ex2/plot/0_data0_infer.png) |
+|0.3|0.8|![](results/result_3_8/ex0/plot/0_data0_infer.png) |![](results/result_3_8/ex1/plot/0_data0_infer.png) |![](results/result_3_8/ex2/plot/0_data0_infer.png) |
+|0.3|0.9|![](results/result_3_9/ex0/plot/0_data0_infer.png) |![](results/result_3_9/ex1/plot/0_data0_infer.png) |![](results/result_3_9/ex2/plot/0_data0_infer.png) |
+|0.3|1|![](results/result_3_10/ex0/plot/0_data0_infer.png) |![](results/result_3_10/ex1/plot/0_data0_infer.png) |![](results/result_3_10/ex2/plot/0_data0_infer.png) |
+|0.4|0.1|![](results/result_4_1/ex0/plot/0_data0_infer.png) |![](results/result_4_1/ex1/plot/0_data0_infer.png) |![](results/result_4_1/ex2/plot/0_data0_infer.png) |
+|0.4|0.2|![](results/result_4_2/ex0/plot/0_data0_infer.png) |![](results/result_4_2/ex1/plot/0_data0_infer.png) |![](results/result_4_2/ex2/plot/0_data0_infer.png) |
+|0.4|0.3|![](results/result_4_3/ex0/plot/0_data0_infer.png) |![](results/result_4_3/ex1/plot/0_data0_infer.png) |![](results/result_4_3/ex2/plot/0_data0_infer.png) |
+|0.4|0.4|![](results/result_4_4/ex0/plot/0_data0_infer.png) |![](results/result_4_4/ex1/plot/0_data0_infer.png) |![](results/result_4_4/ex2/plot/0_data0_infer.png) |
+|0.4|0.5|![](results/result_4_5/ex0/plot/0_data0_infer.png) |![](results/result_4_5/ex1/plot/0_data0_infer.png) |![](results/result_4_5/ex2/plot/0_data0_infer.png) |
+|0.4|0.6|![](results/result_4_6/ex0/plot/0_data0_infer.png) |![](results/result_4_6/ex1/plot/0_data0_infer.png) |![](results/result_4_6/ex2/plot/0_data0_infer.png) |
+|0.4|0.7|![](results/result_4_7/ex0/plot/0_data0_infer.png) |![](results/result_4_7/ex1/plot/0_data0_infer.png) |![](results/result_4_7/ex2/plot/0_data0_infer.png) |
+|0.4|0.8|![](results/result_4_8/ex0/plot/0_data0_infer.png) |![](results/result_4_8/ex1/plot/0_data0_infer.png) |![](results/result_4_8/ex2/plot/0_data0_infer.png) |
+|0.4|0.9|![](results/result_4_9/ex0/plot/0_data0_infer.png) |![](results/result_4_9/ex1/plot/0_data0_infer.png) |![](results/result_4_9/ex2/plot/0_data0_infer.png) |
+|0.4|1|![](results/result_4_10/ex0/plot/0_data0_infer.png) |![](results/result_4_10/ex1/plot/0_data0_infer.png) |![](results/result_4_10/ex2/plot/0_data0_infer.png) |
+|0.5|0.1|![](results/result_5_1/ex0/plot/0_data0_infer.png) |![](results/result_5_1/ex1/plot/0_data0_infer.png) |![](results/result_5_1/ex2/plot/0_data0_infer.png) |
+|0.5|0.2|![](results/result_5_2/ex0/plot/0_data0_infer.png) |![](results/result_5_2/ex1/plot/0_data0_infer.png) |![](results/result_5_2/ex2/plot/0_data0_infer.png) |
+|0.5|0.3|![](results/result_5_3/ex0/plot/0_data0_infer.png) |![](results/result_5_3/ex1/plot/0_data0_infer.png) |![](results/result_5_3/ex2/plot/0_data0_infer.png) |
+|0.5|0.4|![](results/result_5_4/ex0/plot/0_data0_infer.png) |![](results/result_5_4/ex1/plot/0_data0_infer.png) |![](results/result_5_4/ex2/plot/0_data0_infer.png) |
+|0.5|0.5|![](results/result_5_5/ex0/plot/0_data0_infer.png) |![](results/result_5_5/ex1/plot/0_data0_infer.png) |![](results/result_5_5/ex2/plot/0_data0_infer.png) |
+|0.5|0.6|![](results/result_5_6/ex0/plot/0_data0_infer.png) |![](results/result_5_6/ex1/plot/0_data0_infer.png) |![](results/result_5_6/ex2/plot/0_data0_infer.png) |
+|0.5|0.7|![](results/result_5_7/ex0/plot/0_data0_infer.png) |![](results/result_5_7/ex1/plot/0_data0_infer.png) |![](results/result_5_7/ex2/plot/0_data0_infer.png) |
+|0.5|0.8|![](results/result_5_8/ex0/plot/0_data0_infer.png) |![](results/result_5_8/ex1/plot/0_data0_infer.png) |![](results/result_5_8/ex2/plot/0_data0_infer.png) |
+|0.5|0.9|![](results/result_5_9/ex0/plot/0_data0_infer.png) |![](results/result_5_9/ex1/plot/0_data0_infer.png) |![](results/result_5_9/ex2/plot/0_data0_infer.png) |
+|0.5|1|![](results/result_5_10/ex0/plot/0_data0_infer.png) |![](results/result_5_10/ex1/plot/0_data0_infer.png) |![](results/result_5_10/ex2/plot/0_data0_infer.png) |
+|0.6|0.1|![](results/result_6_1/ex0/plot/0_data0_infer.png) |![](results/result_6_1/ex1/plot/0_data0_infer.png) |![](results/result_6_1/ex2/plot/0_data0_infer.png) |
+|0.6|0.2|![](results/result_6_2/ex0/plot/0_data0_infer.png) |![](results/result_6_2/ex1/plot/0_data0_infer.png) |![](results/result_6_2/ex2/plot/0_data0_infer.png) |
+|0.6|0.3|![](results/result_6_3/ex0/plot/0_data0_infer.png) |![](results/result_6_3/ex1/plot/0_data0_infer.png) |![](results/result_6_3/ex2/plot/0_data0_infer.png) |
+|0.6|0.4|![](results/result_6_4/ex0/plot/0_data0_infer.png) |![](results/result_6_4/ex1/plot/0_data0_infer.png) |![](results/result_6_4/ex2/plot/0_data0_infer.png) |
+|0.6|0.5|![](results/result_6_5/ex0/plot/0_data0_infer.png) |![](results/result_6_5/ex1/plot/0_data0_infer.png) |![](results/result_6_5/ex2/plot/0_data0_infer.png) |
+|0.6|0.6|![](results/result_6_6/ex0/plot/0_data0_infer.png) |![](results/result_6_6/ex1/plot/0_data0_infer.png) |![](results/result_6_6/ex2/plot/0_data0_infer.png) |
+|0.6|0.7|![](results/result_6_7/ex0/plot/0_data0_infer.png) |![](results/result_6_7/ex1/plot/0_data0_infer.png) |![](results/result_6_7/ex2/plot/0_data0_infer.png) |
+|0.6|0.8|![](results/result_6_8/ex0/plot/0_data0_infer.png) |![](results/result_6_8/ex1/plot/0_data0_infer.png) |![](results/result_6_8/ex2/plot/0_data0_infer.png) |
+|0.6|0.9|![](results/result_6_9/ex0/plot/0_data0_infer.png) |![](results/result_6_9/ex1/plot/0_data0_infer.png) |![](results/result_6_9/ex2/plot/0_data0_infer.png) |
+|0.6|1|![](results/result_6_10/ex0/plot/0_data0_infer.png) |![](results/result_6_10/ex1/plot/0_data0_infer.png) |![](results/result_6_10/ex2/plot/0_data0_infer.png) |
+|0.7|0.1|![](results/result_7_1/ex0/plot/0_data0_infer.png) |![](results/result_7_1/ex1/plot/0_data0_infer.png) |![](results/result_7_1/ex2/plot/0_data0_infer.png) |
+|0.7|0.2|![](results/result_7_2/ex0/plot/0_data0_infer.png) |![](results/result_7_2/ex1/plot/0_data0_infer.png) |![](results/result_7_2/ex2/plot/0_data0_infer.png) |
+|0.7|0.3|![](results/result_7_3/ex0/plot/0_data0_infer.png) |![](results/result_7_3/ex1/plot/0_data0_infer.png) |![](results/result_7_3/ex2/plot/0_data0_infer.png) |
+|0.7|0.4|![](results/result_7_4/ex0/plot/0_data0_infer.png) |![](results/result_7_4/ex1/plot/0_data0_infer.png) |![](results/result_7_4/ex2/plot/0_data0_infer.png) |
+|0.7|0.5|![](results/result_7_5/ex0/plot/0_data0_infer.png) |![](results/result_7_5/ex1/plot/0_data0_infer.png) |![](results/result_7_5/ex2/plot/0_data0_infer.png) |
+|0.7|0.6|![](results/result_7_6/ex0/plot/0_data0_infer.png) |![](results/result_7_6/ex1/plot/0_data0_infer.png) |![](results/result_7_6/ex2/plot/0_data0_infer.png) |
+|0.7|0.7|![](results/result_7_7/ex0/plot/0_data0_infer.png) |![](results/result_7_7/ex1/plot/0_data0_infer.png) |![](results/result_7_7/ex2/plot/0_data0_infer.png) |
+|0.7|0.8|![](results/result_7_8/ex0/plot/0_data0_infer.png) |![](results/result_7_8/ex1/plot/0_data0_infer.png) |![](results/result_7_8/ex2/plot/0_data0_infer.png) |
+|0.7|0.9|![](results/result_7_9/ex0/plot/0_data0_infer.png) |![](results/result_7_9/ex1/plot/0_data0_infer.png) |![](results/result_7_9/ex2/plot/0_data0_infer.png) |
+|0.7|1|![](results/result_7_10/ex0/plot/0_data0_infer.png) |![](results/result_7_10/ex1/plot/0_data0_infer.png) |![](results/result_7_10/ex2/plot/0_data0_infer.png) |
+|0.8|0.1|![](results/result_8_1/ex0/plot/0_data0_infer.png) |![](results/result_8_1/ex1/plot/0_data0_infer.png) |![](results/result_8_1/ex2/plot/0_data0_infer.png) |
+|0.8|0.2|![](results/result_8_2/ex0/plot/0_data0_infer.png) |![](results/result_8_2/ex1/plot/0_data0_infer.png) |![](results/result_8_2/ex2/plot/0_data0_infer.png) |
+|0.8|0.3|![](results/result_8_3/ex0/plot/0_data0_infer.png) |![](results/result_8_3/ex1/plot/0_data0_infer.png) |![](results/result_8_3/ex2/plot/0_data0_infer.png) |
+|0.8|0.4|![](results/result_8_4/ex0/plot/0_data0_infer.png) |![](results/result_8_4/ex1/plot/0_data0_infer.png) |![](results/result_8_4/ex2/plot/0_data0_infer.png) |
+|0.8|0.5|![](results/result_8_5/ex0/plot/0_data0_infer.png) |![](results/result_8_5/ex1/plot/0_data0_infer.png) |![](results/result_8_5/ex2/plot/0_data0_infer.png) |
+|0.8|0.6|![](results/result_8_6/ex0/plot/0_data0_infer.png) |![](results/result_8_6/ex1/plot/0_data0_infer.png) |![](results/result_8_6/ex2/plot/0_data0_infer.png) |
+|0.8|0.7|![](results/result_8_7/ex0/plot/0_data0_infer.png) |![](results/result_8_7/ex1/plot/0_data0_infer.png) |![](results/result_8_7/ex2/plot/0_data0_infer.png) |
+|0.8|0.8|![](results/result_8_8/ex0/plot/0_data0_infer.png) |![](results/result_8_8/ex1/plot/0_data0_infer.png) |![](results/result_8_8/ex2/plot/0_data0_infer.png) |
+|0.8|0.9|![](results/result_8_9/ex0/plot/0_data0_infer.png) |![](results/result_8_9/ex1/plot/0_data0_infer.png) |![](results/result_8_9/ex2/plot/0_data0_infer.png) |
+|0.8|1|![](results/result_8_10/ex0/plot/0_data0_infer.png) |![](results/result_8_10/ex1/plot/0_data0_infer.png) |![](results/result_8_10/ex2/plot/0_data0_infer.png) |
+|0.9|0.1|![](results/result_9_1/ex0/plot/0_data0_infer.png) |![](results/result_9_1/ex1/plot/0_data0_infer.png) |![](results/result_9_1/ex2/plot/0_data0_infer.png) |
+|0.9|0.2|![](results/result_9_2/ex0/plot/0_data0_infer.png) |![](results/result_9_2/ex1/plot/0_data0_infer.png) |![](results/result_9_2/ex2/plot/0_data0_infer.png) |
+|0.9|0.3|![](results/result_9_3/ex0/plot/0_data0_infer.png) |![](results/result_9_3/ex1/plot/0_data0_infer.png) |![](results/result_9_3/ex2/plot/0_data0_infer.png) |
+|0.9|0.4|![](results/result_9_4/ex0/plot/0_data0_infer.png) |![](results/result_9_4/ex1/plot/0_data0_infer.png) |![](results/result_9_4/ex2/plot/0_data0_infer.png) |
+|0.9|0.5|![](results/result_9_5/ex0/plot/0_data0_infer.png) |![](results/result_9_5/ex1/plot/0_data0_infer.png) |![](results/result_9_5/ex2/plot/0_data0_infer.png) |
+|0.9|0.6|![](results/result_9_6/ex0/plot/0_data0_infer.png) |![](results/result_9_6/ex1/plot/0_data0_infer.png) |![](results/result_9_6/ex2/plot/0_data0_infer.png) |
+|0.9|0.7|![](results/result_9_7/ex0/plot/0_data0_infer.png) |![](results/result_9_7/ex1/plot/0_data0_infer.png) |![](results/result_9_7/ex2/plot/0_data0_infer.png) |
+|0.9|0.8|![](results/result_9_8/ex0/plot/0_data0_infer.png) |![](results/result_9_8/ex1/plot/0_data0_infer.png) |![](results/result_9_8/ex2/plot/0_data0_infer.png) |
+|0.9|0.9|![](results/result_9_9/ex0/plot/0_data0_infer.png) |![](results/result_9_9/ex1/plot/0_data0_infer.png) |![](results/result_9_9/ex2/plot/0_data0_infer.png) |
+|0.9|1|![](results/result_9_10/ex0/plot/0_data0_infer.png) |![](results/result_9_10/ex1/plot/0_data0_infer.png) |![](results/result_9_10/ex2/plot/0_data0_infer.png) |
+|1|0.1|![](results/result_10_1/ex0/plot/0_data0_infer.png) |![](results/result_10_1/ex1/plot/0_data0_infer.png) |![](results/result_10_1/ex2/plot/0_data0_infer.png) |
+|1|0.2|![](results/result_10_2/ex0/plot/0_data0_infer.png) |![](results/result_10_2/ex1/plot/0_data0_infer.png) |![](results/result_10_2/ex2/plot/0_data0_infer.png) |
+|1|0.3|![](results/result_10_3/ex0/plot/0_data0_infer.png) |![](results/result_10_3/ex1/plot/0_data0_infer.png) |![](results/result_10_3/ex2/plot/0_data0_infer.png) |
+|1|0.4|![](results/result_10_4/ex0/plot/0_data0_infer.png) |![](results/result_10_4/ex1/plot/0_data0_infer.png) |![](results/result_10_4/ex2/plot/0_data0_infer.png) |
+|1|0.5|![](results/result_10_5/ex0/plot/0_data0_infer.png) |![](results/result_10_5/ex1/plot/0_data0_infer.png) |![](results/result_10_5/ex2/plot/0_data0_infer.png) |
+|1|0.6|![](results/result_10_6/ex0/plot/0_data0_infer.png) |![](results/result_10_6/ex1/plot/0_data0_infer.png) |![](results/result_10_6/ex2/plot/0_data0_infer.png) |
+|1|0.7|![](results/result_10_7/ex0/plot/0_data0_infer.png) |![](results/result_10_7/ex1/plot/0_data0_infer.png) |![](results/result_10_7/ex2/plot/0_data0_infer.png) |
+|1|0.8|![](results/result_10_8/ex0/plot/0_data0_infer.png) |![](results/result_10_8/ex1/plot/0_data0_infer.png) |![](results/result_10_8/ex2/plot/0_data0_infer.png) |
+|1|0.9|![](results/result_10_9/ex0/plot/0_data0_infer.png) |![](results/result_10_9/ex1/plot/0_data0_infer.png) |![](results/result_10_9/ex2/plot/0_data0_infer.png) |
+|1|1|![](results/result_10_10/ex0/plot/0_data0_infer.png) |![](results/result_10_10/ex1/plot/0_data0_infer.png) |![](results/result_10_10/ex2/plot/0_data0_infer.png) |
