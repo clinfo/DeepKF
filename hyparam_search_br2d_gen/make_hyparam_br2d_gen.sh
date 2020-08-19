@@ -6,7 +6,7 @@ do
         for j in `seq 1 10`
         do
             beta=`echo ${j}| awk '{print $1*0.1}'`
-            hyparam=hyparams/hyparam_adw_gen_${i}_${j}_${k}.json
+            hyparam=hyparams/hyparam_br2d_gen_${i}_${j}_${k}.json
             rm ${hyparam}
             touch ${hyparam}
             echo "{" >> ${hyparam} 
