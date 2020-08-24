@@ -1,0 +1,255 @@
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:1536: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.
+
+2020-08-19 12:49:28.015123: I tensorflow/stream_executor/platform/default/dso_loader.cc:44] Successfully opened dynamic library libcuda.so.1
+2020-08-19 12:49:28.047355: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1618] Found device 0 with properties: 
+name: GeForce RTX 2080 Ti major: 7 minor: 5 memoryClockRate(GHz): 1.545
+pciBusID: 0000:3b:00.0
+2020-08-19 12:49:28.047455: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcudart.so.10.0'; dlerror: libcudart.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047497: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcublas.so.10.0'; dlerror: libcublas.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047535: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcufft.so.10.0'; dlerror: libcufft.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047573: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcurand.so.10.0'; dlerror: libcurand.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047610: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcusolver.so.10.0'; dlerror: libcusolver.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047648: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcusparse.so.10.0'; dlerror: libcusparse.so.10.0: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047686: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libcudnn.so.7'; dlerror: libcudnn.so.7: cannot open shared object file: No such file or directory
+2020-08-19 12:49:28.047692: W tensorflow/core/common_runtime/gpu/gpu_device.cc:1641] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2020-08-19 12:49:28.048045: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA
+2020-08-19 12:49:28.074021: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 3400000000 Hz
+2020-08-19 12:49:28.075142: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x559db255ec00 initialized for platform Host (this does not guarantee that XLA will be used). Devices:
+2020-08-19 12:49:28.075164: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version
+2020-08-19 12:49:28.188531: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x559db25c0f10 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2020-08-19 12:49:28.188601: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): GeForce RTX 2080 Ti, Compute Capability 7.5
+2020-08-19 12:49:28.188727: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1159] Device interconnect StreamExecutor with strength 1 edge matrix:
+2020-08-19 12:49:28.188737: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1165]      
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm_model.py:28: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm_model.py:289: The name tf.variable_scope is deprecated. Please use tf.compat.v1.variable_scope instead.
+
+WARNING:tensorflow:
+The TensorFlow contrib module will not be included in TensorFlow 2.0.
+For more information, please see:
+  * https://github.com/tensorflow/community/blob/master/rfcs/20180907-contrib-sunset.md
+  * https://github.com/tensorflow/addons
+  * https://github.com/tensorflow/io (for I/O related ops)
+If you depend on functionality not listed there, please file an issue.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/layers.py:303: LSTMCell.__init__ (from tensorflow.python.ops.rnn_cell_impl) is deprecated and will be removed in a future version.
+Instructions for updating:
+This class is equivalent as tf.keras.layers.LSTMCell, and will be replaced by that in Tensorflow 2.0.
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/layers.py:305: static_rnn (from tensorflow.python.ops.rnn) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `keras.layers.RNN(cell, unroll=True)`, which is equivalent to this API
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/tensorflow_core/python/ops/rnn_cell_impl.py:958: Layer.add_variable (from tensorflow.python.keras.engine.base_layer) is deprecated and will be removed in a future version.
+Instructions for updating:
+Please use `layer.add_weight` method instead.
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/tensorflow_core/python/ops/rnn_cell_impl.py:962: calling Zeros.__init__ (from tensorflow.python.ops.init_ops) with dtype is deprecated and will be removed in a future version.
+Instructions for updating:
+Call initializer instance with the dtype argument instead of passing it to the constructor
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/layers.py:35: The name tf.get_variable is deprecated. Please use tf.compat.v1.get_variable instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/layers.py:70: The name tf.add_to_collection is deprecated. Please use tf.compat.v1.add_to_collection instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/layers.py:377: The name tf.get_variable_scope is deprecated. Please use tf.compat.v1.get_variable_scope instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm_model.py:1215: The name tf.log is deprecated. Please use tf.math.log instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm_model.py:1385: The name tf.get_collection is deprecated. Please use tf.compat.v1.get_collection instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:547: The name tf.GraphKeys is deprecated. Please use tf.compat.v1.GraphKeys instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:549: The name tf.train.AdamOptimizer is deprecated. Please use tf.compat.v1.train.AdamOptimizer instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/tensorflow_core/python/ops/math_grad.py:1375: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.
+Instructions for updating:
+Use tf.where in 2.0, which has the same broadcast rule as np.where
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:553: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:555: The name tf.global_variables_initializer is deprecated. Please use tf.compat.v1.global_variables_initializer instead.
+
+WARNING:tensorflow:From /home/htanaka/.pyenv/versions/anaconda3-2019.10/lib/python3.7/site-packages/dmm/dmm.py:369: The name tf.local_variables_initializer is deprecated. Please use tf.compat.v1.local_variables_initializer instead.
+
+#training data: 800
+#valid data: 200
+train_data_size: 800
+batch_size     : 100
+n_steps        : 1000
+dim_emit       : 2
+## emission variables
+emission_var/em_fc0/weights:0
+emission_var/em_fc0/biases:0
+emission_var/em_fc_mean/weights:0
+emission_var/em_fc_mean/biases:0
+emission_var/em_fc_cov/weights:0
+emission_var/em_fc_cov/biases:0
+## variational dist. variables
+variational_dist_var/vd_lstm0/rnn/lstm_cell/kernel:0
+variational_dist_var/vd_lstm0/rnn/lstm_cell/bias:0
+variational_dist_var/vd_fc1/weights:0
+variational_dist_var/vd_fc1/biases:0
+variational_dist_var/vd_fc_mu/weights:0
+variational_dist_var/vd_fc_mu/biases:0
+variational_dist_var/vd_fc_cov/weights:0
+variational_dist_var/vd_fc_cov/biases:0
+## transition variables
+transition_var/tr_fc0/weights:0
+transition_var/tr_fc0/biases:0
+transition_var/vd_fc_mu/weights:0
+transition_var/vd_fc_mu/biases:0
+transition_var/vd_fc_cov/weights:0
+transition_var/vd_fc_cov/biases:0
+## potential variables
+## label variables
+epoch 0, training cost 400.945 (error=0.062714), validation cost 411.244 (error=0.0613843)
+epoch 10, training cost 35.8603 (error=0.0112971), validation cost 35.5866 (error=0.011025)
+epoch 20, training cost 30.9343 (error=0.0105375), validation cost 30.388 (error=0.010154)
+epoch 30, training cost 25.5172 (error=0.00955988), validation cost 25.1602 (error=0.00924176)
+epoch 40, training cost 22.1407 (error=0.00925515), validation cost 21.8802 (error=0.00902018)
+epoch 50, training cost 20.6102 (error=0.00908791), validation cost 20.7474 (error=0.00868667)
+epoch 60, training cost 19.8028 (error=0.00839872), validation cost 19.7323 (error=0.00811371)
+epoch 70, training cost 20.0165 (error=0.00841423), validation cost 19.933 (error=0.00813638)
+epoch 80, training cost 17.9286 (error=0.00841186), validation cost 17.9682 (error=0.00811536)
+epoch 90, training cost 17.9791 (error=0.00811396), validation cost 17.8396 (error=0.0077891)
+epoch 100, training cost 17.5371 (error=0.0077611), validation cost 17.3612 (error=0.00753114)
+epoch 110, training cost 16.9784 (error=0.00743892), validation cost 16.7205 (error=0.00721545)
+epoch 120, training cost 17.9579 (error=0.00728881), validation cost 17.3518 (error=0.0069168)
+epoch 130, training cost 17.4408 (error=0.00723546), validation cost 17.0099 (error=0.00680664)
+epoch 140, training cost 17.4203 (error=0.00700246), validation cost 16.8942 (error=0.0066657)
+epoch 150, training cost 16.7674 (error=0.00687293), validation cost 16.1279 (error=0.00655291)
+epoch 160, training cost 16.4863 (error=0.00673416), validation cost 16 (error=0.00647375)
+epoch 170, training cost 15.8045 (error=0.0067248), validation cost 15.1915 (error=0.00637961)
+epoch 180, training cost 15.9235 (error=0.00662377), validation cost 15.6474 (error=0.00638232)
+epoch 190, training cost 15.0606 (error=0.00653318), validation cost 14.9917 (error=0.00629632)
+epoch 200, training cost 18.5956 (error=0.00642994), validation cost 17.4906 (error=0.00629081)
+epoch 210, training cost 15.8728 (error=0.00658068), validation cost 15.4439 (error=0.00641113)
+epoch 220, training cost 14.3272 (error=0.00623067), validation cost 13.5623 (error=0.00596797)
+epoch 230, training cost 13.7494 (error=0.00585294), validation cost 13.5447 (error=0.00562905)
+epoch 240, training cost 13.9122 (error=0.00579752), validation cost 13.6585 (error=0.00557686)
+epoch 250, training cost 13.7176 (error=0.00582093), validation cost 13.0052 (error=0.00563633)
+epoch 260, training cost 13.8743 (error=0.00584936), validation cost 12.9631 (error=0.00589001)
+epoch 270, training cost 13.0276 (error=0.00575821), validation cost 12.6114 (error=0.00570508)
+epoch 280, training cost 25.1565 (error=0.00622683), validation cost 24.9204 (error=0.00614743)
+epoch 290, training cost 13.0554 (error=0.00565528), validation cost 12.4248 (error=0.00556413)
+epoch 300, training cost 12.6575 (error=0.00576936), validation cost 12.4767 (error=0.00569666)
+epoch 310, training cost 11.9792 (error=0.0054737), validation cost 11.5957 (error=0.00545537)
+epoch 320, training cost 11.5401 (error=0.00537624), validation cost 11.2768 (error=0.00533599)
+epoch 330, training cost 11.5296 (error=0.00536929), validation cost 11.143 (error=0.00535904)
+epoch 340, training cost 12.2622 (error=0.00540462), validation cost 11.7504 (error=0.00536894)
+epoch 350, training cost 12.056 (error=0.00544774), validation cost 11.7284 (error=0.00559138)
+epoch 360, training cost 12.3389 (error=0.00540237), validation cost 12.0708 (error=0.0055009)
+epoch 370, training cost 12.5655 (error=0.00530972), validation cost 12.0445 (error=0.00547625)
+epoch 380, training cost 10.7495 (error=0.00541226), validation cost 10.9941 (error=0.00561648)
+epoch 390, training cost 18.03 (error=0.00666637), validation cost 17.7174 (error=0.00647306)
+epoch 400, training cost 14.7034 (error=0.00554893), validation cost 14.4209 (error=0.00539986)
+epoch 410, training cost 19.6683 (error=0.00818142), validation cost 19.1825 (error=0.00789129)
+epoch 420, training cost 13.0147 (error=0.00675251), validation cost 12.4695 (error=0.00642381)
+epoch 430, training cost 11.6804 (error=0.00645811), validation cost 11.1022 (error=0.00605155)
+epoch 440, training cost 14.0598 (error=0.00604893), validation cost 13.7821 (error=0.00584122)
+epoch 450, training cost 22.8754 (error=0.00564527), validation cost 22.4474 (error=0.00552203)
+epoch 460, training cost 11.0894 (error=0.00584845), validation cost 11.3458 (error=0.00570675)
+epoch 470, training cost 10.1576 (error=0.00551289), validation cost 9.82624 (error=0.00533324)
+epoch 480, training cost 10.3903 (error=0.00550624), validation cost 9.899 (error=0.00535609)
+epoch 490, training cost 18.1405 (error=0.00713316), validation cost 17.709 (error=0.00678169)
+epoch 500, training cost 14.6405 (error=0.00672957), validation cost 14.0743 (error=0.00637988)
+epoch 510, training cost 12.0697 (error=0.00634953), validation cost 11.4274 (error=0.00601729)
+epoch 520, training cost 12.3049 (error=0.00619453), validation cost 11.5031 (error=0.00589195)
+epoch 530, training cost 11.6109 (error=0.00615669), validation cost 11.0117 (error=0.00584893)
+epoch 540, training cost 9.96383 (error=0.00607211), validation cost 9.2344 (error=0.00569545)
+epoch 550, training cost 9.64479 (error=0.00611537), validation cost 9.44014 (error=0.00584506)
+epoch 560, training cost 28.6337 (error=0.00812469), validation cost 28.5028 (error=0.00822395)
+epoch 570, training cost 10.2925 (error=0.00601092), validation cost 9.75407 (error=0.00566116)
+epoch 580, training cost 29.3436 (error=0.00630217), validation cost 29.0423 (error=0.00597122)
+epoch 590, training cost 9.94255 (error=0.00656081), validation cost 9.37772 (error=0.00645349)
+epoch 600, training cost 11.9319 (error=0.00634058), validation cost 11.5402 (error=0.0061826)
+epoch 610, training cost 10.4077 (error=0.00615497), validation cost 9.74539 (error=0.00616539)
+epoch 620, training cost 9.87468 (error=0.00600583), validation cost 9.61445 (error=0.00587178)
+epoch 630, training cost 8.51842 (error=0.00573983), validation cost 8.87896 (error=0.00574438)
+epoch 640, training cost 9.84729 (error=0.00593764), validation cost 9.39993 (error=0.00585433)
+epoch 650, training cost 11.6963 (error=0.00649515), validation cost 11.1905 (error=0.00632633)
+epoch 660, training cost 10.4298 (error=0.0065521), validation cost 9.9083 (error=0.00636272)
+epoch 670, training cost 8.93942 (error=0.0065369), validation cost 8.32697 (error=0.00625253)
+epoch 680, training cost 12.6711 (error=0.00652364), validation cost 12.2899 (error=0.00636409)
+epoch 690, training cost 10.9554 (error=0.00648324), validation cost 10.3137 (error=0.00632955)
+epoch 700, training cost 8.61196 (error=0.00629122), validation cost 7.91849 (error=0.00622029)
+epoch 710, training cost 6.68398 (error=0.00646197), validation cost 5.86375 (error=0.00629813)
+epoch 720, training cost 8.6168 (error=0.00655385), validation cost 8.87649 (error=0.0063681)
+epoch 730, training cost 7.35768 (error=0.0063697), validation cost 6.60815 (error=0.0062449)
+epoch 740, training cost 7.02679 (error=0.00613052), validation cost 6.31393 (error=0.00606884)
+epoch 750, training cost 8.9875 (error=0.00613038), validation cost 8.37172 (error=0.00611202)2020-08-19 15:59:15.659317: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1159] Device interconnect StreamExecutor with strength 1 edge matrix:
+2020-08-19 15:59:15.659372: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1165]      
+
+epoch 760, training cost 7.61271 (error=0.00652822), validation cost 6.98812 (error=0.00656892)
+epoch 770, training cost 8.95272 (error=0.00635704), validation cost 8.58546 (error=0.006294)
+epoch 780, training cost 10.3319 (error=0.00704015), validation cost 9.56104 (error=0.0069683)
+epoch 790, training cost 9.52599 (error=0.00701349), validation cost 8.53292 (error=0.00697153)
+epoch 800, training cost 8.19196 (error=0.00677909), validation cost 7.37419 (error=0.00670474)
+epoch 810, training cost 9.09251 (error=0.0069389), validation cost 8.77054 (error=0.00681275)
+epoch 820, training cost 9.60178 (error=0.00670047), validation cost 8.46427 (error=0.00662072)
+epoch 830, training cost 7.55934 (error=0.00645074), validation cost 6.82301 (error=0.00646802)
+epoch 840, training cost 6.90713 (error=0.00637192), validation cost 6.10003 (error=0.00640181)
+epoch 850, training cost 29.1845 (error=0.0071656), validation cost 28.5125 (error=0.00702743)
+epoch 860, training cost 17.728 (error=0.00836081), validation cost 17.2496 (error=0.00813936)
+epoch 870, training cost 16.6022 (error=0.00822521), validation cost 15.5808 (error=0.00802426)
+epoch 880, training cost 14.9797 (error=0.00816185), validation cost 14.248 (error=0.00785872)
+epoch 890, training cost 12.9713 (error=0.00781017), validation cost 11.9006 (error=0.00758352)
+epoch 900, training cost 11.8003 (error=0.00799098), validation cost 9.96934 (error=0.00775385)
+epoch 910, training cost 26.3018 (error=0.00755266), validation cost 25.9343 (error=0.00733878)
+epoch 920, training cost 9.80519 (error=0.00730632), validation cost 9.16496 (error=0.00708233)
+epoch 930, training cost 22.561 (error=0.00729135), validation cost 22.1248 (error=0.00703387)
+epoch 940, training cost 9.48384 (error=0.00729998), validation cost 9.12069 (error=0.00707948)
+epoch 950, training cost 15.3757 (error=0.00695989), validation cost 14.9829 (error=0.00680289)
+epoch 960, training cost 8.50645 (error=0.00684914), validation cost 6.93658 (error=0.00661743)
+epoch 970, training cost 13.739 (error=0.00653328), validation cost 13.291 (error=0.00633188)
+epoch 980, training cost 6.62349 (error=0.00669247), validation cost 6.19071 (error=0.00637749)
+epoch 990, training cost 7.53995 (error=0.00663147), validation cost 7.2802 (error=0.00640224)
+[RESULT] training cost 20.1921, validation cost 19.7533, training error 0.00706008, validation error 0.00675831
+[SAVE] results/result_1_1/ex0/model/model.last.ckpt
+z_s (800, 1000, 2)
+z_params (800, 1000, 2) (800, 1000, 2)
+z_pred_params (800, 1000, 2) (800, 1000, 2)
+obs_params (800, 1000, 2) (800, 1000, 2)
+obs_pred_params (800, 1000, 2) (800, 1000, 2)
+[SAVE] result :  results/result_1_1/ex0/train.jbl
+#training data: 0
+#valid data: 1000
+test_data_size: 1000
+batch_size     : 100
+n_steps        : 1000
+dim_emit       : 2
+alpha          : 0.1
+beta           : 0.1
+gamma          : 0.0
+## emission variables
+emission_var/em_fc0/weights:0
+emission_var/em_fc0/biases:0
+emission_var/em_fc_mean/weights:0
+emission_var/em_fc_mean/biases:0
+emission_var/em_fc_cov/weights:0
+emission_var/em_fc_cov/biases:0
+## variational dist. variables
+variational_dist_var/vd_lstm0/rnn/lstm_cell/kernel:0
+variational_dist_var/vd_lstm0/rnn/lstm_cell/bias:0
+variational_dist_var/vd_fc1/weights:0
+variational_dist_var/vd_fc1/biases:0
+variational_dist_var/vd_fc_mu/weights:0
+variational_dist_var/vd_fc_mu/biases:0
+variational_dist_var/vd_fc_cov/weights:0
+variational_dist_var/vd_fc_cov/biases:0
+## transition variables
+transition_var/tr_fc0/weights:0
+transition_var/tr_fc0/biases:0
+transition_var/vd_fc_mu/weights:0
+transition_var/vd_fc_mu/biases:0
+transition_var/vd_fc_cov/weights:0
+transition_var/vd_fc_cov/biases:0
+## potential variables
+## label variables
+[LOAD] results/result_1_1/ex0/model/model.best.ckpt
+cost: 5.30783
+errors: 0.00651017
+z_s (1000, 1000, 2)
+z_params (1000, 1000, 2) (1000, 1000, 2)
+z_pred_params (1000, 1000, 2) (1000, 1000, 2)
+obs_params (1000, 1000, 2) (1000, 1000, 2)
+obs_pred_params (1000, 1000, 2) (1000, 1000, 2)
+[SAVE] result :  results/result_1_1/ex0/test.jbl
+[SAVE] config:  config_results/config_br2d_gen_1_1_0.result.json
