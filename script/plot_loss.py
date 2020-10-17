@@ -25,7 +25,7 @@ for data in datalist[1:]:
     valid_cost_pred.append(float(a[14])*0.1)
 
 plt.style.use("grayscale")
-fig = plt.figure()
+fig = plt.figure(figsize=(16.0,6.0))
 ax1 = fig.add_subplot(1, 2, 1)
 ax1.set_title("train cost")
 ax1.set_xlabel("epoch")
