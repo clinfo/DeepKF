@@ -1,0 +1,1 @@
+python plot_loss.py sample_plot_loss/log_sample.txt sample_plot_loss/sample_plot_loss.png
