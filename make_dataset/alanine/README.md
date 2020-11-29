@@ -28,10 +28,10 @@ python make_data_ala.py
 
 
 
-- ***phi_psi_sns_all.py***   
+- ***plot_phi_psi.py***   
 構造数のヒートマップを作成します
 ```
-python phi_psi_sns_all.py
+python plot_phi_psi.py
 ```
 
 ![sns_all_out](https://user-images.githubusercontent.com/39581094/75693181-f376b580-5ce9-11ea-9c8a-bd52a03e628b.png)
