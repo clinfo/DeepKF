@@ -3,22 +3,20 @@
 
 import matplotlib.pyplot as plt
 import mdtraj as md
-import numpy
-from pylab import *
+import numpy as np
+import sys
 from math import pi
 import seaborn as sns
 import pandas as pd
 
 def get_angles_dcd(fname1):
     traj = md.load_dcd(fname1, top = '../ala2.pdb')
-    atoms, bonds = traj.topology.to_dataframe()
     psi_indices, phi_indices = [6, 8, 14, 16], [4, 6, 8, 14]
     arr_angles = md.compute_dihedrals(traj, [phi_indices, psi_indices])
     return arr_angles
 
 def get_angles_xtc(fname1):
     traj = md.load_xtc(fname1, top = '../ala2.pdb')
-    atoms, bonds = traj.topology.to_dataframe()
     psi_indices, phi_indices = [6, 8, 14, 16], [4, 6, 8, 14]
     arr_angles = md.compute_dihedrals(traj, [phi_indices, psi_indices])
     return arr_angles

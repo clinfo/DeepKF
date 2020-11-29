@@ -4,13 +4,11 @@
 import matplotlib.pyplot as plt
 import mdtraj as md
 import numpy
-from pylab import *
 from math import pi
 import sys
 
 def get_angles(fname1):
     traj = md.load_dcd(fname1, top = 'ala2.pdb')
-    atoms, bonds = traj.topology.to_dataframe()
     psi_indices, phi_indices = [6, 8, 14, 16], [4, 6, 8, 14]
     arr_angles = md.compute_dihedrals(traj, [phi_indices, psi_indices])
     return traj, arr_angles
