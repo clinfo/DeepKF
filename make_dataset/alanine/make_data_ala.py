@@ -19,9 +19,13 @@ def get_angles_xtc(fname1):
 
 if __name__ == "__main__":
     argvs = sys.argv
-    fname1_list = ['../trajectory-'+str(i)+'.dcd' for i in range(2, 9)]
-    fname2_list = ['../trajectory-'+str(g)+'.xtc' for g in range(1, 6)]
-    angles = get_angles_dcd('../trajectory-1.dcd')
+    #fname1_list = ['../trajectory-'+str(i)+'.dcd' for i in range(2, 9)]
+    #fname2_list = ['../trajectory-'+str(g)+'.xtc' for g in range(1, 6)]
+    #angles = get_angles_dcd('../trajectory-1.dcd')
+    filepath = '/data/traj_data/ala_data/'
+    fname1_list = [filepath + 'trajectory-'+str(i)+'.dcd' for i in range(2, 9)]
+    fname2_list = [filepath + 'trajectory-'+str(g)+'.xtc' for g in range(1, 6)]
+    angles = get_angles_dcd(filepath + 'trajectory-1.dcd')
     for fname1 in fname1_list:
         angles_new = get_angles_dcd(fname1)
         angles = np.concatenate([angles, angles_new], axis=0)

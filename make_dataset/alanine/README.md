@@ -9,23 +9,8 @@ conda install -c conda-forge mdtraj
 ```
 python make_data_ala.py
 ```
-***スクリプトの中身は適宜編集してください(vim等で編集します)***
 
-スクリプト内24-26行目   
-
-> 24     fname1_list = ['../trajectory-'+str(i)+'.dcd' for i in range(2, 9)]   
-> 25     fname2_list = ['../trajectory-'+str(g)+'.xtc' for g in range(1, 6)]   
-> 26     angles = get_angles_dcd("../trajectory-1.dcd")
-
-でトラジェクトリデータ(dcdやxtc)の場所を指定します   
-
-（トラジェクトリデータ(dcdやxtc)は、小島Google Driveの
-```
-traj_data/ala_data/trajectory-**.dcd
-traj_data/ala_data/trajectory-**.xtc
-```
-から入手できます）
-※計算機 pe1 の場合,
+トラジェクトリデータは計算機 pe1 の場合,
 ```
 /data/traj_data/ala_data/trajectory-**.dcd
 /data/traj_data/ala_data/trajectory-**.xtc
