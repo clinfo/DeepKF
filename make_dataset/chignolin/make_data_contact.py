@@ -3,25 +3,18 @@
 
 import matplotlib.pyplot as plt
 import mdtraj as md
-import numpy
-from pylab import *
+import numpy as np
+#from pylab import *
 from math import pi
 import sys
 import glob
 
 from msmbuilder.featurizer import ContactFeaturizer
 
-
-#    argvs = sys.argv
-#    fname1 = str(argvs[1])
-#    oname = str(argvs[2])
-#
-
 list=["0_31410"]
 for name in list:
     topology = md.load(name+'/'+name+'.gro').topology
     print(topology)
-
     table, bonds = topology.to_dataframe()
 #    print(table.head())
 
