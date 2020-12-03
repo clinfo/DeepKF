@@ -3,20 +3,14 @@
 
 import matplotlib.pyplot as plt
 import mdtraj as md
-import numpy
-from pylab import *
+import numpy as np
+#from pylab import *
 from math import pi
 import sys
 import glob
 
 from msmbuilder.featurizer import ContactFeaturizer
 from msmbuilder.featurizer import RMSDFeaturizer
-
-
-#    argvs = sys.argv
-#    fname1 = str(argvs[1])
-#    oname = str(argvs[2])
-#
 
 list=["0_31410"]
 for name in list:

@@ -1,5 +1,5 @@
 - ***make_data_contact.py***
-
+# セットアップ
 はじめにmdtrajとmsmbuilderをインストールします   
 mdtraj (http://mdtraj.org/1.9.3/installation.html)   
 msmbuilder(http://msmbuilder.org/3.8.0/installation.html) 
@@ -24,7 +24,7 @@ conda install -c conda-forge fastcluster
 msmb -h
 ```
 
-使い方
+# 使い方
 ```
 python make_data_contact.py
 ```
@@ -33,12 +33,12 @@ python make_data_contact.py
 
 スクリプト内20行目   
 
-> 20 list=["0_31410"]
+> 15 top_num="0_31410"
 
 で初期構造を指定します   
 (例えば、0_31410は、traj_data/chig_data/traj_n1/0_31410を指します）      
-traj_n1はD(Asp3N-Gly7O)D(Asp3N-Thr8O)のプロットの   
-①: D(Asp3N-Thr8O)>1.5 [nm] & D(Asp3N-Gly7O)>1.5 [nm]    
+traj_n1はDistanece(Asp3N-Gly7O),Distance(Asp3N-Thr8O)のプロットにおける   
+① : Distance(Asp3N-Thr8O)>1.5 [nm] & Distance(Asp3N-Gly7O)>1.5 [nm]    
 を満たす領域から選んだ初期構造   
 
 下記を参照ください      
