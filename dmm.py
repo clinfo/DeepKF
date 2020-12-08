@@ -12,10 +12,12 @@ import logging
 
 from six.moves import urllib
 import tensorflow as tf
+from tfdeterminism import patch
 import numpy as np
 import joblib
 import json
 import argparse
+import random
 
 import dmm.dmm_input as dmm_input
 
@@ -1497,6 +1499,8 @@ def main():
         help="constraint gpus (default: all) (e.g. --gpu 0,2)",
     )
     parser.add_argument("--profile", action="store_true", help="")
+    parser.add_argument(
+        "--seed",type=int, default=0, help="random seed (default: 0)")
     args = parser.parse_args()
     # config
     config = get_default_config()
@@ -1520,6 +1524,11 @@ def main():
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     # profile
     config["profile"] = args.profile
+    seed = args.seed
+    if seed == None:
+        seed = 0
+    random.seed(seed)
+    np.random.seed(seed)
     #
     logger = logging.getLogger("logger")
     logger.setLevel(logging.WARN)
@@ -1533,6 +1542,7 @@ def main():
     # with tf.Graph().as_default(), tf.device('/cpu:0'):
     for mode in mode_list:
         with tf.Graph().as_default():
+            tf.compat.v1.set_random_seed(0)
             with tf.Session() as sess:
                 # mode
                 if mode == "train":
@@ -1571,4 +1581,5 @@ def main():
 
 
 if __name__ == "__main__":
+    patch()
     main()
