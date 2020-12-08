@@ -53,7 +53,7 @@ def plot_filter(filter_jbl,filter_image):
         #artists.append([z_image]+itr)
     fig.colorbar(z_image,ax=ax1)
     ani = animation.ArtistAnimation(fig,artists)
-    ani.save("sample_plot_filter/sample_plot_filter.gif")
+    ani.save(filter_image)
 
 
 
