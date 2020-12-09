@@ -1,0 +1,2 @@
+[LOG]	epoch	train cost	valid. cost	alpha	beta	gamma	train error(recons_mse)	valid. error(recons_mse)	train cost(recons)	train cost(temporal)	train cost(pred)	valid. cost(recons)	valid. cost(temporal)	valid. cost(pred)
+[LOG]	0	854.57	790.164	0.7	0.5	0	0.1728982	0.16488056	756.5574	92.94832	65.761375	690.3607	90.523224	72.737755
