@@ -1,11 +1,11 @@
-./learn.sh 0.3 0.1 10 &
-./learn.sh 0.3 0.1 11 &
-./learn.sh 0.3 0.1 12 &
-./learn.sh 0.3 0.1 13 &
-./learn.sh 0.3 0.1 14 &
-./learn.sh 0.3 0.1 15 &
-./learn.sh 0.3 0.1 16 &
-./learn.sh 0.3 0.1 17 & 
-./learn.sh 0.3 0.1 18 &
-./learn.sh 0.3 0.1 19 &
+./learn.sh 0.3 0.1 0 &
+./learn.sh 0.3 0.1 1 &
+./learn.sh 0.3 0.1 2 &
+./learn.sh 0.3 0.1 3 &
+./learn.sh 0.3 0.1 4 &
+./learn.sh 0.3 0.1 5 &
+./learn.sh 0.3 0.1 6 &
+./learn.sh 0.3 0.1 7 & 
+./learn.sh 0.3 0.1 8 &
+./learn.sh 0.3 0.1 9 &
 
