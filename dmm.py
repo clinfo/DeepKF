@@ -1542,7 +1542,7 @@ def main():
     # with tf.Graph().as_default(), tf.device('/cpu:0'):
     for mode in mode_list:
         with tf.Graph().as_default():
-            tf.compat.v1.set_random_seed(0)
+            tf.compat.v1.set_random_seed(seed)
             with tf.Session() as sess:
                 # mode
                 if mode == "train":
