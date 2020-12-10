@@ -28,7 +28,7 @@ def make_data_test():
 
 
 def make_zeros_gen():
-    zeros_gen_npy = np.array([[[0]]*100]*5)   
+    zeros_gen_npy = np.array([[[0]]*1000]*5)   
     np.save('zeros_gen.npy', zeros_gen_npy)
     print("zeros_gen")
     print(zeros_gen_npy.shape)
@@ -37,7 +37,7 @@ def make_zeros_gen():
         print(zeros_gen_npy,file=f)
 
 def make_mask_gen():
-    mask_gen_npy = np.array([[[0]]*100]*5)   
+    mask_gen_npy = np.array([[[0]]*1000]*5)   
     np.save('mask_gen.npy', mask_gen_npy)
     print("mask_gen")
     print(mask_gen_npy.shape)
