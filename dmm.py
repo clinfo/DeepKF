@@ -368,7 +368,7 @@ def compute_cost(
     # compute cost in data
     n_batch = int(np.ceil(data.num * 1.0 / batch_size))
     met = None
-    sess.run(tf.local_variables_initializer())
+    sess.run(tf.compat.v1.local_variables_initializer())
     for j in range(n_batch):
         idx = data_idx[j * batch_size : (j + 1) * batch_size]
         feed_dict = construct_feed(idx, data, placeholders, alpha,beta,gamma, is_train=is_train)
@@ -552,9 +552,9 @@ def train(sess, config):
             output_cost["cost"]
         )
     print_variables()
-    saver = tf.train.Saver(max_to_keep=None)
+    saver = tf.compat.v1.train.Saver(max_to_keep=None)
     # initialize
-    init = tf.global_variables_initializer()
+    init = tf.compat.v1.global_variables_initializer()
     sess.run(init)
 
     train_idx = list(range(train_data.num))
@@ -1254,7 +1254,7 @@ def train_fivo(sess, config):
 	"""
     return
 
-    ##========##
+    """
     # loding model
     print_variables()
     saver = tf.train.Saver()
@@ -1315,7 +1315,7 @@ def train_fivo(sess, config):
         results["error"] = errors
         print("[SAVE] result : ", config["save_result_filter"])
         joblib.dump(results, config["save_result_filter"], compress=3)
-
+    """
 
 def filtering_server(sess, config):
     ## server
@@ -1527,7 +1527,6 @@ def main():
     seed = args.seed
     if seed == None:
         seed = 0
-    random.seed(seed)
     np.random.seed(seed)
     #
     logger = logging.getLogger("logger")
@@ -1581,5 +1580,5 @@ def main():
 
 
 if __name__ == "__main__":
-    #patch()
+    patch()
     main()
