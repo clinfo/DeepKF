@@ -40,12 +40,12 @@
         ],
         "validation_cost": 0.0
     },
-    "evaluation_output": "sample_ala/model/hyparam.result.json",
-    "plot_path": "sample_ala/model/plot",
-    "save_model_path": "sample_ala/model/model",
-    "save_result_filter": "sample_ala/model/result/filter.jbl",
-    "save_result_test": "sample_ala/model/result/test.jbl",
-    "save_result_train": "sample_ala/model/result/train.jbl",
+    "evaluation_output": "model/hyparam.result.json",
+    "plot_path": "model/plot",
+    "save_model_path": "model/model",
+    "save_result_filter": "model/result/filter.jbl",
+    "save_result_test": "model/result/test.jbl",
+    "save_result_train": "model/result/train.jbl",
     "sampling_type":"normal",
     "emission_type":"normal",
     "state_type":"normal",
@@ -55,6 +55,6 @@
     "potential_enabled": true,
     "potential_grad_transition_enabled": false,
     "potential_nn_enabled": false,
-    "save_model": "sample_ala/model/model/model.last.ckpt",
-    "load_model": "sample_ala/model/model/model.last.ckpt"
+    "save_model": "model/model/model.last.ckpt",
+    "load_model": "model/model/model.last.ckpt"
 }
