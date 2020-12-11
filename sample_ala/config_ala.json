@@ -1,7 +1,7 @@
 {
     "batch_size": 100,
-    "data_test_npy": "sample_ala/dataset/ala_traj_all.npy",
-    "data_train_npy": "sample_ala/dataset/ala_traj_all.npy",
+    "data_test_npy": "dataset/ala_traj_all.npy",
+    "data_train_npy": "dataset/ala_traj_all.npy",
     "epoch": 1000,
     "load_model": "",
     "save_model_path":"dummy",
@@ -13,7 +13,6 @@
         0.2
     ],
     "alpha": 0.001,
-    "batch_size": 100,
     "dim": 1,
     "learning_rate": 1.0e-5
 }
