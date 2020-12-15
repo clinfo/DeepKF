@@ -5,5 +5,6 @@ seed=${3}
 #dmm train,test --config config_learn.json --hyperparam hyperparams/${alpha}_${beta}_${seed}.json\
 # --save-config config_results/${alpha}_${beta}_${seed}.json --seed ${seed} --gpu $((seed % 3 + 1))
 #dmm-plot infer --config config_results/${alpha}_${beta}_${seed}.json --limit_all 5
+python ../script/plot_infer.py results/${alpha}_${beta}_${seed}/train.jbl results/${alpha}_${beta}_${seed}/plot/train.png
 #python ../script/plot_loss.py results/${alpha}_${beta}_${seed}/log.txt results/${alpha}_${beta}_${seed}/plot/loss.png
-cp results/${alpha}_${beta}_${seed}/log.txt results/${alpha}_${beta}_${seed}/learn_log.tsv
+#cp results/${alpha}_${beta}_${seed}/log.txt results/${alpha}_${beta}_${seed}/learn_log.tsv
