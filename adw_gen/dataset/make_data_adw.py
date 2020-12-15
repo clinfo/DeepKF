@@ -15,7 +15,7 @@ def make_data_train():
         print(data_train_npy,file=f)
 
 def make_data_test():
-    datapoints = int(49999)
+    datapoints = int(499)
     traj = data_generator.get_asymmetric_double_well_data(datapoints)
     data_test_npy = np.expand_dims(traj, 1)
     data_test_npy = np.reshape(data_test_npy, (-1, 100, 1))    
@@ -25,19 +25,18 @@ def make_data_test():
     with open('data_test.txt', 'w') as f:
         np.set_printoptions(threshold=np.inf)
         print(data_test_npy,file=f)
+    return data_test_npy
 
 
-def make_zeros_gen():
-    zeros_gen_npy = np.array([[[0]]*1000]*5)   
-    np.save('zeros_gen.npy', zeros_gen_npy)
-    print("zeros_gen")
-    print(zeros_gen_npy.shape)
-    with open('zeros_gen.txt', 'w') as f:
+def make_data_gen(data_test_npy):
+    data_gen_npy=np.pad(data_test_npy,[(0,0),(0,4900),(0,0)],'constant')
+    np.save('data_gen.npy', data_gen_npy)
+    with open('data_gen.txt', 'w') as f:
         np.set_printoptions(threshold=np.inf)
-        print(zeros_gen_npy,file=f)
+        print(data_gen_npy,file=f)
 
 def make_mask_gen():
-    mask_gen_npy = np.array([[[0]]*1000]*5)   
+    mask_gen_npy = np.array([[[1]]*100+[[0]]*4900]*5)   
     np.save('mask_gen.npy', mask_gen_npy)
     print("mask_gen")
     print(mask_gen_npy.shape)
@@ -47,6 +46,6 @@ def make_mask_gen():
 
 np.random.seed(0)
 make_data_train()
-make_data_test()
-make_zeros_gen()
+data_test_npy=make_data_test()
+make_data_gen(data_test_npy)
 make_mask_gen()

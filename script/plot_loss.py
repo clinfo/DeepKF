@@ -33,11 +33,7 @@ def plot_loss(loss_txt,loss_image):
     ax1.set_title("train cost")
     ax1.set_xlabel("epoch")
     ax1.set_xlim([0,1000])
-<<<<<<< HEAD
     ax1.set_ylim([-1.0,5.0])
-=======
-    ax1.set_ylim([0.01,5.0])
->>>>>>> b10033e7d8a1d37e2430a767f5eac204f2cb2038
     ax1.plot(train_cost,label="total")
     ax1.plot(train_cost_recons,label="recons")
     ax1.plot(train_cost_temp,label="alpha*temporal")
@@ -48,11 +44,7 @@ def plot_loss(loss_txt,loss_image):
     ax2.set_title("valid cost")
     ax2.set_xlabel("epoch")
     ax2.set_xlim([0,1000])
-<<<<<<< HEAD
     ax2.set_ylim([-1.0,5.0])
-=======
-    ax2.set_ylim([0.01,5.0])
->>>>>>> b10033e7d8a1d37e2430a767f5eac204f2cb2038
     ax2.plot(train_cost,label="total")
     ax2.plot(train_cost_recons,label="recons")
     ax2.plot(train_cost_temp,label="alpha*temporal")
