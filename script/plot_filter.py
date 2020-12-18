@@ -10,12 +10,14 @@ def plot_filter(filter_jbl,filter_image):
     z_traj = data["z"][1][0]
     x_traj = data["mu"][1][0]
     fig = plt.figure(figsize=(24.0,24.0))
+    plt.rcParams["font.size"] = 48
     ax1 = fig.add_subplot(2,2,1)
     ax3 = fig.add_subplot(2,2,3)
     ax4 = fig.add_subplot(2,2,4)
     ax1.set_title("latent space")
     ax1.set_xlim(-5.0,5.0)
     ax1.set_ylim(-5.0,5.0)
+    
     ax3.set_title("observable space")
     ax3.set_xlim(0,5000)
     ax3.set_ylim(-1.0,5.0)
