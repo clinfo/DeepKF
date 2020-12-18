@@ -1,6 +1,6 @@
 {
     "hyperparameter_input": null,
-    "data_test_npy": "dataset/zeros_gen.npy",
+    "data_test_npy": "dataset/data_gen.npy",
     "mask_test_npy": "dataset/mask_gen.npy",
     "steps_train_npy": null,
     "steps_test_npy": null,
