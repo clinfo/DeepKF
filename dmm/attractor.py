@@ -24,6 +24,10 @@ import dmm.hyopt as hy
 # FLAGS = tf.app.flags.FLAGS
 # tf.app.flags.DEFINE_boolean('use_fp16', False,"""Train the model using fp16.""")
 
+### additional part by kagawa 20210601
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_v2_behavior()
+
 
 def make_griddata(dim, nx, rx=1, max_dim=-1):
     arr = []

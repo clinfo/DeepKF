@@ -18,6 +18,12 @@ import dmm.layers as layers
 
 # FLAGS = tf.app.flags.FLAGS
 
+### additional part by kagawa 20210601
+import tensorflow.compat.v1 as tf
+tf.compat.v1.disable_v2_behavior()
+
+import tensorflow_probability as tfp
+
 
 def construct_placeholder(config):
     hy_param = hy.get_hyperparameter()
@@ -209,7 +215,9 @@ def sampleState(qz, control_params, sample_shape=()):
             g = eps
             # g=-tf.log(-tf.log(eps))
             logpi = tf.log(qz[0] + 1.0e-10)
-            dist = tf.contrib.distributions.OneHotCategorical(logits=(logpi + g))
+#             dist = tf.contrib.distributions.OneHotCategorical(logits=(logpi + g))
+            dist = tfp.distributions.OneHotCategorical(logits=(logpi + g)) # additional part by kagawa 20210601
+            
             z_s = tf.cast(dist.sample(sample_shape), tf.float32)
         elif stype == "gambel-softmax" or stype == "gumbel-softmax":
             tau = control_params["config"]["sampling_tau"]
@@ -219,7 +227,9 @@ def sampleState(qz, control_params, sample_shape=()):
             logpi = tf.log(qz[0] + 1.0e-5)
             z_s = tf.nn.softmax((logpi + g) / tau)
         elif stype == "naive":
-            dist = tf.contrib.distributions.OneHotCategorical(probs=qz[0])
+#             dist = tf.contrib.distributions.OneHotCategorical(probs=qz[0])
+            dist = tfp.distributions.OneHotCategorical(probs=qz[0]) # additional part by kagawa 20210601
+            
             z_s = tf.cast(dist.sample(sample_shape), tf.float32)
         else:
             raise Exception("[Error] unknown sampling type")
@@ -230,7 +240,10 @@ def sampleState(qz, control_params, sample_shape=()):
             eps = control_params["placeholders"]["vd_eps"]
             z_s = sample_normal(qz, eps)
         elif stype == "normal":
-            dist = tf.contrib.distributions.Normal(qz[0], qz[1])
+#             dist = tf.contrib.distributions.Normal(qz[0], qz[1])
+            dist = tfp.distributions.Normal(qz[0], qz[1]) # additional part by kagawa 20210601
+            
+            
             z_s = tf.cast(dist.sample(sample_shape), tf.float32)
         else:
             raise Exception("[Error] unknown sampling type")
@@ -880,7 +893,9 @@ def sampleTransition(
             control_params=control_params,
         )
         # z_s=q_zz[0]
-        dist = tf.contrib.distributions.OneHotCategorical(probs=q_zz[0])
+#         dist = tf.contrib.distributions.OneHotCategorical(probs=q_zz[0])
+        dist = tfp.distributions.OneHotCategorical(probs=q_zz[0]) # additional part by kagawa 20210601
+        
         z_s = tf.cast(dist.sample(), tf.float32)
     elif sttype == "normal":
         q_zz = computeTransition(
@@ -941,7 +956,8 @@ def p_filter(
             mu_trans = tf.reshape(mu_trans, [-1, dim])
             cov_trans = tf.reshape(cov_trans, [-1, dim]) + 0.01
             #
-            proposal_dist = tf.contrib.distributions.Normal(
+#             proposal_dist = tf.contrib.distributions.Normal(
+            proposal_dist = tf.distributions.Normal( # additional part by kagawa 20210601
                 mu_trans[:, :], cov_trans[:, :]
             )
             particles = proposal_dist.sample(proposal_sample_size)
@@ -952,20 +968,26 @@ def p_filter(
             if sttype == "discrete":
                 logit = out_params[0][:, step, :]
                 logpi = tf.log(logit + 1.0e-10)
-                proposal_dist = tf.contrib.distributions.OneHotCategorical(logits=logpi)
+#                 proposal_dist = tf.contrib.distributions.OneHotCategorical(logits=logpi)
+                proposal_dist = tfp.distributions.OneHotCategorical(logits=logpi) # additional part by kagawa 20210601
+                
                 particles = tf.cast(
                     proposal_dist.sample(proposal_sample_size), tf.float32
                 )
             elif sttype == "discrete_tr":
                 probs = out_params[0][:, step, :]
-                proposal_dist = tf.contrib.distributions.OneHotCategorical(probs=probs)
+#                 proposal_dist = tf.contrib.distributions.OneHotCategorical(probs=probs)
+                proposal_dist = tfp.distributions.OneHotCategorical(probs=probs) # additional part by kagawa 20210601
+                
                 particles = tf.cast(
                     proposal_dist.sample(proposal_sample_size), tf.float32
                 )
             elif sttype == "normal":
                 mu_trans = out_params[0][:, step, :]
                 cov_trans = out_params[1][:, step, :] + 0.01
-                proposal_dist = tf.contrib.distributions.Normal(mu_trans, cov_trans)
+#                 proposal_dist = tf.contrib.distributions.Normal(mu_trans, cov_trans)
+                proposal_dist = tf.distributions.Normal(mu_trans, cov_trans) # additional part by kagawa 20210601
+                
                 particles = proposal_dist.sample(proposal_sample_size)
             else:
                 raise Exception("[Error] unknown state type")
@@ -973,7 +995,9 @@ def p_filter(
             raise Exception("[Error] unknown dynamics type")
     elif ptype == "zero_dynamics":
         var = control_params["config"]["zero_dynamics_var"]
-        proposal_dist = tf.contrib.distributions.Normal(z, var)
+#         proposal_dist = tf.contrib.distributions.Normal(z, var)
+        proposal_dist = tf.distributions.Normal(z, var) # additional part by kagawa 20210601
+        
         particles = proposal_dist.sample(proposal_sample_size)
         # 1000, ?, n_steps, dim
         particles = particles[:, :, step, :]
@@ -1013,7 +1037,9 @@ def p_filter(
     # w:(proposal_sample_size x sample_size) x batch__size
     #  probs=w/tf.reduce_sum(w,axis=0)
 
-    resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+#     resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+    resample_dist = tfp.distributions.Categorical(logits=tf.transpose(w)) # additional part by kagawa 20210601
+    
     # ids: resample x batch_size
     #  particles: (proposal_sample_size x sample_size) x batch_size x dim
     particle_ids = resample_dist.sample([resample_size])
@@ -1802,7 +1828,9 @@ def fivo(
         # w:(proposal_sample_size x sample_size) x batch__size
         #  probs=w/tf.reduce_sum(w,axis=0)
 
-        resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+#         resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+        resample_dist = tfp.distributions.Categorical(logits=tf.transpose(w)) # additional part by kagawa 20210601
+        
         # ids: resample x batch_size
         #  particles: (proposal_sample_size x sample_size) x batch_size x dim
         particle_ids = resample_dist.sample([resample_size])
@@ -1912,14 +1940,17 @@ def fivo2(
                 )
                 if sttype == "discrete":
                     logpi = tf.log(out_params[0] + 1.0e-10)
-                    proposal_dist = tf.contrib.distributions.OneHotCategorical(
+#                     proposal_dist = tf.contrib.distributions.OneHotCategorical(
+                    proposal_dist = tfp.distributions.OneHotCategorical( # additional part by kagawa 20210601
+                    
                         logits=logpi
                     )
                     particles = tf.cast(
                         proposal_dist.sample(proposal_sample_size), tf.float32
                     )
                 elif sttype == "discrete_tr":
-                    proposal_dist = tf.contrib.distributions.OneHotCategorical(
+#                     proposal_dist = tf.contrib.distributions.OneHotCategorical(
+                    proposal_dist = tfp.distributions.OneHotCategorical( # additional part by kagawa 20210601                    
                         probs=out_params[0]
                     )
                     particles = tf.cast(
@@ -1928,7 +1959,9 @@ def fivo2(
                 elif sttype == "normal":
                     mu_trans = out_params[0]
                     cov_trans = out_params[1] + 0.01
-                    proposal_dist = tf.contrib.distributions.Normal(
+#                     proposal_dist = tf.contrib.distributions.Normal(
+                    proposal_dist = tf.distributions.Normal( # additional part by kagawa 20210601
+                    
                         mu_trans[:, 0, :], cov_trans[:, 0, :]
                     )
                     particles = proposal_dist.sample(proposal_sample_size)
@@ -1938,7 +1971,9 @@ def fivo2(
                 raise Exception("[Error] unknown dynamics type")
         elif ptype == "zero_dynamics":
             var = control_params["config"]["zero_dynamics_var"]
-            proposal_dist = tf.contrib.distributions.Normal(z, var)
+#             proposal_dist = tf.contrib.distributions.Normal(z, var)
+            proposal_dist = tf.distributions.Normal(z, var) # additional part by kagawa 20210601
+            
             particles = proposal_dist.sample(proposal_sample_size)
         else:
             raise Exception("[Error] unknown pfilter type")
@@ -1964,7 +1999,9 @@ def fivo2(
         # w:(proposal_sample_size x sample_size) x batch__size
         #  probs=w/tf.reduce_sum(w,axis=0)
 
-        resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+#         resample_dist = tf.contrib.distributions.Categorical(logits=tf.transpose(w))
+        resample_dist = tfp.distributions.Categorical(logits=tf.transpose(w)) # additional part by kagawa 20210601
+        
         # ids: resample x batch_size
         #  particles: (proposal_sample_size x sample_size) x batch_size x dim
         particle_ids = resample_dist.sample([resample_size])

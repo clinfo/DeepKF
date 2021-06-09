@@ -17,6 +17,12 @@ import numpy as np
 
 # FLAGS = tf.app.flags.FLAGS
 
+# additional part by kagawa 20210601
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior() 
+# -outputs, states = tf.contrib.rnn.static_rnn(lstm_cells, _X, dtype=tf.float32)
+# outputs, states = tf.compat.v1.nn.static_rnn(lstm_cells, _X, dtype=tf.float32)
+
 
 def _variable_on_cpu(name, shape, initializer):
     """Helper to create a Variable stored on CPU memory.
@@ -62,9 +68,11 @@ def _variable_with_weight_decay(name, shape, initializer_name, wd):
     elif initializer_name == "zero":
         var = _variable_on_cpu(name, shape, tf.constant_initializer(0.0, dtype=dtype))
     elif initializer_name == "xavier":
-        var = _variable_on_cpu(name, shape, tf.contrib.layers.xavier_initializer())
+#         var = _variable_on_cpu(name, shape, tf.contrib.layers.xavier_initializer())
+        var = _variable_on_cpu(name, shape, tf.layers.xavier_initializer()) # additional part by kagawa 20210601
     elif initializer_name == "uniform":
-        var = _variable_on_cpu(name, shape, tf.contrib.layers.variance_scaling_initializer(uniform=True))
+#         var = _variable_on_cpu(name, shape, tf.contrib.layers.variance_scaling_initializer(uniform=True))
+        var = _variable_on_cpu(name, shape, tf.variance_scaling_initializer(distribution="uniform")) # additional part by kagawa 20210601
     if wd is not None:
         weight_decay = tf.nn.l2_loss(var) * wd
         tf.add_to_collection("losses", weight_decay)
@@ -296,13 +304,16 @@ def lstm_layer(x, n_steps, n_output, init_params_flag=True):
     # a list of 'n_steps' tensors of shape (batch_size, n_input)
     x = tf.unstack(x, n_steps, axis=1)
     # Define a lstm cell with tensorflow
-    lstm_cell = tf.contrib.rnn.LSTMCell(
+#     lstm_cell = tf.contrib.rnn.LSTMCell(
+    lstm_cell = tf.nn.rnn_cell.LSTMCell( # additional part by kagawa 20210601
         n_output,
         forget_bias=1.0,
         activation=tf.tanh,
         initializer=tf.constant_initializer(0.0),
     )
-    outputs, states = tf.contrib.rnn.static_rnn(lstm_cell, x, dtype=tf.float32)
+#     outputs, states = tf.contrib.rnn.static_rnn(lstm_cell, x, dtype=tf.float32)
+    outputs, states = tf.nn.static_rnn(lstm_cell, x, dtype=tf.float32) # additional part by kagawa 20210601
+
     # 'outputs' is a list of output tensor of shape (batch_size, n_output)
     # and change back dimension to (batch_size, n_step, n_output)
     outputs = tf.stack(outputs)

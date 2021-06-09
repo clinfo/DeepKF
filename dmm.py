@@ -33,6 +33,11 @@ from dmm.attractor import (
 # for profiler
 from tensorflow.python.client import timeline
 
+# additional part by kagawa 20210601
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior() 
+
+
 class dotdict(dict):
     """dot.notation access to dictionary attributes"""
 
@@ -1533,7 +1538,9 @@ def main():
     # with tf.Graph().as_default(), tf.device('/cpu:0'):
     for mode in mode_list:
         with tf.Graph().as_default():
-            with tf.Session() as sess:
+#             with tf.Session() as sess:
+            with tf.compat.v1.Session() as sess: # additional part by kagawa 20210601
+            
                 # mode
                 if mode == "train":
                     train(sess, config)
