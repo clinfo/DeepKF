@@ -7,9 +7,31 @@ Deep kalman filter の Tensor flow による実装です
 
 
 ### Requirements
-* python3 (> 3.3)
-  * tensorflow (>0.12)
-  * joblib
+
+confirmed with 
+
+* python 3.8.5
+  * tensorflow 2.4.0
+  * joblib 1.0.1
+  * tensorflow-probability 0.12.2
+
+and without
+* anaconda
+
+see details on requirements.txt
+
+### HOW TO RUN
+run as
+
+```
+. run_sample.sh
+```
+
+
+
+
+
+
 
 ### Anaconda install
 First, please install anaconda by the official anaconda instruction [https://conda.io/docs/user-guide/install/linux.html].
