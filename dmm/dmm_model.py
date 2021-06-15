@@ -19,40 +19,55 @@ import dmm.layers as layers
 # FLAGS = tf.app.flags.FLAGS
 
 
-def construct_placeholder(config):
-    hy_param = hy.get_hyperparameter()
-    dim = hy_param["dim"]
-    dim_emit = hy_param["dim_emit"]
-    n_steps = hy_param["n_steps"]
-    #
-    x_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
-    m_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
-    s_holder = tf.placeholder(tf.int32, shape=(None,))
-    vd_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
-    tr_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
-    potential_points_holder = tf.placeholder(tf.float32, shape=(None, dim))
-    alpha_holder = tf.placeholder(tf.float32)
-    beta_holder = tf.placeholder(tf.float32)
-    gamma_holder = tf.placeholder(tf.float32)
-    dropout_rate = tf.placeholder(tf.float32)
-    is_train = tf.placeholder(tf.bool)
-    #
-    placeholders = {
-        "x": x_holder,
-        "m": m_holder,
-        "s": s_holder,
-        "potential_points": potential_points_holder,
-        "alpha": alpha_holder,
-        "beta": beta_holder,
-        "gamma": gamma_holder,
-        "vd_eps": vd_eps_holder,
-        "tr_eps": tr_eps_holder,
-        "dropout_rate": dropout_rate,
-        "is_train": is_train,
-    }
-    if config["task"] == "label_prediction":
-        placeholders["l"] = tf.placeholder(tf.int32, shape=(None, n_steps))
-    return placeholders
+# def construct_placeholder(config): # 20210611 kagawa, need to remove placeholder
+#     hy_param = hy.get_hyperparameter()
+#     dim = hy_param["dim"]
+#     dim_emit = hy_param["dim_emit"]
+#     n_steps = hy_param["n_steps"]
+    
+# #     x_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
+#     x_holder = tf.Variable(tf.ones(shape=(n_steps, dim_emit)),dtype=tf.float32) # 20210611 kagawa, replaced placeholder with variable
+    
+# #     m_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim_emit))
+#     m_holder = tf.Variable(tf.ones(shape=(n_steps, dim_emit)),dtype=tf.float32) # 20210611 kagawa, replaced placeholder with variable
+    
+# #     s_holder = tf.placeholder(tf.int32, shape=(None,))
+# #     s_holder = tf.Variable(tf.ones(shape=()),dtype=tf.int32)
+    
+    
+# #     vd_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
+#     vd_eps_holder = tf.Variable(tf.ones(shape=(n_steps, dim)),dtype=tf.float32)
+    
+# #     tr_eps_holder = tf.placeholder(tf.float32, shape=(None, n_steps, dim))
+#     tr_eps_holder = tf.Variable(tf.ones(shape=(n_steps, dim)),dtype=tf.float32)
+    
+# #     potential_points_holder = tf.placeholder(tf.float32, shape=(None, dim))
+#     potential_points_holder = tf.Variable(tf.ones(shape=(None, dim)),dtype=tf.float32)
+    
+# #     alpha_holder = tf.placeholder(tf.float32)
+# #     beta_holder = tf.placeholder(tf.float32)    
+# #     gamma_holder = tf.placeholder(tf.float32)
+# #     dropout_rate = tf.placeholder(tf.float32)
+    
+    
+#     is_train = tf.placeholder(tf.bool)
+#     #
+#     placeholders = {
+#         "x": x_holder,
+#         "m": m_holder,
+#         "s": s_holder,
+#         "potential_points": potential_points_holder,
+#         "alpha": alpha_holder,
+#         "beta": beta_holder,
+#         "gamma": gamma_holder,
+#         "vd_eps": vd_eps_holder,
+#         "tr_eps": tr_eps_holder,
+#         "dropout_rate": dropout_rate,
+#         "is_train": is_train,
+#     }
+#     if config["task"] == "label_prediction":
+#         placeholders["l"] = tf.placeholder(tf.int32, shape=(None, n_steps))
+#     return placeholders
 
 
 def build_nn(

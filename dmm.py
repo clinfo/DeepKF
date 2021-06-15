@@ -22,7 +22,9 @@ import dmm.dmm_input as dmm_input
 # from dmm_model import inference_by_sample, loss, p_filter, sampleVariationalDist
 from dmm.dmm_model import inference, inference_label, loss, p_filter, sampleVariationalDist
 from dmm.dmm_model import fivo
-from dmm.dmm_model import construct_placeholder, computeEmission, computeVariationalDist
+# from dmm.dmm_model import construct_placeholder, computeEmission, computeVariationalDist
+from dmm.dmm_model import computeEmission, computeVariationalDist # 20210611 kagawa, commented *_placeholder
+
 import dmm.hyopt as hy
 from dmm.attractor import (
     field,
@@ -33,27 +35,27 @@ from dmm.attractor import (
 # for profiler
 from tensorflow.python.client import timeline
 
-class dotdict(dict):
-    """dot.notation access to dictionary attributes"""
+# class dotdict(dict):
+#     """dot.notation access to dictionary attributes"""
 
-    __getattr__ = dict.get
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
+#     __getattr__ = dict.get
+#     __setattr__ = dict.__setitem__
+#     __delattr__ = dict.__delitem__
 
 
-class NumPyArangeEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.int64):
-            return int(obj)
-        if isinstance(obj, np.int32):
-            return int(obj)
-        if isinstance(obj, np.float32):
-            return float(obj)
-        if isinstance(obj, np.float64):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()  # or map(int, obj)
-        return json.JSONEncoder.default(self, obj)
+# class NumPyArangeEncoder(json.JSONEncoder):
+#     def default(self, obj):
+#         if isinstance(obj, np.int64):
+#             return int(obj)
+#         if isinstance(obj, np.int32):
+#             return int(obj)
+#         if isinstance(obj, np.float32):
+#             return float(obj)
+#         if isinstance(obj, np.float64):
+#             return float(obj)
+#         if isinstance(obj, np.ndarray):
+#             return obj.tolist()  # or map(int, obj)
+#         return json.JSONEncoder.default(self, obj)
 
 
 def build_config(config):
@@ -518,7 +520,8 @@ def get_dim(config, hy_param, data):
     return dim, dim_emit
 
 
-def train(sess, config):
+# def train(sess, config):
+def train(config): # 20210611 by kagawa, removed sess
     hy_param = hy.get_hyperparameter()
     train_data, valid_data = dmm_input.load_data(
         config, with_shuffle=True, with_train_test=True
@@ -533,8 +536,10 @@ def train(sess, config):
     print("n_steps        :", n_steps)
     print("dim_emit       :", dim_emit)
 
-    placeholders = construct_placeholder(config)
-    control_params = {"config": config, "placeholders": placeholders}
+#     placeholders = construct_placeholder(config) # 20210611 kagawa, commented 
+    
+#     control_params = {"config": config, "placeholders": placeholders} # 20210611 kagawa, commented
+    
     # inference
     # outputs=inference_by_sample(n_steps,control_params=control_params)
     outputs = inference(n_steps, control_params=control_params)
@@ -551,6 +556,9 @@ def train(sess, config):
         )
     print_variables()
     saver = tf.train.Saver(max_to_keep=None)
+    
+    
+    
     # initialize
     init = tf.global_variables_initializer()
     sess.run(init)
@@ -1471,6 +1479,7 @@ def filtering_server(sess, config):
 
 def main():
     parser = argparse.ArgumentParser()
+    
     parser.add_argument("mode", type=str, help="train/infer")
     parser.add_argument(
         "--config", type=str, default=None, nargs="?", help="config json file"
@@ -1498,8 +1507,10 @@ def main():
     )
     parser.add_argument("--profile", action="store_true", help="")
     args = parser.parse_args()
+    
     # config
-    config = get_default_config()
+    config = get_default_config()    
+    
     if args.config is None:
         if not args.no_config:
             parser.print_help()
@@ -1530,44 +1541,52 @@ def main():
 
     # setup
     mode_list = args.mode.split(",")
-    # with tf.Graph().as_default(), tf.device('/cpu:0'):
+    
+    # mode_list == ['train', 'test', 'filter', 'field']
+    
+#     print("mode_list = ",mode_list)
+    
+#     with tf.Graph().as_default(), tf.device('/cpu:0'):
     for mode in mode_list:
-        with tf.Graph().as_default():
-            with tf.Session() as sess:
-                # mode
-                if mode == "train":
-                    train(sess, config)
-                elif mode == "infer" or mode == "test":
-                    if args.model is not None:
-                        config["load_model"] = args.model
-                    infer(sess, config)
-                elif mode == "filter":
-                    if args.model is not None:
-                        config["load_model"] = args.model
-                    filtering(sess, config)
-                elif mode == "filter_discrete":
-                    filter_discrete_forward(sess, config)
-                elif mode == "train_fivo":
-                    train_fivo(sess, config)
-                elif mode == "field":
-                    field(sess, config)
-                elif mode == "potential":
-                    potential(sess, config)
-                elif args.mode == "filter_server":
-                    filtering_server(sess, config=config)
+        with tf.Graph().as_default():            
+#         with tf.Session() as sess: # 20210611 kagawa, need to revise
+                
+            # mode
+            if mode == "train":
+#                 train(sess, config)
+                train(config) # 20210611 by kagawa, removed sess
+                
+#                 elif mode == "infer" or mode == "test":
+#                     if args.model is not None:
+#                         config["load_model"] = args.model
+#                     infer(sess, config)
+#                 elif mode == "filter":
+#                     if args.model is not None:
+#                         config["load_model"] = args.model
+#                     filtering(sess, config)
+#                 elif mode == "filter_discrete":
+#                     filter_discrete_forward(sess, config)
+#                 elif mode == "train_fivo":
+#                     train_fivo(sess, config)
+#                 elif mode == "field":
+#                     field(sess, config)
+#                 elif mode == "potential":
+#                     potential(sess, config)
+#                 elif args.mode == "filter_server":
+#                     filtering_server(sess, config=config)
 
-    if args.save_config is not None:
-        print("[SAVE] config: ", args.save_config)
-        fp = open(args.save_config, "w")
-        json.dump(
-            config,
-            fp,
-            ensure_ascii=False,
-            indent=4,
-            sort_keys=True,
-            separators=(",", ": "),
-            cls=NumPyArangeEncoder,
-        )
+#     if args.save_config is not None:
+#         print("[SAVE] config: ", args.save_config)
+#         fp = open(args.save_config, "w")
+#         json.dump(
+#             config,
+#             fp,
+#             ensure_ascii=False,
+#             indent=4,
+#             sort_keys=True,
+#             separators=(",", ": "),
+#             cls=NumPyArangeEncoder,
+#         )
 
 
 if __name__ == "__main__":
