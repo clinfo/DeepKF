@@ -6,7 +6,18 @@ Tensor flow implementation of the deep state space models
 - Krishnan, Rahul G., Uri Shalit, and David Sontag. "Structured Inference Networks for Nonlinear State Space Models", In AAAI 2017
 
 [README: Japanese](./README_jp.md)
-
+## citation
+This software is developped for a part of the following study:
+```
+@misc{nakamura2023new,
+      title={A New Deep State-Space Analysis Framework for Patient Latent State Estimation and Classification from EHR Time Series Data}, 
+      author={Aya Nakamura and Ryosuke Kojima and Yuji Okamoto and Eiichiro Uchino and Yohei Mineharu and Yohei Harada and Mayumi Kamada and Manabu Muto and Motoko Yanagita and Yasushi Okuno},
+      year={2023},
+      eprint={2307.11487},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
 ### Requirements
 * python3 (> 3.3)
   * tensorflow (>0.12)
@@ -15,7 +26,7 @@ Tensor flow implementation of the deep state space models
 ### Anaconda install
 First, please install anaconda by the official anaconda instruction [https://conda.io/docs/user-guide/install/linux.html].
 
-#### Reference
+#### Installation Reference
 
 - Installing pyenv
 ```
