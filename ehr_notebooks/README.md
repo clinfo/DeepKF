@@ -1,9 +1,9 @@
-# Cancer EHR Data Analysis – UMAP, PCA, VAE, and Clustering
+# Time-series EHR Data Analysis using the Deep State-space Model 
 
 This repository contains a collection of Jupyter notebooks for analyzing cancer treatment data, patient timelines, and drug-specific effects.
-The analyses employ **UMAP, PCA, VAE, clustering, and visualization techniques** to uncover hidden patterns in patient data, focusing on treatment outcomes, drug categories, and survival.
+The implementation uses deep state space models, PCA, and VAE for dimensionality reduction, followed by clustering and UMAP visualization to visualize hidden patterns in patient data, focusing on treatment outcomes, drug categories, and survival rates.
 
-This script is for the EHR data used in the paper. To obtain the complete data, please contact the paper's authors.
+This script is for the in-house EHR data used in the paper. To obtain the complete data, please contact the paper's authors.
 
 ## Key Features
 
