@@ -1,13 +1,13 @@
-# Deep kalman filter / deep state space models
+# Deep Kalman filter / deep state space models
 
-Tensor flow implementation of the deep state space models
+TensorFlow implementation of the deep state-space models
 
-- Krishnan, Rahul G., Uri Shalit, and David Sontag. "Deep kalman filters." arXiv preprint arXiv:1511.05121 (2015).
+- Krishnan, Rahul G., Uri Shalit, and David Sontag. "Deep Kalman filters." arXiv preprint arXiv:1511.05121 (2015).
 - Krishnan, Rahul G., Uri Shalit, and David Sontag. "Structured Inference Networks for Nonlinear State Space Models", In AAAI 2017
 
 [README: Japanese](./README_jp.md)
 ## citation
-This software is developped for a part of the following study:
+This software is developed for a part of the following study:
 ```
 @misc{nakamura2023new,
       title={A New Deep State-Space Analysis Framework for Patient Latent State Estimation and Classification from EHR Time Series Data}, 
@@ -18,15 +18,22 @@ This software is developped for a part of the following study:
       primaryClass={cs.LG}
 }
 ```
+See `ehr_notebooks/` for the data processing and other codes related to this paper.
+
 ### Requirements
 * python3 (> 3.3)
   * tensorflow (>0.12)
   * joblib
 
 ### Anaconda install
-First, please install anaconda by the official anaconda instruction [https://conda.io/docs/user-guide/install/linux.html].
+First, please install Anaconda according to the official Anaconda instructions [https://conda.io/docs/user-guide/install/linux.html].
 
 #### Installation Reference
+- Cloning this repository
+Cloning this repository may take some time, so we recommend cloning it with the following command:
+```
+git clone https://github.com/clinfo/DeepKF.git --depth 1
+```
 
 - Installing pyenv
 ```
@@ -37,12 +44,12 @@ echo 'eval "$(pyenv init -)"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-- Found latest version of anaconda
+- Found the latest version of Anaconda
 ```
 pyenv install -l | grep ana
 ```
 （anaconda3-2019.10 is recommended）
-- Installing anaconda
+- Installing Anaconda
 ```
 pyenv install anaconda3-2019.10
 pyenv rehash
@@ -52,7 +59,7 @@ source ~/.bashrc
 conda update conda
 ```
 
-Next, please install following libraries if you have GPU:
+Next, please install the following libraries if you have GPUs:
 ```
 pip install --ignore-installed --upgrade tensorflow_gpu==1.15.0
 pip install joblib
